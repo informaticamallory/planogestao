@@ -1,0 +1,14 @@
+# Fora da imagem: ambiente local, segredos e dados gerados.
+.venv/
+__pycache__/
+*.pyc
+.env
+.env.*
+!.env.example
+uploads/
+emails/
+SMTP/
+*.eml
+*.envelope.txt
+*.log
+.pytest_cache/

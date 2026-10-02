@@ -1,0 +1,11 @@
+# Aplicação de página única (React Router): qualquer caminho que não seja um arquivo ou pasta real
+# (ex.: /login, /planos/12, /admin/email) responde com o index.html, e o roteador do app decide a tela.
+# Copiado para a raiz do build pelo Vite (pasta public/). Hospedagem: Apache/LiteSpeed (Hostinger).
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+  RewriteRule ^index\.html$ - [L]
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteRule . /index.html [L]
+</IfModule>
