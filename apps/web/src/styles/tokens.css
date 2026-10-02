@@ -1,0 +1,383 @@
+/*
+ * Tema — Mallory Design System (UI Kit "Gestor de Contratos", adaptado ao PlanoGestão).
+ *
+ * Duas camadas:
+ *   1. Tokens do kit, com os nomes do kit (--bg, --primary, --r-md, --space-4...), em claro e escuro,
+ *      e a densidade (--gap/--pad). Tema e densidade vêm de <html data-theme data-density>.
+ *   2. Apelidos usados pelo app (--cor-*, --espaco-*, --raio-*, --fonte-*), que só apontam para a camada 1.
+ * Para trocar o visual, mexa na camada 1. Nenhum outro arquivo tem valores literais de estilo.
+ */
+
+/* ───────────────────────── 1. Tokens do kit ───────────────────────── */
+
+:root {
+  /* Marca */
+  --mallory-orange: #ff6600;
+  --mallory-amber: #ffa40d;
+  --mallory-gold: #ffc737;
+  --mallory-ink: #101921;
+
+  /* Tipografia */
+  --font-head: "Sora", ui-sans-serif, system-ui, sans-serif;
+  --font-body: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+  --text-2xs: 0.65625rem;
+  --text-xs: 0.6875rem; /* rótulos em maiúsculas, dicas */
+  --text-sm: 0.75rem; /* informação secundária */
+  --text-base: 0.84375rem; /* corpo */
+  --text-md: 0.96875rem; /* títulos de card */
+  --text-lg: 1.0625rem; /* títulos de modal/seção */
+  --text-xl: 1.25rem; /* subtítulos de página */
+  --text-2xl: 1.625rem; /* títulos de página */
+  --text-kpi: 1.4375rem; /* valores de KPI */
+  --fw-normal: 400;
+  --fw-medium: 500;
+  --fw-semibold: 600;
+  --fw-bold: 700;
+  --fw-extrabold: 800;
+  --leading-tight: 1.2;
+  --leading-normal: 1.45;
+  --leading-loose: 1.6;
+  --tracking-caps: 0.06em;
+  --tracking-tight: -0.01em;
+
+  /* Espaçamento */
+  --gap: 1.125rem; /* entre seções da página (densidade) */
+  --pad: 1.375rem; /* padding interno de cards (densidade) */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+
+  /* Raios */
+  --r-sm: 0.5rem;
+  --r-md: 0.75rem;
+  --r-lg: 1rem;
+  --r-xl: 1.25rem;
+  --r-2xl: 1.625rem;
+  --r-pill: 62.4375rem;
+  --card-radius: var(--r-2xl);
+  --card-shadow: var(--shadow-sm);
+
+  /* Transições */
+  --transition-fast: all 0.12s ease;
+  --transition-base: all 0.14s ease;
+  --transition-medium: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Claro (padrão) */
+:root,
+[data-theme="light"] {
+  --bg: oklch(0.984 0.004 70);
+  --bg-2: oklch(0.965 0.006 70);
+  --surface: #ffffff;
+  --surface-2: oklch(0.975 0.004 70);
+  --fg: oklch(0.24 0.022 250);
+  --fg-muted: oklch(0.52 0.018 255);
+  --fg-subtle: oklch(0.65 0.014 255);
+  --border: oklch(0.915 0.006 255);
+  --border-strong: oklch(0.86 0.008 255);
+  --ring: var(--mallory-orange);
+  --primary: oklch(0.682 0.197 44.5);
+  --primary-fg: #ffffff;
+  --primary-soft: oklch(0.96 0.04 60);
+  --primary-soft-fg: oklch(0.52 0.17 45);
+  --amber: oklch(0.78 0.16 65);
+  --gold: oklch(0.86 0.14 90);
+  --success: oklch(0.66 0.15 155);
+  --success-soft: oklch(0.95 0.05 155);
+  --warning: oklch(0.78 0.15 75);
+  --warning-soft: oklch(0.95 0.06 80);
+  --danger: oklch(0.62 0.21 26);
+  --danger-soft: oklch(0.95 0.05 25);
+  --info: oklch(0.62 0.13 235);
+  --info-soft: oklch(0.95 0.04 235);
+  --side: oklch(0.19 0.018 250);
+  --side-2: oklch(0.24 0.02 250);
+  --side-fg: oklch(0.93 0.008 250);
+  --side-fg-muted: oklch(0.66 0.014 250);
+  --side-border: oklch(0.28 0.018 250);
+  --c1: oklch(0.682 0.197 44.5); /* laranja */
+  --c2: oklch(0.82 0.15 88); /* ouro */
+  --c3: oklch(0.66 0.15 155); /* verde */
+  --c4: oklch(0.62 0.13 235); /* azul */
+  --c5: oklch(0.6 0.16 320); /* violeta */
+  --c6: oklch(0.72 0.12 200); /* teal */
+  --shadow-sm: 0 1px 2px oklch(0.2 0.02 250 / 0.06), 0 1px 3px oklch(0.2 0.02 250 / 0.05);
+  --shadow-md: 0 2px 6px oklch(0.2 0.02 250 / 0.06), 0 8px 24px oklch(0.2 0.02 250 / 0.07);
+  --shadow-lg: 0 4px 12px oklch(0.2 0.02 250 / 0.08), 0 18px 48px oklch(0.2 0.02 250 / 0.1);
+  --overlay: oklch(0.2 0.02 250 / 0.45);
+  color-scheme: light;
+}
+
+/* Escuro */
+[data-theme="dark"] {
+  --bg: oklch(0.16 0.018 250);
+  --bg-2: oklch(0.19 0.02 250);
+  --surface: oklch(0.21 0.02 250);
+  --surface-2: oklch(0.245 0.02 250);
+  --fg: oklch(0.96 0.006 250);
+  --fg-muted: oklch(0.72 0.015 250);
+  --fg-subtle: oklch(0.58 0.016 250);
+  --border: oklch(1 0 0 / 0.1);
+  --border-strong: oklch(1 0 0 / 0.18);
+  --ring: var(--mallory-orange);
+  --primary: oklch(0.72 0.19 48);
+  --primary-fg: oklch(0.16 0.02 250);
+  --primary-soft: oklch(0.32 0.08 50);
+  --primary-soft-fg: oklch(0.85 0.14 60);
+  --amber: oklch(0.8 0.15 68);
+  --gold: oklch(0.86 0.14 90);
+  --success: oklch(0.72 0.15 158);
+  --success-soft: oklch(0.32 0.07 158);
+  --warning: oklch(0.78 0.14 78);
+  --warning-soft: oklch(0.34 0.07 80);
+  --danger: oklch(0.7 0.19 25);
+  --danger-soft: oklch(0.34 0.09 25);
+  --info: oklch(0.7 0.13 235);
+  --info-soft: oklch(0.32 0.06 235);
+  --side: oklch(0.13 0.016 250);
+  --side-2: oklch(0.19 0.02 250);
+  --side-fg: oklch(0.92 0.008 250);
+  --side-fg-muted: oklch(0.6 0.014 250);
+  --side-border: oklch(1 0 0 / 0.08);
+  --c1: oklch(0.74 0.18 50);
+  --c2: oklch(0.84 0.14 88);
+  --c3: oklch(0.72 0.15 158);
+  --c4: oklch(0.7 0.13 235);
+  --c5: oklch(0.68 0.16 320);
+  --c6: oklch(0.76 0.12 200);
+  --shadow-sm: 0 1px 2px oklch(0 0 0 / 0.4);
+  --shadow-md: 0 2px 6px oklch(0 0 0 / 0.4), 0 8px 24px oklch(0 0 0 / 0.45);
+  --shadow-lg: 0 4px 12px oklch(0 0 0 / 0.45), 0 18px 48px oklch(0 0 0 / 0.55);
+  --overlay: oklch(0 0 0 / 0.6);
+  color-scheme: dark;
+}
+
+/*
+ * Cor de destaque escolhida pelo usuário (Meu Perfil), em <html data-accent>. Sem o atributo,
+ * vale o laranja Mallory acima. Troca só a família "primary" (e o anel de foco); cores de status
+ * e de dados continuam as do DS. Contraste (WCAG) ≥ 4,8:1 do texto sobre o primary nos dois temas.
+ * O seletor com data-theme="dark" tem especificidade maior e prevalece no escuro.
+ */
+[data-accent] {
+  --primary: oklch(0.52 0.14 var(--accent-h));
+  --primary-fg: #ffffff;
+  --primary-soft: oklch(0.96 0.03 var(--accent-h));
+  --primary-soft-fg: oklch(0.45 0.13 var(--accent-h));
+  --ring: var(--primary);
+}
+[data-theme="dark"][data-accent] {
+  --primary: oklch(0.74 0.13 var(--accent-h));
+  --primary-fg: oklch(0.16 0.02 250);
+  --primary-soft: oklch(0.32 0.07 var(--accent-h));
+  --primary-soft-fg: oklch(0.86 0.09 var(--accent-h));
+}
+[data-accent="azul"] {
+  --accent-h: 250;
+}
+[data-accent="verde"] {
+  --accent-h: 155;
+}
+[data-accent="roxo"] {
+  --accent-h: 300;
+}
+[data-accent="petroleo"] {
+  --accent-h: 200;
+}
+
+/* Densidade */
+[data-density="compact"] {
+  --gap: 0.75rem;
+  --pad: 1rem;
+}
+[data-density="comfortable"] {
+  --gap: 1.125rem;
+  --pad: 1.375rem;
+}
+[data-density="spacious"] {
+  --gap: 1.625rem;
+  --pad: 1.75rem;
+}
+
+/* ───────────────────────── 2. Apelidos do app ───────────────────────── */
+
+:root {
+  /* Superfícies e texto */
+  --cor-pagina: var(--bg);
+  --cor-fundo: var(--bg-2); /* áreas rebaixadas: cabeçalho de tabela, hover, trilhos */
+  --cor-superficie: var(--surface);
+  --cor-superficie-2: var(--surface-2);
+  --cor-borda: var(--border);
+  --cor-borda-forte: var(--border-strong);
+  --cor-texto: var(--fg);
+  --cor-texto-suave: var(--fg-muted);
+  --cor-texto-sutil: var(--fg-subtle);
+  --cor-texto-invertido: #ffffff;
+  --cor-primaria: var(--primary);
+  --cor-primaria-texto: var(--primary-fg);
+  --cor-primaria-suave: var(--primary-soft);
+  --cor-primaria-suave-texto: var(--primary-soft-fg);
+
+  /* Feedback (sempre acompanhado de texto) */
+  --cor-erro-fundo: var(--danger-soft);
+  --cor-erro-texto: var(--danger);
+  --cor-sucesso-fundo: var(--success-soft);
+  --cor-sucesso-texto: var(--success);
+  --cor-aviso-fundo: var(--warning-soft);
+  --cor-aviso-texto: var(--warning);
+  --cor-info-fundo: var(--info-soft);
+  --cor-info-texto: var(--info);
+  --cor-alta: var(--success);
+
+  /* Navegação (sempre escura) */
+  --cor-sidebar-fundo: var(--side);
+  --cor-sidebar-texto: var(--side-fg);
+  --cor-sidebar-texto-suave: var(--side-fg-muted);
+  --cor-sidebar-hover: var(--side-2);
+  --cor-sidebar-borda: var(--side-border);
+
+  /* Sobreposições */
+  --cor-overlay: var(--overlay);
+  --sombra-card: var(--card-shadow);
+  --sombra-1: var(--shadow-md); /* menus, painéis suspensos, drawers */
+  --sombra-2: var(--shadow-lg); /* modais */
+  --anel-foco: 0 0 0 3px color-mix(in oklab, var(--ring) 28%, transparent);
+
+  /* Espaçamento */
+  --espaco-05: 0.125rem;
+  --espaco-1: var(--space-1);
+  --espaco-2: var(--space-2);
+  --espaco-3: var(--space-3);
+  --espaco-4: var(--space-4);
+  --espaco-5: var(--space-5);
+  --espaco-6: var(--space-6);
+  --espaco-8: var(--space-8);
+  --espaco-10: var(--space-10);
+  --espaco-secao: var(--gap);
+  --espaco-card: var(--pad);
+
+  /* Raios e bordas */
+  --raio-1: var(--r-sm);
+  --raio-2: var(--r-md); /* controles */
+  --raio-3: var(--r-xl); /* blocos e painéis locais */
+  --raio-card: var(--card-radius);
+  --raio-pilula: var(--r-pill);
+  --raio-circulo: 50%;
+  --borda-fina: 1px;
+  --borda-media: 1.5px;
+  --borda-destaque: 3px;
+
+  /* Tipografia */
+  --fonte-familia: var(--font-body);
+  --fonte-titulo: var(--font-head);
+  --fonte-mono: var(--font-mono);
+  --fonte-2xs: var(--text-2xs);
+  --fonte-xs: var(--text-xs);
+  --fonte-sm: var(--text-sm);
+  --fonte-md: var(--text-base);
+  --fonte-base: var(--text-md);
+  --fonte-normal: var(--text-md);
+  --fonte-lg: var(--text-lg);
+  --fonte-xl: var(--text-2xl);
+  --fonte-2xl: var(--text-kpi);
+
+  /* Layout */
+  --largura-sidebar: 16.25rem;
+  --largura-sidebar-recolhida: 4.25rem;
+  --altura-barra: 3.75rem;
+  --altura-controle: 2.375rem;
+
+  /*
+   * Cores de dados (gráficos, calendário, badges de status): paleta do kit.
+   * Cor nunca é a única informação — rótulo/legenda sempre acompanha.
+   */
+  --cor-dado-em-andamento: var(--info);
+  --cor-dado-atrasada: var(--danger);
+  --cor-dado-concluida: var(--success);
+  --cor-dado-pendente: var(--c5);
+  --cor-dado-vencendo: var(--warning);
+  --cor-dado-neutro: var(--fg-subtle);
+  /* Plano não iniciado: cinza mais claro que o neutro (cancelado) e distinto do violeta das ações pendentes. */
+  --cor-dado-nao-iniciado: color-mix(in oklab, var(--fg-subtle) 55%, var(--bg));
+  /* Tags de prazo (separadas do status): vermelho = em atraso, laranja = a vencer, verde = no prazo. */
+  --cor-prazo-em_atraso: var(--danger);
+  --cor-prazo-a_vencer: var(--warning);
+  --cor-prazo-no_prazo: var(--success);
+  --cor-prazo-sem_prazo: var(--fg-subtle);
+  /* Os 7 status da ação */
+  --cor-status-aguardando_aceite: var(--c5);
+  --cor-status-aceita: var(--c6);
+  --cor-status-em_andamento: var(--info);
+  --cor-status-bloqueada: var(--c1);
+  --cor-status-concluida: var(--success);
+  --cor-status-recusada: var(--fg-muted);
+  --cor-status-cancelada: var(--fg-subtle);
+
+  --cor-grafico-grade: var(--border);
+  --cor-grafico-eixo: var(--fg-subtle);
+
+  /* Pódio da gamificação (sempre com a posição escrita) */
+  --cor-medalha-ouro: var(--gold);
+  --cor-medalha-prata: oklch(0.74 0.01 250);
+  --cor-medalha-bronze: oklch(0.64 0.11 52);
+}
+
+/*
+ * Tamanho do texto escolhido pelo usuário (Meu Perfil), em <html data-fonte>. É a ÚNICA medida
+ * que muda: todo o resto (texto, espaçamento, componentes) está em rem e acompanha a raiz.
+ * Porcentagem (e não px) para somar à preferência de fonte do próprio navegador.
+ */
+html[data-fonte="pequeno"] {
+  font-size: 87.5%;
+}
+html[data-fonte="grande"] {
+  font-size: 112.5%;
+}
+html[data-fonte="extra_grande"] {
+  font-size: 125%;
+}
+
+/* ───────────────────── 3. Ajustes por largura de tela (breakpoints.css) ───────────────────── */
+
+:root {
+  /* Respiro lateral do conteúdo e alvo de toque mínimo; aumentam/diminuem por faixa abaixo. */
+  --margem-pagina: var(--space-6);
+  --alvo-toque: 1.875rem;
+}
+
+/* Mobile e tablet: toque (alvos ≥ 44px) e texto um pouco maior, para leitura sem zoom. */
+@media (--ate-tablet) {
+  :root {
+    /* Nunca abaixo de 44px, mesmo com a fonte "Pequeno" (87,5%). */
+    --alvo-toque: max(44px, 2.75rem);
+    --altura-controle: max(44px, 2.75rem);
+    --text-2xs: 0.71875rem;
+    --text-xs: 0.75rem;
+    --text-sm: 0.8125rem;
+    --text-base: 0.9375rem;
+    --text-md: 1rem;
+    --margem-pagina: var(--space-5);
+  }
+}
+
+@media (--mobile) {
+  :root {
+    --margem-pagina: var(--space-4);
+    --text-xl: 1.1875rem;
+    --text-2xl: 1.375rem;
+    --altura-barra: 3.5rem;
+  }
+
+  /* Cards e seções mais justos no celular, em qualquer densidade escolhida. */
+  :root,
+  [data-density] {
+    --pad: 1rem;
+    --gap: 0.875rem;
+  }
+}

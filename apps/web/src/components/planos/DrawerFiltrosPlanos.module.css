@@ -1,0 +1,43 @@
+.formulario {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-4);
+}
+
+.grupo {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--espaco-2) var(--espaco-4);
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.legenda {
+  width: 100%;
+  margin-bottom: var(--espaco-1);
+  font-size: var(--fonte-md);
+  font-weight: 600;
+}
+
+.datas {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--espaco-2);
+}
+
+.datas .erro {
+  grid-column: 1 / -1;
+}
+
+.erro {
+  margin: 0;
+  font-size: var(--fonte-sm);
+  color: var(--cor-erro-texto);
+}
+
+@media (--mobile) {
+  .datas {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

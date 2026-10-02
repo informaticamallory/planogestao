@@ -1,0 +1,202 @@
+.pagina {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-secao);
+}
+
+.titulo {
+  margin: 0;
+  font-size: var(--fonte-xl);
+}
+
+.aba {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-4);
+}
+
+.painelFiltros {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-3);
+}
+
+.linhaFiltros {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--espaco-3) var(--espaco-4);
+}
+
+.campo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-1);
+}
+
+.campo .controleFiltro {
+  min-width: 10.625rem;
+  max-width: 17.5rem;
+}
+
+.rotulo {
+  font-size: var(--fonte-xs);
+  color: var(--cor-texto-suave);
+}
+
+.grupo {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--espaco-1) var(--espaco-3);
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.grupo legend {
+  width: 100%;
+  margin-bottom: var(--espaco-1);
+}
+
+.botoesFiltro {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--espaco-2);
+}
+
+.resumo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--espaco-3);
+}
+
+.textoResumo {
+  margin: 0;
+  font-size: var(--fonte-md);
+  color: var(--cor-texto-suave);
+}
+
+.barraExportacao {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--espaco-2);
+}
+
+.aviso {
+  font-size: var(--fonte-sm);
+  padding-left: var(--espaco-2);
+  border-left: var(--borda-destaque) solid var(--cor-dado-vencendo);
+}
+
+.erro {
+  margin: 0;
+  color: var(--cor-erro-texto);
+  font-size: var(--fonte-md);
+}
+
+.estado {
+  margin: 0;
+  padding: var(--espaco-6);
+  border: var(--borda-fina) dashed var(--cor-borda);
+  border-radius: var(--raio-3);
+  color: var(--cor-texto-suave);
+  text-align: center;
+}
+
+/* Específico dos relatórios: tabela densa, sem quebra de linha (exceto colunas de texto). */
+.quadroTabela .tabela {
+  font-size: var(--fonte-sm);
+}
+
+.quadroTabela .tabela td {
+  white-space: nowrap;
+  vertical-align: top;
+}
+
+.quadroTabela .tabela .colunaTexto {
+  white-space: normal;
+  min-width: 13.75rem;
+}
+
+/* Subação: de qual ação principal ela veio. */
+.legenda {
+  color: var(--fg-muted);
+  font-size: var(--text-xs);
+}
+
+.cabecalhoImpressao h1 {
+  margin: 0 0 var(--espaco-1);
+  font-size: 16pt;
+}
+
+.cabecalhoImpressao p {
+  margin: 0 0 var(--espaco-05);
+  font-size: 9pt;
+}
+
+@media print {
+  .pagina,
+  .aba {
+    gap: var(--espaco-2);
+  }
+
+  /* Na impressão, a lista de abas some; fica só o relatório. */
+  .abasTela [role="tablist"] {
+    display: none;
+  }
+
+  .aba .quadroTabela,
+  .aba .quadroTabela div {
+    overflow: visible;
+    border: 0;
+  }
+
+  .quadroTabela .tabela {
+    font-size: 8pt;
+  }
+
+  .quadroTabela .tabela th,
+  .quadroTabela .tabela td {
+    padding: var(--espaco-05) var(--espaco-1);
+    white-space: normal;
+  }
+
+  .tabela thead {
+    display: table-header-group; /* repete o cabeçalho em cada página */
+  }
+
+  .tabela tr {
+    break-inside: avoid;
+  }
+
+  .tabela a {
+    color: inherit;
+    text-decoration: none;
+  }
+}
+
+/* Celular: filtros dois por linha (datas lado a lado), controles na largura do campo, botões grandes. */
+@media (--mobile) {
+  .linhaFiltros > .campo {
+    flex: 1 1 calc(50% - var(--espaco-4));
+    min-width: 0;
+  }
+
+  .campo .controleFiltro {
+    min-width: 0;
+    max-width: none;
+    width: 100%;
+  }
+
+  .botoesFiltro > *,
+  .barraExportacao > * {
+    flex: 1 1 auto;
+  }
+
+  .quadroTabela .tabela .colunaTexto {
+    min-width: 11.25rem;
+  }
+}

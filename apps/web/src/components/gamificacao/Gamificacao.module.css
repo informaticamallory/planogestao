@@ -1,0 +1,289 @@
+.pagina {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-secao);
+}
+
+.cabecalho {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--espaco-4);
+}
+
+.titulo {
+  margin: 0;
+  font-size: var(--fonte-xl);
+}
+
+.subtitulo {
+  margin: var(--espaco-1) 0 0;
+  font-size: var(--fonte-md);
+  color: var(--cor-texto-suave);
+}
+
+/* ---- filtros ---- */
+.filtros {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--espaco-3);
+}
+
+.campo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-1);
+}
+
+.rotulo {
+  font-size: var(--fonte-xs);
+  color: var(--cor-texto-suave);
+}
+
+/* ---- cards de resumo ---- */
+.kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(10.625rem, 100%), 1fr));
+  gap: var(--espaco-3);
+}
+
+/* ---- regras ---- */
+.secaoTitulo {
+  margin: 0 0 var(--espaco-3);
+  font-size: var(--fonte-normal);
+}
+
+.regras {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(15rem, 100%), 1fr));
+  gap: var(--espaco-3);
+}
+
+.itemRegra {
+  display: flex;
+}
+
+/* Moldura vem do ui/Card; aqui só o destaque lateral (seletor composto para vencer a borda do Card). */
+.regras .regra {
+  flex: 1;
+  border-left: var(--espaco-1) solid var(--cor-primaria);
+}
+
+.regras .regraInativa {
+  opacity: 0.6;
+  border-left-color: var(--cor-dado-neutro);
+}
+
+.conteudoRegra {
+  display: flex;
+  gap: var(--espaco-3);
+  align-items: flex-start;
+}
+
+.pontosRegra {
+  flex-shrink: 0;
+  min-width: 4rem;
+  padding: var(--espaco-2);
+  border-radius: var(--raio-2);
+  background: var(--cor-fundo);
+  font-size: var(--fonte-lg);
+  font-weight: 700;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.textoRegra {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-05);
+  font-size: var(--fonte-sm);
+  color: var(--cor-texto-suave);
+}
+
+.nomeRegra {
+  font-size: var(--fonte-base);
+  font-weight: 700;
+  color: var(--cor-texto);
+}
+
+/* ---- pódio ---- */
+.podio {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: end;
+  gap: var(--espaco-3);
+  max-width: 45rem;
+  margin: 0 auto;
+  padding: 0;
+  list-style: none;
+}
+
+.degrau {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--espaco-2);
+  text-align: center;
+  min-width: 0;
+}
+
+.nomePodio {
+  max-width: 100%;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.pontosPodio {
+  font-size: var(--fonte-md);
+  color: var(--cor-texto-suave);
+  font-variant-numeric: tabular-nums;
+}
+
+.base {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  border-radius: var(--raio-2) var(--raio-2) 0 0;
+  color: var(--cor-texto-invertido);
+  font-size: var(--fonte-xl);
+  font-weight: 800;
+}
+
+.lugar1 .base {
+  height: 8.75rem;
+  background: var(--cor-medalha-ouro);
+}
+
+.lugar2 .base {
+  height: 6.25rem;
+  background: var(--cor-medalha-prata);
+}
+
+.lugar3 .base {
+  height: 4.5rem;
+  background: var(--cor-medalha-bronze);
+}
+
+.lugar1 .avatarPodio {
+  box-shadow: 0 0 0 var(--espaco-1) var(--cor-medalha-ouro);
+}
+
+.vazio {
+  margin: 0;
+  padding: var(--espaco-6) var(--espaco-4);
+  text-align: center;
+  color: var(--cor-texto-suave);
+}
+
+.vazio strong {
+  display: block;
+  margin-bottom: var(--espaco-1);
+  font-size: var(--fonte-normal);
+  color: var(--cor-texto);
+}
+
+/* ---- tabela ---- */
+.ranking td {
+  white-space: nowrap;
+}
+
+.num {
+  font-variant-numeric: tabular-nums;
+}
+
+.colaborador {
+  display: flex;
+  align-items: center;
+  gap: var(--espaco-2);
+}
+
+.meta {
+  display: block;
+  font-size: var(--fonte-xs);
+  color: var(--cor-texto-suave);
+}
+
+.posicao {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.barra {
+  display: flex;
+  align-items: center;
+  gap: var(--espaco-2);
+  min-width: 8.75rem;
+}
+
+.trilho {
+  flex: 1;
+  height: 0.5rem;
+  border-radius: var(--raio-pilula);
+  background: var(--cor-borda);
+  overflow: hidden;
+}
+
+.preenchimento {
+  height: 100%;
+  border-radius: var(--raio-pilula);
+  background: var(--cor-dado-concluida);
+}
+
+.subiu {
+  color: var(--cor-alta);
+}
+
+.caiu {
+  color: var(--cor-erro-texto);
+}
+
+.estavel,
+.novo {
+  color: var(--cor-texto-suave);
+}
+
+.aviso {
+  margin: 0;
+  font-size: var(--fonte-sm);
+  color: var(--cor-texto-suave);
+}
+
+.erro {
+  margin: 0;
+  color: var(--cor-erro-texto);
+}
+
+@media (--mobile) {
+  .lugar1 .base {
+    height: 6rem;
+  }
+
+  .lugar2 .base {
+    height: 4.25rem;
+  }
+
+  .lugar3 .base {
+    height: 3rem;
+  }
+
+  .degrau .avatarPodio {
+    width: 3.25rem;
+    height: 3.25rem;
+    font-size: var(--fonte-normal);
+  }
+}
+
+/* Celular: filtros dois por linha, controle na largura do campo. */
+@media (--mobile) {
+  .filtros > .campo {
+    flex: 1 1 calc(50% - var(--espaco-3));
+    min-width: 0;
+  }
+
+  .filtros > .campo select,
+  .filtros > .campo input {
+    width: 100%;
+  }
+}

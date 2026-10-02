@@ -1,0 +1,63 @@
+/* Mallory DS — menu suspenso: superfície elevada (sombra md). */
+.menuSuspenso {
+  position: relative;
+  display: inline-block;
+}
+
+.botao {
+  padding: 0.5625rem 0.75rem;
+  border: var(--borda-fina) solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  color: var(--fg);
+  cursor: pointer;
+}
+
+.painel {
+  position: fixed;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  min-width: 12.5rem;
+  padding: 0.375rem;
+  border: var(--borda-fina) solid var(--border);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-md);
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0.5rem 0.6875rem;
+  border: 0;
+  border-radius: var(--r-sm);
+  background: none;
+  color: var(--fg);
+  font-size: var(--text-base);
+  text-align: left;
+  cursor: pointer;
+}
+
+.item:hover:not(:disabled),
+.item:focus-visible {
+  background: var(--bg-2);
+  outline: none;
+}
+
+.item:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+@media (--ate-tablet) {
+  .botao,
+  .item {
+    min-height: var(--alvo-toque);
+  }
+
+  .painel {
+    max-width: calc(100vw - 1rem);
+  }
+}

@@ -1,0 +1,144 @@
+.pagina {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-secao);
+}
+
+.titulo {
+  margin: 0;
+  font-size: var(--fonte-xl);
+}
+
+.cartoes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(12.5rem, 100%), 1fr));
+  gap: var(--espaco-3);
+}
+
+.cartao {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-1);
+  padding: var(--espaco-4);
+  border: var(--borda-fina) solid var(--cor-borda);
+  border-radius: var(--raio-3);
+  background: var(--cor-superficie);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.cartao:hover,
+.cartao:focus-visible {
+  border-color: var(--cor-primaria);
+}
+
+.cartaoAtivo {
+  border-color: var(--cor-primaria);
+  box-shadow: inset 0 0 0 var(--borda-fina) var(--cor-primaria);
+}
+
+.rotuloCartao {
+  font-size: var(--fonte-md);
+  color: var(--cor-texto-suave);
+}
+
+.valorCartao {
+  font-size: var(--fonte-2xl);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.ajudaCartao {
+  font-size: var(--fonte-xs);
+  color: var(--cor-texto-suave);
+}
+
+.barra {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--espaco-3);
+}
+
+.legenda {
+  font-size: var(--fonte-md);
+  color: var(--cor-texto-suave);
+}
+
+.estado {
+  margin: 0;
+  padding: var(--espaco-6);
+  border: var(--borda-fina) dashed var(--cor-borda);
+  border-radius: var(--raio-3);
+  color: var(--cor-texto-suave);
+  text-align: center;
+}
+
+.erro {
+  margin: 0;
+  color: var(--cor-erro-texto);
+}
+
+.tabela th,
+.tabela td {
+  white-space: nowrap;
+}
+
+.linha {
+  cursor: pointer;
+}
+
+.linha:hover,
+.linhaAberta {
+  background: var(--cor-fundo);
+}
+
+.colunaAcao {
+  white-space: normal !important;
+  min-width: 17.5rem;
+}
+
+.botaoAcao {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.botaoAcao:hover {
+  text-decoration: underline;
+}
+
+.colunaAcao > span {
+  margin-left: var(--espaco-2);
+}
+
+.numero {
+  font-variant-numeric: tabular-nums;
+}
+
+.colunaProgresso {
+  min-width: 8.75rem;
+}
+
+@media (--mobile) {
+  /* Cartões de resumo dois por linha, em vez de uma pilha alta. */
+  .cartoes {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .colunaAcao {
+    min-width: 12.5rem;
+  }
+}
+
+@media (--ate-tablet) {
+  .botaoAcao {
+    min-height: var(--alvo-toque);
+  }
+}

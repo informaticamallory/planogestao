@@ -1,0 +1,61 @@
+.paginacao {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--espaco-3);
+  font-size: var(--fonte-md);
+}
+
+.resumo {
+  color: var(--fg-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.paginas {
+  display: flex;
+  align-items: center;
+  gap: var(--espaco-1);
+}
+
+.numero {
+  min-width: max(1.875rem, var(--alvo-toque));
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.reticencias {
+  padding: 0 var(--espaco-1);
+  color: var(--cor-texto-suave);
+}
+
+.tamanho {
+  display: flex;
+  align-items: center;
+  gap: var(--espaco-2);
+  color: var(--cor-texto-suave);
+}
+
+/* O select de tamanho só precisa caber o número. */
+.tamanho .seletorTamanho {
+  min-width: 0;
+}
+
+/* Celular: resumo em cima, páginas centralizadas e o seletor de tamanho abaixo. */
+@media (--mobile) {
+  .paginacao {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .paginas {
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .resumo,
+  .tamanho {
+    justify-content: center;
+    text-align: center;
+  }
+}

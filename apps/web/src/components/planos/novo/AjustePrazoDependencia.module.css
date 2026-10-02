@@ -1,0 +1,38 @@
+.pergunta {
+  color: var(--fg);
+  font-weight: var(--fw-medium);
+}
+
+.lista {
+  margin: 0 0 var(--space-3);
+  padding-left: var(--space-5);
+}
+
+.datas {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--space-1) var(--space-3);
+  margin: 0 0 var(--space-3);
+}
+
+.datas dt {
+  color: var(--fg-muted);
+}
+
+.datas dd {
+  margin: 0;
+  color: var(--fg);
+  font-weight: var(--fw-medium);
+}
+
+.alerta {
+  margin: 0 0 var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--r-md);
+  background: var(--warning-soft);
+  color: var(--fg);
+}
+
+.nota {
+  font-size: var(--text-sm);
+}

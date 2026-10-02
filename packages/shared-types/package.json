@@ -1,0 +1,16 @@
+{
+  "name": "@planogestao/shared-types",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "generate": "openapi-typescript http://localhost:8000/openapi.json -o src/api.gen.ts",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "devDependencies": {
+    "openapi-typescript": "^7.4.0",
+    "typescript": "~5.6.0"
+  }
+}

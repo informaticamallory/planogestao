@@ -1,0 +1,26 @@
+node_modules/
+dist/
+*.log
+.DS_Store
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Segredos
+.env
+.env.local
+!.env.example
+
+backend/uploads/
+
+# E-mails gravados no modo arquivo (EMAIL_MODO=arquivo): têm mensagens e endereços reais.
+# Se mudar EMAIL_PASTA_ARQUIVOS, acrescente a nova pasta aqui.
+backend/emails/
+backend/SMTP/
+*.eml
+*.envelope.txt
+
+# Configuração local do Claude Code (da sua máquina)
+.claude/settings.local.json

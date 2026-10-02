@@ -1,0 +1,37 @@
+/* Segmentado em pílula (mesmo desenho dos controles da topbar). */
+.segmentado {
+  display: inline-flex;
+  gap: 0.125rem;
+  padding: 0.1875rem;
+  border: var(--borda-fina) solid var(--border);
+  border-radius: var(--r-pill);
+  background: var(--bg-2);
+}
+
+.opcao {
+  padding: 0.3125rem 0.875rem;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: transparent;
+  color: var(--fg-muted);
+  font-size: var(--text-sm);
+  font-weight: var(--fw-semibold);
+  cursor: pointer;
+  transition: var(--transition-base);
+}
+
+.opcao:hover {
+  color: var(--fg);
+}
+
+.opcaoAtiva {
+  background: var(--surface);
+  color: var(--fg);
+  box-shadow: var(--shadow-sm);
+}
+
+@media (--ate-tablet) {
+  .opcao {
+    min-height: var(--alvo-toque);
+  }
+}

@@ -1,0 +1,129 @@
+/* Mallory DS — drawer lateral: sombra md (elevação de drawer). */
+.drawer {
+  position: fixed;
+  inset: 0 0 0 auto;
+  width: min(26.25rem, 100vw);
+  max-width: 100vw;
+  height: 100vh;
+  max-height: 100vh;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-left: var(--borda-fina) solid var(--border);
+  background: var(--surface);
+  color: var(--fg);
+  box-shadow: var(--shadow-md);
+}
+
+.drawer::backdrop {
+  background: var(--overlay);
+}
+
+.conteudo {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.cabecalho {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-4) var(--pad);
+  border-bottom: var(--borda-fina) solid var(--border);
+}
+
+.titulo {
+  margin: 0;
+  font-family: var(--font-head);
+  font-size: var(--text-lg);
+  font-weight: var(--fw-bold);
+}
+
+.acoesCabecalho {
+  margin-left: auto;
+  margin-right: var(--space-2);
+  font-size: var(--text-base);
+}
+
+.corpo {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--pad);
+}
+
+.rodape {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  padding: var(--space-4) var(--pad);
+  border-top: var(--borda-fina) solid var(--border);
+  background: var(--surface-2);
+}
+
+/*
+ * Celular: o drawer vira bottom sheet — ocupa quase a tela toda, sobe de baixo, cantos de cima
+ * arredondados e o rodapé (Aplicar/Cancelar) sempre à vista. A largura inline do componente é ignorada.
+ */
+@media (--mobile) {
+  .drawer {
+    inset: auto 0 0 0;
+    width: 100vw !important;
+    height: auto;
+    max-height: calc(100dvh - 1.5rem);
+    border-left: 0;
+    border-top: var(--borda-fina) solid var(--border);
+    border-radius: var(--r-2xl) var(--r-2xl) 0 0;
+    box-shadow: var(--shadow-lg);
+  }
+
+  .drawer[open] {
+    animation: subirFolha 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .conteudo {
+    height: auto;
+    max-height: calc(100dvh - 1.5rem);
+  }
+
+  /* Alça visual do bottom sheet. */
+  .cabecalho {
+    position: relative;
+    padding-top: var(--space-5);
+  }
+
+  .cabecalho::before {
+    content: "";
+    position: absolute;
+    top: 0.5rem;
+    left: 50%;
+    width: 2.5rem;
+    height: 0.25rem;
+    border-radius: var(--r-pill);
+    background: var(--border-strong);
+    transform: translateX(-50%);
+  }
+
+  .rodape {
+    flex-wrap: wrap;
+    padding-bottom: calc(var(--space-4) + env(safe-area-inset-bottom));
+  }
+
+  .rodape > * {
+    flex: 1 1 auto;
+  }
+}
+
+@keyframes subirFolha {
+  from {
+    transform: translateY(40%);
+    opacity: 0.4;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .drawer[open] {
+    animation: none;
+  }
+}

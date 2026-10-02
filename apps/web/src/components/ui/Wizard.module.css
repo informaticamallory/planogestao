@@ -1,0 +1,207 @@
+.wizard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+}
+
+.indicador {
+  display: flex;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.passo {
+  flex: 1;
+  border-top: var(--borda-destaque) solid var(--border);
+  padding-top: var(--space-3);
+}
+
+.concluida,
+.atual {
+  border-top-color: var(--primary);
+}
+
+.botaoPasso {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--fg-muted);
+  font-weight: var(--fw-medium);
+  text-align: left;
+  cursor: pointer;
+}
+
+.botaoPasso:hover .tituloPasso {
+  color: var(--fg);
+}
+
+.atual .botaoPasso {
+  color: var(--fg);
+  font-weight: var(--fw-semibold);
+}
+
+.numero {
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 1.75rem;
+  height: 1.75rem;
+  border: var(--borda-media) solid var(--border-strong);
+  border-radius: 0.5625rem;
+  font-family: var(--font-head);
+  font-size: var(--text-sm);
+  font-weight: var(--fw-bold);
+  font-variant-numeric: tabular-nums;
+}
+
+.concluida .numero {
+  border-color: var(--primary-soft);
+  background: var(--primary-soft);
+  color: var(--primary-soft-fg);
+}
+
+.atual .numero {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: var(--primary-fg);
+  box-shadow: 0 4px 12px color-mix(in oklab, var(--primary) 35%, transparent);
+}
+
+/* Campos obrigatórios pendentes: pontinho no canto do número (vermelho depois de tentar salvar). */
+.marcaPendente {
+  position: absolute;
+  top: -0.25rem;
+  right: -0.25rem;
+  width: 0.625rem;
+  height: 0.625rem;
+  border: var(--borda-media) solid var(--bg);
+  border-radius: 50%;
+  background: var(--warning);
+}
+
+.marcaErro {
+  background: var(--danger);
+}
+
+.secoes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+}
+
+.conteudo {
+  padding: var(--pad);
+  border: var(--borda-fina) solid var(--border);
+  border-radius: var(--card-radius);
+  background: var(--surface);
+  box-shadow: var(--card-shadow);
+}
+
+.conteudo[hidden] {
+  display: none;
+}
+
+.tituloSecao {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+  margin: 0 0 var(--space-4);
+  font-family: var(--font-head);
+  font-size: var(--text-lg);
+  font-weight: var(--fw-semibold);
+}
+
+.seloPendente {
+  padding: 0.125rem 0.5rem;
+  border-radius: var(--r-pill);
+  background: var(--warning-soft);
+  color: var(--fg);
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  font-weight: var(--fw-medium);
+}
+
+.seloErro {
+  background: var(--cor-erro-fundo);
+  color: var(--cor-erro-texto);
+}
+
+.rodape {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* Modo "geral": os botões ficam fixos embaixo, para salvar sem rolar até o fim. */
+@media (--a-partir-tablet) {
+  .geral .rodape {
+    position: sticky;
+    bottom: 0;
+    z-index: 10;
+    padding: var(--space-3) var(--pad);
+    border: var(--borda-fina) solid var(--border);
+    border-radius: var(--card-radius);
+    background: color-mix(in oklab, var(--bg) 92%, transparent);
+    box-shadow: var(--shadow-sm);
+    backdrop-filter: blur(10px);
+  }
+}
+
+/*
+ * Celular: indicador compacto (só números; o título aparece só na etapa atual) e os botões de
+ * navegação fixos na parte de baixo da tela, sempre ao alcance do polegar.
+ */
+@media (--mobile) {
+  .indicador {
+    gap: var(--space-1);
+  }
+
+  .passo {
+    flex: 0 0 auto;
+  }
+
+  .atual {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .tituloPasso {
+    display: none;
+  }
+
+  .atual .tituloPasso {
+    display: inline;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .botaoPasso {
+    min-height: var(--alvo-toque);
+  }
+
+  .rodape {
+    position: sticky;
+    bottom: 0;
+    z-index: 10;
+    margin: 0 calc(-1 * var(--margem-pagina)) calc(-1 * var(--margem-pagina));
+    padding: var(--space-3) var(--margem-pagina) calc(var(--space-3) + env(safe-area-inset-bottom));
+    border-top: var(--borda-fina) solid var(--border);
+    background: color-mix(in oklab, var(--bg) 92%, transparent);
+    backdrop-filter: blur(10px);
+  }
+
+  /* Dois botões por linha; a navegação (Anterior/Próximo) fica na última, junto ao polegar. */
+  .rodape > * {
+    flex: 1 1 calc(50% - var(--space-2));
+  }
+}

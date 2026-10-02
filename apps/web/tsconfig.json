@@ -1,0 +1,17 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "types": ["vite/client"],
+    // O monorepo tem React 18 (web) e React 19 (mobile/Expo). O pnpm expõe um único @types/react
+    // no seu diretório interno, e bibliotecas (react-router, recharts...) acabariam enxergando o 19.
+    // Aqui fixamos os tipos do web nos dele. Só afeta o typecheck; o Vite não usa `paths`.
+    "paths": {
+      "react": ["./node_modules/@types/react"],
+      "react/*": ["./node_modules/@types/react/*"],
+      "react-dom": ["./node_modules/@types/react-dom"],
+      "react-dom/*": ["./node_modules/@types/react-dom/*"]
+    }
+  },
+  "include": ["src", "vite.config.ts"]
+}

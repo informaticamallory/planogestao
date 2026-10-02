@@ -1,0 +1,225 @@
+.grade {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(13.75rem, 100%), 1fr));
+  gap: var(--espaco-4);
+}
+
+.largo {
+  grid-column: 1 / -1;
+}
+
+/*
+ * Bloco "responsabilidade e prazo" da Identificação.
+ * Desktop: Responsável | Início | Fim, e embaixo Prioridade | Status (mesmas colunas).
+ * Tablet: Responsável na linha toda, depois Início | Fim e Prioridade | Status. Celular: uma coluna.
+ */
+.bloco {
+  min-width: 0;
+  margin: 0;
+  padding: var(--espaco-4);
+  border: var(--borda-fina) solid var(--cor-borda);
+  border-radius: var(--raio-3);
+}
+
+.legendaBloco {
+  padding: 0 var(--espaco-2);
+  font-size: var(--fonte-md);
+  font-weight: 600;
+}
+
+.gradeBloco {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--espaco-4);
+}
+
+@media (--tablet) {
+  .gradeBloco {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .campoResponsavel {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (--mobile) {
+  .gradeBloco {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.rotuloSecao {
+  display: block;
+  margin-bottom: var(--espaco-2);
+  font-size: var(--fonte-md);
+  font-weight: 600;
+}
+
+.acoes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-4);
+}
+
+.cartaoAcao {
+  margin: 0;
+  padding: var(--espaco-3) var(--espaco-4);
+  border: var(--borda-fina) solid var(--cor-borda);
+  border-radius: var(--raio-3);
+}
+
+/* Cabeçalho clicável (contrai/expande) + "Remover" ao lado. */
+.topoAcao {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--espaco-3);
+}
+
+.cabecalhoAcao {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--espaco-1);
+  min-width: 0;
+  padding: var(--espaco-1) 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.linhaTituloAcao {
+  display: flex;
+  align-items: center;
+  gap: var(--espaco-2);
+  min-width: 0;
+}
+
+.numeroAcao {
+  flex-shrink: 0;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.resumoAcao {
+  overflow: hidden;
+  min-width: 0;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+/* Área/setor · responsável · prazos · status: quebram em várias linhas em telas estreitas. */
+.metaAcao {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--espaco-1) var(--espaco-3);
+  padding-left: calc(16px + var(--espaco-2));
+  color: var(--fg-muted);
+  font-size: var(--fonte-sm);
+}
+
+.metaAcao > span:not(:last-child)::after {
+  content: "·";
+  margin-left: var(--espaco-3);
+  color: var(--fg-subtle);
+}
+
+.seloDependencia,
+.seloPendencia {
+  padding: 0 var(--espaco-2);
+  border-radius: var(--r-pill);
+  font-weight: 600;
+}
+
+.seloDependencia {
+  background: var(--cor-aviso-fundo);
+  color: var(--fg);
+}
+
+.seloPendencia {
+  background: var(--cor-erro-fundo);
+  color: var(--cor-erro-texto);
+}
+
+.metaAcao > .seloDependencia::after,
+.metaAcao > .seloPendencia::after {
+  content: none;
+}
+
+.removerAcao {
+  flex-shrink: 0;
+  color: var(--cor-erro-texto);
+}
+
+.corpoAcao {
+  padding-top: var(--espaco-3);
+}
+
+.corpoAcao[hidden] {
+  display: none;
+}
+
+/* Status calculado (somente leitura) no bloco "Responsabilidade e prazo". */
+.infoStatus {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-1);
+  min-width: 0;
+}
+
+.rotuloInfo {
+  font-size: var(--fonte-md);
+  font-weight: 600;
+}
+
+.notaAcao {
+  margin: 0;
+  color: var(--fg-muted);
+  font-size: var(--fonte-sm);
+}
+
+.grupoDependencias {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-2);
+  min-width: 0;
+  margin: 0;
+  padding: var(--espaco-3);
+  border: var(--borda-fina) solid var(--cor-borda);
+  border-radius: var(--raio-2);
+}
+
+.grupoDependencias legend {
+  padding: 0 var(--espaco-1);
+  font-size: var(--fonte-md);
+  font-weight: 600;
+}
+
+@media (--mobile) {
+  .metaAcao {
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .metaAcao > span::after {
+    content: none !important;
+  }
+
+  .seloDependencia,
+  .seloPendencia {
+    align-self: flex-start;
+  }
+}
+
+.adicionarAcao {
+  align-self: flex-start;
+}
+
+.erroLista {
+  margin: 0;
+  color: var(--cor-erro-texto);
+}

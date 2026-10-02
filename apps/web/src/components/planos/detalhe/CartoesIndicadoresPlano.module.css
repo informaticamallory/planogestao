@@ -1,0 +1,52 @@
+.cartoes {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(10rem, 100%), 1fr));
+  gap: var(--espaco-3);
+}
+
+.cartao {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-1);
+  padding: var(--espaco-3) var(--espaco-4);
+  border: var(--borda-fina) solid var(--cor-borda);
+  border-radius: var(--raio-3);
+  background: var(--cor-superficie);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+
+.clicavel {
+  cursor: pointer;
+}
+
+.clicavel:hover,
+.clicavel:focus-visible {
+  border-color: var(--cor-primaria);
+}
+
+.rotulo {
+  display: flex;
+  align-items: center;
+  gap: var(--espaco-2);
+  font-size: var(--fonte-sm);
+  color: var(--cor-texto-suave);
+}
+
+.ponto {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: var(--raio-circulo);
+}
+
+.valor {
+  font-size: var(--fonte-xl);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.descricao {
+  font-size: var(--fonte-xs);
+  color: var(--cor-texto-suave);
+}

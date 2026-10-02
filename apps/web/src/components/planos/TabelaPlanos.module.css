@@ -1,0 +1,73 @@
+.tabela th,
+.tabela td {
+  white-space: nowrap;
+}
+
+.linha {
+  cursor: pointer;
+}
+
+.linha:hover {
+  background: var(--cor-fundo);
+}
+
+.botaoOrdenar {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--espaco-1);
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-transform: inherit;
+  letter-spacing: inherit;
+  cursor: pointer;
+}
+
+.indicadorOrdem {
+  min-width: 1ch;
+  font-size: var(--fonte-2xs);
+}
+
+.colunaCodigo {
+  font-variant-numeric: tabular-nums;
+}
+
+.linkCodigo {
+  font-weight: 600;
+  color: inherit;
+}
+
+.colunaNome {
+  white-space: normal !important;
+  min-width: 15rem;
+}
+
+.nome {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--espaco-2);
+}
+
+.colunaData {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Concluído: sem tag de prazo. */
+.semTag {
+  color: var(--fg-subtle);
+}
+
+.colunaProgresso {
+  min-width: 8.75rem;
+}
+
+.prioridadeCritica {
+  font-weight: 700;
+}
+
+.colunaAcoes {
+  width: 1%;
+}

@@ -1,0 +1,446 @@
+/* ---- comum ---- */
+.aba {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-4);
+}
+
+.estado {
+  margin: 0;
+  padding: var(--espaco-5);
+  border: var(--borda-fina) dashed var(--cor-borda);
+  border-radius: var(--raio-3);
+  color: var(--cor-texto-suave);
+  text-align: center;
+}
+
+.erro {
+  margin: 0;
+  color: var(--cor-erro-texto);
+}
+
+.tituloSecao {
+  margin: 0 0 var(--espaco-2);
+  font-size: var(--fonte-base);
+}
+
+.espaco {
+  flex: 1;
+}
+
+.botaoInicio {
+  align-self: flex-start;
+}
+
+/* ---- resumo ---- */
+.resumo {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 18.75rem;
+  gap: var(--espaco-5);
+  align-items: start;
+}
+
+.textos {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-4);
+}
+
+.textoLongo {
+  margin: 0;
+  white-space: pre-wrap;
+  line-height: 1.5;
+}
+
+.vazio {
+  margin: 0;
+  color: var(--cor-texto-suave);
+  font-style: italic;
+}
+
+.listaFicha {
+  display: grid;
+  gap: var(--espaco-1);
+  margin: 0;
+  font-size: var(--fonte-md);
+}
+
+.listaFicha dt {
+  margin-top: var(--espaco-2);
+  font-size: var(--fonte-xs);
+  color: var(--cor-texto-suave);
+}
+
+.listaFicha dd {
+  margin: 0;
+}
+
+@media (--ate-tablet) {
+  .resumo {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ---- ações ---- */
+.barraAba {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--espaco-3);
+}
+
+.grupoBotoes {
+  display: inline-flex;
+  border: var(--borda-fina) solid var(--cor-borda);
+  border-radius: var(--raio-2);
+  overflow: hidden;
+}
+
+.alternador {
+  padding: var(--espaco-1) var(--espaco-3);
+  border: 0;
+  background: var(--cor-superficie);
+  font: inherit;
+  cursor: pointer;
+}
+
+.alternadorAtivo {
+  background: var(--cor-primaria);
+  color: var(--cor-primaria-texto);
+}
+
+.filtroAtivo {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--espaco-2);
+  font-size: var(--fonte-md);
+  color: var(--cor-texto-suave);
+}
+
+.tabela th,
+.tabela td {
+  white-space: nowrap;
+}
+
+.linhaClicavel {
+  cursor: pointer;
+}
+
+.linhaClicavel:hover {
+  background: var(--cor-fundo);
+}
+
+.colunaTexto {
+  white-space: normal !important;
+  min-width: 16.25rem;
+}
+
+.linkAcao {
+  color: inherit;
+}
+
+/* Árvore: subações logo abaixo do pai, recuadas pelo nível (o recuo vem inline, por nível). */
+.celulaArvore {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--espaco-1);
+  white-space: nowrap;
+}
+
+.botaoArvore {
+  display: inline-grid;
+  place-items: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  padding: 0;
+  border: 0;
+  border-radius: var(--raio-1, 0.25rem);
+  background: none;
+  color: var(--fg-muted);
+  cursor: pointer;
+}
+
+.botaoArvore:hover {
+  background: var(--bg-2);
+  color: var(--fg);
+}
+
+.espacoArvore {
+  display: inline-block;
+  width: 1.5rem;
+}
+
+.contagemArvore {
+  color: var(--cor-texto-suave);
+  font-size: var(--fonte-xs);
+}
+
+@media (--ate-tablet) {
+  .botaoArvore {
+    width: var(--alvo-toque);
+    height: var(--alvo-toque);
+  }
+}
+
+.linhaSubacao {
+  background: color-mix(in oklab, var(--bg-2) 60%, transparent);
+}
+
+.marcaSubacao {
+  color: var(--cor-texto-suave);
+  font-size: var(--fonte-xs);
+  font-weight: 600;
+}
+
+.seloAguardando {
+  display: inline-block;
+  margin-left: var(--espaco-2);
+  padding: 0 var(--espaco-2);
+  border-radius: var(--r-pill);
+  background: var(--cor-aviso-fundo);
+  color: var(--fg);
+  font-size: var(--fonte-xs);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.cartaoKanban .seloAguardando {
+  align-self: flex-start;
+  margin-left: 0;
+}
+
+.numero {
+  font-variant-numeric: tabular-nums;
+}
+
+.vencendo {
+  font-size: var(--fonte-xs);
+  font-weight: 600;
+}
+
+.colunaProgresso {
+  min-width: 8.75rem;
+}
+
+.kanban {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(min(13.75rem, 100%), 1fr);
+  gap: var(--espaco-3);
+  overflow-x: auto;
+  padding-bottom: var(--espaco-2);
+}
+
+.colunaKanban {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-2);
+  min-width: 0;
+  padding: var(--espaco-3);
+  border-radius: var(--raio-3);
+  background: var(--cor-fundo);
+}
+
+.tituloColuna {
+  margin: 0;
+  padding-top: var(--espaco-2);
+  border-top: var(--borda-destaque) solid var(--cor-borda);
+  font-size: var(--fonte-md);
+}
+
+.contagem {
+  color: var(--cor-texto-suave);
+  font-weight: 400;
+}
+
+.cartaoKanban {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-2);
+  padding: var(--espaco-3);
+  border: var(--borda-fina) solid var(--cor-borda);
+  border-radius: var(--raio-2);
+  background: var(--cor-superficie);
+  color: inherit;
+  text-decoration: none;
+}
+
+.cartaoKanban:hover,
+.cartaoKanban:focus-visible {
+  border-color: var(--cor-primaria);
+}
+
+.descricaoCartao {
+  font-size: var(--fonte-md);
+}
+
+.tagsCartao {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--espaco-2);
+}
+
+.metaCartao {
+  font-size: var(--fonte-xs);
+  color: var(--cor-texto-suave);
+}
+
+/* ---- histórico ---- */
+.legendaHistorico {
+  margin: 0;
+  font-size: var(--fonte-md);
+  color: var(--cor-texto-suave);
+}
+
+.timeline,
+.eventosDia {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.diaTimeline + .diaTimeline {
+  margin-top: var(--espaco-4);
+}
+
+.tituloDia {
+  margin: 0 0 var(--espaco-2);
+  font-size: var(--fonte-sm);
+  color: var(--cor-texto-suave);
+}
+
+.eventosDia {
+  border-left: var(--borda-media) solid var(--cor-borda);
+  margin-left: var(--espaco-2);
+}
+
+.evento {
+  display: grid;
+  grid-template-columns: 4rem minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: var(--espaco-3);
+  padding: var(--espaco-2) 0 var(--espaco-2) var(--espaco-3);
+}
+
+.origem {
+  font-size: var(--fonte-2xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--cor-texto-suave);
+}
+
+.origem_plano {
+  color: var(--cor-primaria);
+}
+
+.fraseEvento {
+  margin: 0;
+  font-size: var(--fonte-md);
+  overflow-wrap: anywhere;
+}
+
+.horaEvento {
+  font-size: var(--fonte-xs);
+  font-variant-numeric: tabular-nums;
+  color: var(--cor-texto-suave);
+}
+
+/* ---- anexos ---- */
+.listaAnexos {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.anexo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--espaco-2) var(--espaco-4);
+}
+
+.nomeAnexo {
+  flex: 1 1 12.5rem;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.metaAnexo {
+  font-size: var(--fonte-sm);
+  color: var(--cor-texto-suave);
+}
+
+.secaoUpload {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-3);
+  padding-top: var(--espaco-4);
+  border-top: var(--borda-fina) solid var(--cor-borda);
+}
+
+/* ---- indicadores ---- */
+.gradeIndicadores {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(21.25rem, 100%), 1fr));
+  gap: var(--espaco-4);
+}
+
+.destaqueCumprimento {
+  display: flex;
+  align-items: baseline;
+  gap: var(--espaco-3);
+  margin-bottom: var(--espaco-3);
+}
+
+.valorDestaque {
+  font-size: var(--fonte-2xl);
+  font-weight: 700;
+}
+
+.rotuloDestaque {
+  font-size: var(--fonte-sm);
+  color: var(--cor-texto-suave);
+}
+
+/* ---- responsivo ---- */
+@media (--ate-tablet) {
+  .alternador {
+    min-height: var(--alvo-toque);
+    padding-inline: var(--espaco-4);
+  }
+}
+
+@media (--mobile) {
+  /* Kanban: uma coluna por "página", deslizando de lado com encaixe. */
+  .kanban {
+    grid-auto-columns: 82%;
+    scroll-snap-type: x mandatory;
+  }
+
+  .colunaKanban {
+    scroll-snap-align: start;
+  }
+
+  /* Histórico: origem e hora na primeira linha, a frase inteira abaixo. */
+  .evento {
+    grid-template-columns: auto 1fr;
+    gap: var(--espaco-1) var(--espaco-3);
+  }
+
+  .fraseEvento {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+  .horaEvento {
+    justify-self: end;
+  }
+
+  .colunaTexto {
+    min-width: 12.5rem;
+  }
+}

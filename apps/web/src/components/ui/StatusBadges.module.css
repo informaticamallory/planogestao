@@ -1,0 +1,7 @@
+/* Rótulo de situação de prazo: ícone do kit na cor da situação + texto. */
+.situacao {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3125rem;
+  white-space: nowrap;
+}

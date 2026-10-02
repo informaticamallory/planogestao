@@ -1,0 +1,69 @@
+.novoPlanoPage {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-4);
+  max-width: 68.75rem;
+}
+
+.cabecalho {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--espaco-3);
+}
+
+.titulo {
+  margin: 0;
+  font-size: var(--fonte-xl);
+}
+
+.espaco {
+  flex: 1;
+}
+
+/* Edição: status calculado (somente leitura) + liberação do rascunho. */
+.campoSituacao {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--espaco-2);
+  min-width: 0;
+}
+
+.rotuloSituacao {
+  font-size: var(--fonte-md);
+  font-weight: 600;
+}
+
+.ajudaSituacao {
+  color: var(--cor-texto-suave);
+  font-size: var(--fonte-sm);
+}
+
+.botaoInicio {
+  align-self: flex-start;
+}
+
+.erroSalvar {
+  color: var(--cor-erro-texto);
+  font-size: var(--fonte-md);
+}
+
+.alerta {
+  margin: 0;
+  padding: var(--espaco-3);
+  border-radius: var(--raio-2);
+  background: var(--cor-erro-fundo);
+  color: var(--cor-erro-texto);
+}
+
+@media (--mobile) {
+  .espaco {
+    display: none;
+  }
+
+  .erroSalvar {
+    flex-basis: 100%;
+  }
+}

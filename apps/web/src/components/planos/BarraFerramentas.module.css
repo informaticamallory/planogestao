@@ -1,0 +1,53 @@
+.barra {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--espaco-2);
+}
+
+.busca {
+  flex: 1 1 16.25rem;
+  max-width: 26.25rem;
+}
+
+.espaco {
+  flex: 1;
+}
+
+.contador {
+  min-width: 1.25rem;
+  padding: 0 var(--espaco-1);
+  border-radius: var(--raio-pilula);
+  background: var(--cor-primaria);
+  color: var(--cor-primaria-texto);
+  font-size: var(--fonte-xs);
+  text-align: center;
+}
+
+.opcaoColuna {
+  padding: var(--espaco-1) var(--espaco-3);
+}
+
+.separador {
+  margin: var(--espaco-1) 0;
+  border: 0;
+  border-top: var(--borda-fina) solid var(--cor-borda);
+}
+
+.erro {
+  margin: 0;
+  color: var(--cor-erro-texto);
+  font-size: var(--fonte-md);
+}
+
+/* Celular: a busca ocupa a linha inteira; os botões (Filtros, Colunas, Exportar) vêm abaixo. */
+@media (--mobile) {
+  .busca {
+    flex-basis: 100%;
+    max-width: none;
+  }
+
+  .espaco {
+    display: none;
+  }
+}

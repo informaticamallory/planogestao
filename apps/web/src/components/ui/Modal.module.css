@@ -1,0 +1,79 @@
+/* Mallory DS — modal: raio 2xl, sombra lg (elevação de modal). */
+.modal {
+  width: min(30rem, calc(100vw - 2rem));
+  padding: var(--pad);
+  border: var(--borda-fina) solid var(--border);
+  border-radius: var(--r-2xl);
+  background: var(--surface);
+  color: var(--fg);
+  box-shadow: var(--shadow-lg);
+}
+
+.modal::backdrop {
+  background: var(--overlay);
+  backdrop-filter: blur(2px);
+}
+
+.titulo {
+  margin: 0 0 var(--space-3);
+  font-family: var(--font-head);
+  font-size: var(--text-lg);
+  font-weight: var(--fw-bold);
+}
+
+.corpo {
+  color: var(--fg-muted);
+  font-size: var(--text-base);
+  line-height: var(--leading-loose);
+}
+
+.corpo p {
+  margin: 0 0 var(--space-2);
+}
+
+.acoes {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  margin-top: var(--space-5);
+}
+
+/* Celular: o modal vira bottom sheet em largura total, com os botões grandes e empilhados. */
+@media (--mobile) {
+  .modal {
+    width: 100vw;
+    max-width: 100vw;
+    max-height: calc(100dvh - 1.5rem);
+    margin: auto 0 0;
+    padding-bottom: calc(var(--pad) + env(safe-area-inset-bottom));
+    overflow-y: auto;
+    border-width: var(--borda-fina) 0 0;
+    border-radius: var(--r-2xl) var(--r-2xl) 0 0;
+  }
+
+  .modal[open] {
+    animation: subirFolha 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .acoes {
+    flex-direction: column-reverse;
+  }
+
+  .acoes > * {
+    width: 100%;
+  }
+}
+
+@keyframes subirFolha {
+  from {
+    transform: translateY(40%);
+    opacity: 0.4;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .modal[open] {
+    animation: none;
+  }
+}

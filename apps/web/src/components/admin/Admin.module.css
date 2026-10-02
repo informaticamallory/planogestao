@@ -1,0 +1,259 @@
+.pagina {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-secao);
+  max-width: 75rem;
+}
+
+.cabecalho {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--espaco-3);
+}
+
+.titulo {
+  margin: 0;
+  font-size: var(--fonte-xl);
+}
+
+.subtitulo {
+  margin: var(--espaco-1) 0 0;
+  font-size: var(--fonte-md);
+  color: var(--cor-texto-suave);
+  max-width: 70ch;
+}
+
+.barra {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--espaco-3);
+}
+
+.filtro {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-1);
+  font-size: var(--fonte-xs);
+  color: var(--cor-texto-suave);
+}
+
+.acoesLinha .linkPerigo {
+  color: var(--cor-erro-texto);
+}
+
+.acoesLinha {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--espaco-1);
+  white-space: nowrap;
+}
+
+.meta {
+  display: block;
+  font-size: var(--fonte-xs);
+  color: var(--cor-texto-suave);
+}
+
+.estado {
+  margin: 0;
+  padding: var(--espaco-5);
+  text-align: center;
+  color: var(--cor-texto-suave);
+}
+
+.erro {
+  margin: 0;
+  padding: var(--espaco-2) var(--espaco-3);
+  border-radius: var(--raio-2);
+  background: var(--cor-erro-fundo);
+  color: var(--cor-erro-texto);
+  font-size: var(--fonte-md);
+}
+
+.sucesso {
+  margin: 0;
+  font-size: var(--fonte-sm);
+  color: var(--cor-sucesso-texto);
+}
+
+/* ---- formulário ---- */
+.form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--espaco-3);
+  color: var(--cor-texto);
+}
+
+.largo {
+  grid-column: 1 / -1;
+}
+
+@media (--mobile) {
+  .form {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ---- perfis ---- */
+.layoutPerfis {
+  display: grid;
+  grid-template-columns: minmax(13.75rem, 17.5rem) minmax(0, 1fr);
+  gap: var(--espaco-4);
+  align-items: start;
+}
+
+@media (--mobile) {
+  .layoutPerfis {
+    grid-template-columns: 1fr;
+  }
+}
+
+.listaPerfis {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.itemPerfil {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-05);
+  width: 100%;
+  padding: var(--espaco-3) var(--espaco-4);
+  border: 0;
+  border-bottom: var(--borda-fina) solid var(--cor-borda);
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.itemPerfil:hover {
+  background: var(--cor-fundo);
+}
+
+.itemPerfil[aria-current="true"] {
+  background: var(--cor-fundo);
+  box-shadow: inset var(--borda-destaque) 0 0 var(--cor-primaria);
+  font-weight: 600;
+}
+
+.editorPerfil {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-4);
+  padding: var(--espaco-4);
+}
+
+/* Matriz de permissões: o Table dá o estilo base; aqui só o alinhamento das caixas. */
+.matriz thead th,
+.matriz tbody td {
+  text-align: center;
+}
+
+.matriz th[scope="row"] {
+  text-align: left;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.celulaVazia {
+  color: var(--cor-borda);
+}
+
+.outras {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--espaco-1);
+  text-align: left;
+  font-size: var(--fonte-sm);
+}
+
+.rodapeEditor {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--espaco-2);
+}
+
+/* ---- configurações ---- */
+.grupoConfig {
+  display: flex;
+  flex-direction: column;
+}
+
+.grupoConfig h2 {
+  margin: 0;
+  padding: var(--espaco-3) var(--espaco-4);
+  border-bottom: var(--borda-fina) solid var(--cor-borda);
+  background: var(--cor-fundo);
+  font-size: var(--fonte-base);
+}
+
+.linhaConfig {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--espaco-3) var(--espaco-5);
+  align-items: center;
+  padding: var(--espaco-4);
+  border-bottom: var(--borda-fina) solid var(--cor-borda);
+}
+
+.linhaConfig:last-child {
+  border-bottom: 0;
+}
+
+.controleConfig {
+  display: flex;
+  align-items: center;
+  gap: var(--espaco-2);
+}
+
+.controleConfig input {
+  width: 5.5rem;
+  text-align: right;
+}
+
+@media (--mobile) {
+  .linhaConfig {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Celular: filtros dois por linha, com o controle na largura do campo (nada fica espremido). */
+@media (--mobile) {
+  .barra > .filtro {
+    flex: 1 1 calc(50% - var(--espaco-3));
+    min-width: 0;
+  }
+
+  .barra > .filtro select,
+  .barra > .filtro input {
+    width: 100%;
+  }
+}
+
+/* Tipos de Plano › origens compatíveis (lista de caixas de seleção no formulário). */
+.grupoOrigens {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-2);
+  max-height: 16rem;
+  overflow-y: auto;
+  margin: 0;
+  padding: var(--espaco-3);
+  border: var(--borda-fina) solid var(--cor-borda);
+  border-radius: var(--raio-2);
+}
+
+.grupoOrigens legend {
+  padding: 0 var(--espaco-1);
+  font-size: var(--fonte-sm);
+  font-weight: 600;
+}

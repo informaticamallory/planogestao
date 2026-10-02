@@ -1,0 +1,37 @@
+/* Mallory DS — avatar: quadrado arredondado, iniciais em Sora sobre a cor a 16%. */
+.avatar {
+  display: inline-grid;
+  place-items: center;
+  flex-shrink: 0;
+  font-family: var(--font-head);
+  font-weight: var(--fw-bold);
+  object-fit: cover;
+}
+
+.sm {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.5625rem;
+  font-size: var(--text-xs);
+}
+
+.md {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.6875rem;
+  font-size: 0.8125rem;
+}
+
+.lg {
+  width: 4.25rem;
+  height: 4.25rem;
+  border-radius: var(--r-lg);
+  font-size: var(--text-xl);
+}
+
+.xl {
+  width: 5.5rem;
+  height: 5.5rem;
+  border-radius: var(--r-xl);
+  font-size: var(--text-2xl);
+}

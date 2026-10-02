@@ -1,0 +1,302 @@
+/* Mallory DS — sidebar sempre escura (--side*), independente do tema. */
+.sidebar {
+  --duracao-menu: 0.22s;
+  position: sticky;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  width: var(--largura-sidebar);
+  height: 100vh;
+  overflow: hidden; /* durante a animação, nada vaza para o conteúdo */
+  border-right: var(--borda-fina) solid var(--side-border);
+  background: var(--side);
+  color: var(--side-fg);
+  transition: width var(--duracao-menu) ease;
+}
+
+.sidebar[data-recolhido] {
+  width: var(--largura-sidebar-recolhida);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sidebar,
+  .sidebar * {
+    transition: none !important;
+  }
+}
+
+.marca {
+  display: flex;
+  align-items: center;
+  gap: 0.6875rem;
+  height: var(--altura-barra);
+  padding: 0 var(--space-5);
+  border-bottom: var(--borda-fina) solid var(--side-border);
+}
+
+.logomarca {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 2.125rem;
+  height: 2.125rem;
+  border-radius: 0.625rem;
+  background: var(--primary);
+  color: var(--primary-fg);
+  font-family: var(--font-head);
+  font-size: var(--text-lg);
+  font-weight: var(--fw-extrabold);
+  box-shadow: 0 4px 12px color-mix(in oklab, var(--primary) 40%, transparent);
+}
+
+.textoMarca {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.nomeMarca {
+  font-family: var(--font-head);
+  font-size: var(--text-md);
+  font-weight: var(--fw-bold);
+  line-height: 1.1;
+}
+
+.subMarca {
+  font-size: var(--text-xs);
+  color: var(--side-fg-muted);
+}
+
+.navegacao {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-4) var(--space-3);
+}
+
+.listaMenu {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.itemMenu {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.5rem 0.6875rem;
+  border-radius: var(--r-md);
+  color: var(--side-fg-muted);
+  font-size: var(--text-base);
+  font-weight: var(--fw-medium);
+  text-decoration: none;
+  transition: var(--transition-base);
+}
+
+.itemMenu:hover {
+  background: var(--side-2);
+  color: var(--side-fg);
+}
+
+.itemMenu:focus-visible {
+  outline: var(--borda-media) solid var(--ring);
+  outline-offset: -2px;
+}
+
+.itemMenuAtivo,
+.itemMenuAtivo:hover {
+  background: color-mix(in oklab, var(--primary) 16%, var(--side));
+  color: var(--side-fg);
+  font-weight: var(--fw-semibold);
+  box-shadow: inset var(--borda-destaque) 0 0 var(--primary);
+}
+
+.itemMenuAtivo svg {
+  color: var(--primary);
+}
+
+.rotuloItem {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.grupoMenu {
+  margin-top: var(--space-5);
+}
+
+.tituloGrupo {
+  display: block;
+  padding: 0 0.6875rem var(--space-2);
+  overflow: hidden;
+  white-space: nowrap;
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  font-weight: var(--fw-semibold);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--side-fg-muted);
+}
+
+/* ---- botão recolher/expandir --------------------------------------------------------------- */
+
+.botaoRecolher {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  margin: 0 var(--space-3) var(--space-2);
+  padding: 0.5rem 0.6875rem;
+  border: 0;
+  border-radius: var(--r-md);
+  background: transparent;
+  color: var(--side-fg-muted);
+  font: inherit;
+  font-size: var(--text-sm);
+  cursor: pointer;
+  transition: var(--transition-base);
+}
+
+.botaoRecolher:hover {
+  background: var(--side-2);
+  color: var(--side-fg);
+}
+
+.botaoRecolher:focus-visible {
+  outline: var(--borda-media) solid var(--ring);
+  outline-offset: -2px;
+}
+
+.botaoRecolher svg {
+  flex-shrink: 0;
+}
+
+/* ---- estado recolhido: só ícones, centralizados --------------------------------------------- */
+
+.textoMarca,
+.rotuloItem {
+  transition: opacity var(--duracao-menu) ease;
+}
+
+.sidebar[data-recolhido] .marca {
+  justify-content: center;
+  padding: 0;
+}
+
+/* Texto fora da tela, mas ainda no leitor de tela (nome acessível dos links). */
+.sidebar[data-recolhido] .textoMarca,
+.sidebar[data-recolhido] .rotuloItem {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  opacity: 0;
+}
+
+.sidebar[data-recolhido] .navegacao {
+  padding-inline: var(--space-2);
+}
+
+.sidebar[data-recolhido] .itemMenu,
+.sidebar[data-recolhido] .botaoRecolher {
+  justify-content: center;
+  gap: 0;
+  padding-inline: 0;
+}
+
+.sidebar[data-recolhido] .botaoRecolher {
+  margin-inline: var(--space-2);
+}
+
+/* Grupos: sem o título, só uma linha separando os ícones. */
+.sidebar[data-recolhido] .tituloGrupo {
+  height: 0;
+  padding: 0;
+  margin: 0 var(--space-2) var(--space-3);
+  border-top: var(--borda-fina) solid var(--side-border);
+  font-size: 0;
+}
+
+/* ---- tooltip (menu recolhido) ---------------------------------------------------------------- */
+
+.dica {
+  position: fixed;
+  z-index: 100;
+  transform: translateY(-50%);
+  padding: 0.375rem 0.625rem;
+  border: var(--borda-fina) solid var(--side-border);
+  border-radius: var(--r-sm);
+  background: var(--side);
+  color: var(--side-fg);
+  font-size: var(--text-sm);
+  font-weight: var(--fw-medium);
+  white-space: nowrap;
+  pointer-events: none;
+  box-shadow: var(--shadow-md, 0 6px 18px rgb(0 0 0 / 0.25));
+  animation: aparecerDica 0.12s ease;
+}
+
+@keyframes aparecerDica {
+  from {
+    opacity: 0;
+    transform: translate(-0.25rem, -50%);
+  }
+}
+
+/* ---- celular: gaveta (off-canvas) ------------------------------------------------------------- */
+
+.fecharGaveta {
+  display: grid;
+  place-items: center;
+  width: var(--alvo-toque);
+  height: var(--alvo-toque);
+  margin-left: auto;
+  border: 0;
+  border-radius: var(--r-md);
+  background: transparent;
+  color: var(--side-fg-muted);
+  cursor: pointer;
+}
+
+.fecharGaveta:hover {
+  background: var(--side-2);
+  color: var(--side-fg);
+}
+
+.sidebar[data-gaveta] {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 50;
+  width: min(18.75rem, 86vw);
+  height: 100dvh;
+  box-shadow: none;
+  transform: translateX(-100%);
+  visibility: hidden;
+  transition:
+    transform var(--duracao-menu) ease,
+    visibility 0s linear var(--duracao-menu);
+}
+
+.sidebar[data-gaveta][data-aberta] {
+  transform: none;
+  visibility: visible;
+  box-shadow: var(--shadow-lg);
+  transition: transform var(--duracao-menu) ease;
+}
+
+.sidebar[data-gaveta] .marca {
+  padding-right: var(--space-3);
+}
+
+/* Toque (tablet e celular): itens do menu com 44px de altura. */
+@media (--ate-tablet) {
+  .itemMenu,
+  .botaoRecolher {
+    min-height: var(--alvo-toque);
+  }
+}

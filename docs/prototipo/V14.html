@@ -1,0 +1,1685 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestor de Planos de Ação - Fábrica</title>
+    <style>
+        :root {
+            --bg-main: #f8fafc;
+            --bg-sidebar: #0f172a;
+            --sidebar-hover: #1e293b;
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --text-dark: #1e293b;
+            --text-light: #f8fafc;
+            --border: #cbd5e1;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --gray-light: #f1f5f9;
+            --status-ativo: #3b82f6;
+            --info: #06b6d4;
+            --negotiate: #d97706;
+            --gold: #eab308;
+            --silver: #94a3b8;
+            --bronze: #b45309;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+        }
+
+        body {
+            display: flex;
+            background-color: var(--bg-main);
+            color: var(--text-dark);
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Menu Lateral */
+        .sidebar {
+            width: 280px;
+            background-color: var(--bg-sidebar);
+            color: var(--text-light);
+            display: flex;
+            flex-direction: column;
+            padding: 1.5rem 0;
+        }
+
+        .sidebar-brand {
+            padding: 0 1.5rem 1.5rem 1.5rem;
+            font-size: 1.25rem;
+            font-weight: bold;
+            border-bottom: 1px solid #334155;
+            margin-bottom: 1.5rem;
+        }
+
+        .sidebar-menu {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .menu-item {
+            padding: 0.75rem 1.5rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            transition: all 0.2s;
+            color: #94a3b8;
+            font-weight: 500;
+        }
+
+        .menu-item:hover, .menu-item.active {
+            background-color: var(--sidebar-hover);
+            color: var(--text-light);
+        }
+
+        .menu-item.active {
+            border-left: 4px solid var(--primary);
+            background-color: #1e293b;
+        }
+
+        /* Área de Conteúdo */
+        .main-content {
+            flex: 1;
+            padding: 2rem;
+            overflow-y: auto;
+        }
+
+        .view-section {
+            display: none;
+        }
+
+        .view-section.active {
+            display: block;
+        }
+
+        h2 {
+            margin-bottom: 1.5rem;
+            color: var(--bg-sidebar);
+        }
+
+        /* Cards e Formulários */
+        .card {
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+            margin-bottom: 1.5rem;
+        }
+
+        .card h3 {
+            margin-bottom: 1rem;
+            border-bottom: 2px solid var(--gray-light);
+            padding-bottom: 0.5rem;
+            color: var(--primary);
+        }
+
+        /* Grid de Indicadores */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .metric-card {
+            background: var(--gray-light);
+            padding: 1rem;
+            border-radius: 6px;
+            border-top: 4px solid var(--primary);
+            text-align: center;
+        }
+
+        .metric-card.success { border-top-color: var(--success); }
+        .metric-card.warning { border-top-color: var(--warning); }
+        .metric-card.danger { border-top-color: var(--danger); }
+
+        .metric-value {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: var(--text-dark);
+            margin-top: 0.25rem;
+        }
+
+        /* Pódio da Gamificação */
+        .podium-container {
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            gap: 1.5rem;
+            margin: 2rem 0;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid var(--gray-light);
+        }
+
+        .podium-place {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            width: 160px;
+        }
+
+        .podium-avatar {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .podium-name {
+            font-weight: bold;
+            font-size: 1rem;
+            color: var(--text-dark);
+            max-width: 150px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .podium-pts {
+            font-weight: 800;
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .podium-bar {
+            width: 100%;
+            border-radius: 6px 6px 0 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-weight: bold;
+            font-size: 1.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+        }
+
+        .podium-1 { height: 140px; background: linear-gradient(135deg, var(--gold), #ca8a04); order: 2; }
+        .podium-2 { height: 100px; background: linear-gradient(135deg, var(--silver), #475569); order: 1; }
+        .podium-3 { height: 70px; background: linear-gradient(135deg, var(--bronze), #78350f); order: 3; }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
+            margin-bottom: 1.2rem;
+        }
+
+        .form-row-3 {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .search-row {
+            display: grid;
+            grid-template-columns: 3fr 1fr;
+            gap: 1rem;
+            align-items: end;
+            margin-bottom: 1.5rem;
+        }
+
+        label {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #475569;
+        }
+
+        input, select, textarea {
+            padding: 0.6rem;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            outline: none;
+            font-size: 0.95rem;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        /* Seção Dinâmica de Ações */
+        .acoes-container {
+            background-color: var(--gray-light);
+            padding: 1rem;
+            border-radius: 6px;
+            margin-bottom: 1rem;
+        }
+
+        .action-row-input {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr auto;
+            gap: 0.5rem;
+            align-items: end;
+        }
+
+        .lista-acoes-adicionadas {
+            margin-top: 1rem;
+            list-style: none;
+        }
+
+        .lista-acoes-adicionadas li {
+            background: white;
+            padding: 0.6rem;
+            border-radius: 4px;
+            margin-bottom: 0.5rem;
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr auto;
+            gap: 0.5rem;
+            align-items: center;
+            border-left: 3px solid var(--primary);
+            font-size: 0.9rem;
+        }
+
+        /* Tabelas */
+        .table-container {
+            overflow-x: auto;
+            margin-top: 1rem;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 0.95rem;
+        }
+
+        th, td {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border);
+            vertical-align: middle;
+        }
+
+        th {
+            background-color: var(--gray-light);
+            color: #475569;
+            font-weight: 600;
+        }
+
+        .clickable-row {
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+
+        .clickable-row:hover {
+            background-color: #eff6ff !important;
+        }
+
+        /* Badges de Status */
+        .badge {
+            padding: 0.3rem 0.6rem;
+            border-radius: 4px;
+            color: white;
+            font-weight: bold;
+            font-size: 0.8rem;
+            display: inline-block;
+        }
+        .badge-ativo { background-color: var(--status-ativo); }
+        .badge-suspenso { background-color: #64748b; }
+        .badge-concluido { background-color: var(--success); }
+        
+        .badge-analise { background-color: var(--info); }
+        .badge-pendente { background-color: #6366f1; }
+        .badge-andamento { background-color: var(--warning); }
+        .badge-recusada { background-color: var(--danger); }
+        .badge-contraproposta { background-color: var(--negotiate); }
+
+        /* Barra de Progresso Visual */
+        .progress-bar-container {
+            width: 100%;
+            background-color: #e2e8f0;
+            border-radius: 9999px;
+            height: 10px;
+            overflow: hidden;
+            margin-top: 5px;
+        }
+
+        .progress-bar-fill {
+            background-color: var(--success);
+            height: 100%;
+            border-radius: 9999px;
+            transition: width 0.3s ease;
+        }
+
+        .progresso-input-container {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .progresso-input-container input {
+            width: 70px;
+            padding: 0.4rem;
+            text-align: center;
+        }
+
+        /* Botões */
+        button {
+            padding: 0.6rem 1.2rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background 0.2s;
+        }
+
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary:hover { background: var(--primary-hover); }
+
+        .btn-success { background: var(--success); color: white; }
+        .btn-success:hover { background: #059669; }
+
+        .btn-danger { background: #ef4444; color: white; }
+        .btn-danger:hover { background: #dc2626; }
+
+        .btn-warning { background: var(--warning); color: white; }
+        .btn-warning:hover { background: #d97706; }
+
+        .btn-negotiate { background: var(--negotiate); color: white; }
+        .btn-negotiate:hover { background: #b45309; }
+
+        .btn-wide { width: 100%; padding: 0.8rem; font-size: 1rem; }
+
+        /* MODAL DE EDIÇÃO */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(4px);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-container {
+            background: white;
+            width: 95%;
+            max-width: 1200px;
+            max-height: 90vh;
+            border-radius: 8px;
+            box-shadow: 0 20px 25px -5px rgba(0,0,0,0.15);
+            padding: 2rem;
+            overflow-y: auto;
+        }
+
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 1rem;
+            margin-top: 1.5rem;
+            border-top: 2px solid var(--gray-light);
+            padding-top: 1rem;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- MENU LATERAL -->
+    <nav class="sidebar">
+        <div class="sidebar-brand">🏭 PlanoGestão v2.2</div>
+        <ul class="sidebar-menu">
+            <li class="menu-item active" id="menu-criar" onclick="switchView('criar-plano', this)">➕ Criar Novo Plano de Ação</li>
+            <li class="menu-item" id="menu-gerir" onclick="switchView('gerir-plano', this)">⚙️ Gerir Plano de Ação</li>
+            <li class="menu-item" id="menu-minhas" onclick="switchView('minhas-acoes', this)">👤 Minhas Ações</li>
+            <li class="menu-item" id="menu-ativos" onclick="switchView('planos-ativos', this)">👁️ Visualizar Planos Ativos</li>
+            <li class="menu-item" id="menu-gamificacao" onclick="switchView('gamificacao-painel', this)">🏆 Ranking & Gamificação</li>
+        </ul>
+    </nav>
+
+    <!-- ÁREA DE CONTEÚDO PRINCIPAL -->
+    <main class="main-content">
+        
+        <!-- TELA 1: CRIAR NOVO PLANO DE AÇÃO -->
+        <section id="criar-plano" class="view-section active">
+            <h2>Criar Novo Plano de Ação</h2>
+            
+            <form id="planoForm" onsubmit="salvarPlano(event)">
+                <div class="card">
+                    <h3>Formulário de Preenchimento Inicial</h3>
+                    <div class="form-row-3">
+                        <div class="form-group">
+                            <label for="nomePlano">Nome do Plano</label>
+                            <input type="text" id="nomePlano" placeholder="Ex: Ajuste na Linha de Montagem" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="responsavelPlano">Responsável Geral / Emissor</label>
+                            <input type="text" id="responsavelPlano" placeholder="Seu nome (Líder)" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="tipoPlano">Tipo do Plano</label>
+                            <select id="tipoPlano" required>
+                                <option value="Plano Objetivo">Plano Objetivo (Fim definido)</option>
+                                <option value="Plano de Rotina">Plano de Rotina (Não tem fim)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group" style="margin-top: 0.5rem;">
+                        <label for="descricaoPlano">Descrição/Motivo do Plano</label>
+                        <textarea id="descricaoPlano" rows="3" placeholder="Por que este plano está sendo criado?" required></textarea>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3>Atribuição de Ações e Prazos</h3>
+                    <div class="acoes-container">
+                        <div class="action-row-input">
+                            <div class="form-group" style="margin-bottom:0;">
+                                <label>O que fazer? (Ação)</label>
+                                <input type="text" id="inputAcao" placeholder="Descreva a tarefa...">
+                            </div>
+                            <div class="form-group" style="margin-bottom:0;">
+                                <label>Responsável Executor</label>
+                                <input type="text" id="inputResponsavel" placeholder="Quem vai executar?">
+                            </div>
+                            <div class="form-group" style="margin-bottom:0;">
+                                <label>Prazo</label>
+                                <input type="date" id="inputPrazo">
+                            </div>
+                            <button type="button" class="btn-primary" onclick="adicionarAcaoLista()">Adicionar</button>
+                        </div>
+                    </div>
+                    <label>Ações Adicionadas (Nascem aguardando aceite do responsável):</label>
+                    <ul id="listaAcoes" class="lista-acoes-adicionadas"></ul>
+                </div>
+                <button type="submit" class="btn-success btn-wide">Gravar e Disparar Plano de Ação</button>
+            </form>
+        </section>
+
+        <!-- TELA 2: GERIR PLANO DE AÇÃO -->
+        <section id="gerir-plano" class="view-section">
+            <h2>Gerir Seus Planos de Ação</h2>
+            
+            <div id="containerFiltroGerir" class="card">
+                <h3>Acesso Restrito ao Emissor</h3>
+                <div class="search-row">
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label for="inputBuscaEmissor">Digite seu nome/cargo para ver e gerenciar APENAS os seus planos:</label>
+                        <input type="text" id="inputBuscaEmissor" placeholder="Ex: Gustavo Almeida">
+                    </div>
+                    <button type="button" class="btn-primary" style="padding: 0.75rem;" onclick="renderizarGerirPlanos()">Entrar no Painel</button>
+                </div>
+            </div>
+
+            <div class="card" id="cardResultadoGerir" style="display: none;">
+                <h3>Seus Planos em Execução e Controle Operacional <small style="color: #64748b; font-weight: normal; font-size: 0.85rem;">(Clique na linha para detalhar as ações)</small></h3>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Plano de Ação</th>
+                                <th>Emissor Geral</th>
+                                <th>Progresso (Ações Aceitas)</th>
+                                <th>Alterar Status Macro</th>
+                                <th style="text-align: center;">Ações do Sistema</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabelaGerirPlanosBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Drill Down Interno de Detalhamento -->
+            <div id="containerDetalhamentoGerir" class="card" style="display: none;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; border-bottom: 2px solid var(--gray-light); padding-bottom: 0.75rem;">
+                    <div>
+                        <h3 id="gerirDetalheNomePlano" style="margin-bottom: 0.25rem; border: none; padding: 0;">Nome do Plano</h3>
+                        <p id="gerirDetalheDescPlano" style="color: #64748b; font-size: 0.95rem;">Descrição...</p>
+                    </div>
+                    <button type="button" class="btn-primary" onclick="fecharDetalhamentoGerir()">← Voltar para Meus Planos</button>
+                </div>
+
+                <div class="metrics-grid">
+                    <div class="metric-card success">
+                        <label>Média Concluída</label>
+                        <div id="gerirMetricPorcentagem" class="metric-value">0%</div>
+                    </div>
+                    <div class="metric-card success">
+                        <label>Ações Concluídas</label>
+                        <div id="gerirMetricConcluidas" class="metric-value">0</div>
+                    </div>
+                    <div class="metric-card warning">
+                        <label>Pendentes Aprovação</label>
+                        <div id="gerirMetricPendentesAprovacao" class="metric-value">0</div>
+                    </div>
+                    <div class="metric-card danger">
+                        <label>Ações sem Data</label>
+                        <div id="gerirMetricSemData" class="metric-value">0</div>
+                    </div>
+                </div>
+
+                <h4>Todas as Ações Vinculadas a este Plano</h4>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>O que fazer? (Ação)</th>
+                                <th>Executor Responsável</th>
+                                <th>Prazo Limite</th>
+                                <th>Status de Execução</th>
+                                <th>Andamento individual</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabelaAcoesDoPlanoGerirBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- TELA 3: MINHAS AÇÕES -->
+        <section id="minhas-acoes" class="view-section">
+            <h2>Painel do Colaborador</h2>
+            
+            <div class="card">
+                <h3>Acessar Minha Lista de Trabalho</h3>
+                <div class="search-row">
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label for="inputBuscaResponsavel">Digite seu nome/cargo para ver suas notificações:</label>
+                        <input type="text" id="inputBuscaResponsavel" placeholder="Ex: João da Manutenção">
+                    </div>
+                    <button type="button" class="btn-primary" style="padding: 0.75rem;" onclick="buscarAcoesPorResponsavel()">Entrar no Painel</button>
+                </div>
+            </div>
+
+            <div class="card" style="border-left: 5px solid var(--info);">
+                <h3 style="color: var(--info);">🔔 Novas Ações Atribuídas a Você (Requer Seu Aceite ou Ajuste)</h3>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>O que fazer?</th>
+                                <th>Plano de Origem</th>
+                                <th>Quem Atribuiu</th>
+                                <th>Prazo Proposto</th>
+                                <th style="text-align: center; width: 340px;">Decisão Operacional</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabelaNovasAcoesBody">
+                            <tr><td colspan="5" style="text-align: center; color: #64748b;">Aguardando inserção de nome para busca.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>🛠️ Suas Tarefas Confirmadas & Andamento</h3>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Ação / Tarefa</th>
+                                <th>Plano de Origem</th>
+                                <th>Prazo Final</th>
+                                <th>Status Atual</th>
+                                <th>Andamento (%)</th>
+                                <th>Ação</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabelaMinhasAcoesBody">
+                            <tr><td colspan="6" style="text-align: center; color: #64748b;">Aguardando inserção de nome para busca.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- TELA 4: VISUALIZAR PLANOS ATIVOS -->
+        <section id="planos-ativos" class="view-section">
+            <h2>Visualizar Planos Ativos</h2>
+            
+            <div id="containerListagemPlanosAtivos" class="card">
+                <h3>Planos Ativos na Fábrica <small style="color: #64748b; font-weight: normal; font-size: 0.85rem;">(Clique em um plano para ver o detalhamento)</small></h3>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Nome do Plano</th>
+                                <th>Responsável Geral</th>
+                                <th>Tipo do Plano</th>
+                                <th>Status</th>
+                                <th>Data de Criação</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabelaPlanosAtivosBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="containerDetalhamentoPlano" class="card" style="display: none;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; border-bottom: 2px solid var(--gray-light); padding-bottom: 0.75rem;">
+                    <div>
+                        <h3 id="detalheNomePlano" style="margin-bottom: 0.25rem; border: none; padding: 0;">Nome do Plano</h3>
+                        <p id="detalheDescPlano" style="color: #64748b; font-size: 0.95rem;">Descrição...</p>
+                    </div>
+                    <button type="button" class="btn-primary" onclick="fecharDetalhamentoPlano()">← Voltar para a Lista</button>
+                </div>
+
+                <div class="metrics-grid">
+                    <div class="metric-card success">
+                        <label>Média Concluída</label>
+                        <div id="metricPorcentagem" class="metric-value">0%</div>
+                    </div>
+                    <div class="metric-card success">
+                        <label>Ações Concluídas</label>
+                        <div id="metricConcluidas" class="metric-value">0</div>
+                    </div>
+                    <div class="metric-card warning">
+                        <label>Pendentes Aprovação</label>
+                        <div id="metricPendentesAprovacao" class="metric-value">0</div>
+                    </div>
+                    <div class="metric-card danger">
+                        <label>Ações sem Data</label>
+                        <div id="metricSemData" class="metric-value">0</div>
+                    </div>
+                </div>
+
+                <h4>Todas as Ações Vinculadas a este Plano</h4>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>O que fazer? (Ação)</th>
+                                <th>Executor Responsável</th>
+                                <th>Prazo Limite</th>
+                                <th>Status de Execução</th>
+                                <th>Andamento individual</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabelaAcoesDoPlanoBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- TELA 5: GAMIFICAÇÃO & RANKING -->
+        <section id="gamificacao-painel" class="view-section">
+            <h2>🏆 Painel de Gamificação & Eficiência</h2>
+            
+            <div class="card">
+                <h3>Regras de Pontuação (Score Operacional)</h3>
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-top: 0.5rem; font-size: 0.9rem;">
+                    <div style="background: #f0fdf4; border: 1px solid #bbf7d0; padding: 0.75rem; border-radius: 6px;">
+                        <strong>🚀 Liderança Ativa</strong><br>
+                        Plano 100% Concluído:<br><span style="color: var(--success); font-weight: bold; font-size: 1.1rem;">+100 pts</span> (Para o Gestor)
+                    </div>
+                    <div style="background: #eff6ff; border: 1px solid #bfdbfe; padding: 0.75rem; border-radius: 6px;">
+                        <strong>⏱️ Disciplina Operacional</strong><br>
+                        Ação entregue no Prazo:<br><span style="color: var(--primary); font-weight: bold; font-size: 1.1rem;">+30 pts</span> (Para o Executor)
+                    </div>
+                    <div style="background: #fffbeb; border: 1px solid #fde68a; padding: 0.75rem; border-radius: 6px;">
+                        <strong>🔧 Resiliência e Entrega</strong><br>
+                        Ação entregue Fora do Prazo:<br><span style="color: var(--negotiate); font-weight: bold; font-size: 1.1rem;">+10 pts</span> (Para o Executor)
+                    </div>
+                </div>
+            </div>
+
+            <!-- PÓDIO VISUAL -->
+            <div id="podioVisual" class="podium-container"></div>
+
+            <div class="card">
+                <h3>Classificação Geral da Fábrica</h3>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="width: 80px; text-align: center;">Posição</th>
+                                <th>Colaborador</th>
+                                <th style="text-align: center;">Pontuação Total</th>
+                                <th style="text-align: center; color: var(--success);">🏆 Planos Fechados</th>
+                                <th style="text-align: center; color: var(--primary);">⏱️ No Prazo</th>
+                                <th style="text-align: center; color: var(--negotiate);">⚠️ Atrasadas</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabelaRankingBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- POP-UP MODAL DE EDIÇÃO DE PLANO -->
+    <div id="modalEdicaoPlano" class="modal-overlay">
+        <div class="modal-container">
+            <h2 style="color: var(--primary); border-bottom: 2px solid var(--gray-light); padding-bottom: 0.5rem; margin-bottom: 1rem;">✏️ Editar Plano de Ação & Alinhamento de Prazos</h2>
+            
+            <input type="hidden" id="editPlanoId">
+            
+            <div class="form-row-3">
+                <div class="form-group">
+                    <label for="editNomePlano">Nome do Plano</label>
+                    <input type="text" id="editNomePlano" required>
+                </div>
+                <div class="form-group">
+                    <label for="editResponsavelPlano">Responsável Geral / Emissor</label>
+                    <input type="text" id="editResponsavelPlano" readonly style="background-color: var(--gray-light); color: #64748b; cursor: not-allowed;">
+                </div>
+                <div class="form-group">
+                    <label for="editTipoPlano">Tipo do Plano</label>
+                    <select id="editTipoPlano">
+                        <option value="Plano Objetivo">Plano Objetivo (Fim defined)</option>
+                        <option value="Plano de Rotina">Plano de Rotina (Não tem fim)</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="editDescricaoPlano">Descrição/Motivo</label>
+                <textarea id="editDescricaoPlano" rows="2" required></textarea>
+            </div>
+
+            <div class="card" style="box-shadow: none; border: 1px solid var(--border); padding: 1rem; margin-bottom: 1rem;">
+                <h4 style="margin-bottom: 0.5rem; color: var(--bg-sidebar);">Adicionar Nova Ação a este Plano:</h4>
+                <div class="action-row-input">
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label>O que fazer?</label>
+                        <input type="text" id="editInputAcao" placeholder="Nova tarefa...">
+                    </div>
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label>Responsável Executor</label>
+                        <input type="text" id="editInputResponsavel" placeholder="Executor...">
+                    </div>
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label>Prazo</label>
+                        <input type="date" id="editInputPrazo">
+                    </div>
+                    <button type="button" class="btn-primary" onclick="adicionarAcaoNaEdicao()">Inserir</button>
+                </div>
+            </div>
+
+            <h4>Ações Cadastradas (Prazos e Avanços Editáveis):</h4>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Ação</th>
+                            <th>Executor</th>
+                            <th>Prazo Final (Editável)</th>
+                            <th>Status Atual</th>
+                            <th style="width: 130px;">Progresso (%)</th>
+                            <th>Histórico / Ajustes de Alinhamento</th>
+                            <th style="text-align: center;">Remover</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabelaEditAcoesBody"></tbody>
+                </table>
+            </div>
+
+            <div class="modal-actions">
+                <button type="button" class="btn-danger" onclick="fecharModalEdicao()">Cancelar</button>
+                <button type="button" class="btn-success" onclick="salvarAlteracoesPlano()">💾 Salvar e Validar Plano</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let acoesTemporarias = [];
+        let acoesEmEdicao = [];
+
+        function switchView(sectionId, menuElement) {
+            document.querySelectorAll('.view-section').forEach(s => s.classList.remove('active'));
+            document.querySelectorAll('.menu-item').forEach(m => m.classList.remove('active'));
+            
+            document.getElementById(sectionId).classList.add('active');
+            menuElement.classList.add('active');
+
+            if (sectionId === 'planos-ativos') {
+                fecharDetalhamentoPlano();
+                renderizarPlanosAtivos();
+            }
+            if (sectionId === 'gerir-plano') {
+                fecharDetalhamentoGerir();
+                document.getElementById('cardResultadoGerir').style.display = 'none';
+                document.getElementById('tabelaGerirPlanosBody').innerHTML = '';
+            }
+            if (sectionId === 'gamificacao-painel') {
+                calcularERenderizarRanking();
+            }
+        }
+
+        /* LÓGICA DE CRIAÇÃO */
+        function adicionarAcaoLista() {
+            const descAcao = document.getElementById('inputAcao').value.trim();
+            const responsavel = document.getElementById('inputResponsavel').value.trim();
+            const prazo = document.getElementById('inputPrazo').value;
+
+            if (!descAcao || !responsavel) {
+                alert("Preencha ao menos a Ação e o Responsável Executor!");
+                return;
+            }
+
+            acoesTemporarias.push({
+                id: Date.now() + Math.random(),
+                descricao: descAcao,
+                responsavel: responsavel,
+                prazo: prazo,
+                progresso: 0,
+                status: 'Aguardando Aprovação',
+                justificativaRecusa: '',
+                prazoSugerido: '',
+                motivoPrazo: '',
+                dataConclusao: ''
+            });
+            atualizarListaAcoesDOM();
+
+            document.getElementById('inputAcao').value = '';
+            document.getElementById('inputResponsavel').value = '';
+            document.getElementById('inputPrazo').value = '';
+        }
+
+        function removerAcaoLista(id) {
+            acoesTemporarias = acoesTemporarias.filter(a => a.id !== id);
+            atualizarListaAcoesDOM();
+        }
+
+        function atualizarListaAcoesDOM() {
+            const listaUl = document.getElementById('listaAcoes');
+            listaUl.innerHTML = '';
+            if (acoesTemporarias.length === 0) {
+                listaUl.innerHTML = `<li style="color: #64748b; border-left-color: #cbd5e1;">Nenhuma ação inserida ainda.</li>`;
+                return;
+            }
+            acoesTemporarias.forEach(acao => {
+                const dataFormatada = acao.prazo ? acao.prazo.split('-').reverse().join('/') : '<span style="color:var(--danger)">Não definida</span>';
+                const li = document.createElement('li');
+                li.innerHTML = `
+                    <div><strong>${acao.descricao}</strong></div>
+                    <div>👤 Executor: ${acao.responsavel}</div>
+                    <div>📅 Prazo: ${dataFormatada}</div>
+                    <button type="button" class="btn-danger" onclick="removerAcaoLista(${acao.id})">Remover</button>
+                `;
+                listaUl.appendChild(li);
+            });
+        }
+
+        function salvarPlano(event) {
+            event.preventDefault();
+            if (acoesTemporarias.length === 0) {
+                alert("Adicione pelo menos uma ação antes de salvar!");
+                return;
+            }
+
+            const novoPlano = {
+                id: Date.now(),
+                nome: document.getElementById('nomePlano').value,
+                responsavelGeral: document.getElementById('responsavelPlano').value,
+                tipo: document.getElementById('tipoPlano').value,
+                descricao: document.getElementById('descricaoPlano').value,
+                acoes: acoesTemporarias,
+                status: 'Ativo',
+                dataCriacao: new Date().toLocaleDateString('pt-BR')
+            };
+
+            let planosExistentes = JSON.parse(localStorage.getItem('planosDeAcaoDB')) || [];
+            planosExistentes.push(novoPlano);
+            localStorage.setItem('planosDeAcaoDB', JSON.stringify(planosExistentes));
+
+            alert(`Plano "${novoPlano.nome}" gravado com sucesso!`);
+            document.getElementById('planoForm').reset();
+            acoesTemporarias = [];
+            atualizarListaAcoesDOM();
+
+            switchView('planos-ativos', document.getElementById('menu-ativos'));
+        }
+
+        /* RENDERIZAR PAINEL DO EMISSOR */
+        function renderizarGerirPlanos() {
+            const emissorBusca = document.getElementById('inputBuscaEmissor').value.trim().toLowerCase();
+            const tbody = document.getElementById('tabelaGerirPlanosBody');
+            
+            tbody.innerHTML = '';
+
+            if (!emissorBusca) {
+                alert("Por favor, informe seu nome para carregar seus planos autorizados.");
+                return;
+            }
+
+            fecharDetalhamentoGerir();
+
+            const planosExistentes = JSON.parse(localStorage.getItem('planosDeAcaoDB')) || [];
+            const meusPlanos = planosExistentes.filter(p => p.responsavelGeral.toLowerCase().includes(emissorBusca));
+
+            document.getElementById('cardResultadoGerir').style.display = 'block';
+
+            if (meusPlanos.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: #64748b; padding: 2rem;">Nenhum plano localizado sob sua emissão.</td></tr>`;
+                return;
+            }
+
+            meusPlanos.forEach(plano => {
+                const acoesValidas = plano.acoes.filter(a => a.status !== 'Aguardando Aprovação' && a.status !== 'Recusada' && a.status !== 'Contraproposta de Prazo');
+                const somaProgresso = acoesValidas.reduce((acc, acao) => acc + (acao.progresso || 0), 0);
+                const mediaProgresso = acoesValidas.length > 0 ? Math.round(somaProgresso / acoesValidas.length) : 0;
+
+                let statusClass = 'badge-ativo';
+                if (plano.status === 'Suspenso') statusClass = 'badge-suspenso';
+                if (plano.status === 'Concluído') statusClass = 'badge-concluido';
+
+                const possuiContraproposta = plano.acoes.some(a => a.status === 'Contraproposta de Prazo');
+                const alertaIcone = possuiContraproposta ? ` <span style="background: var(--negotiate); color: white; padding: 0.15rem 0.4rem; border-radius:3px; font-size:0.75rem;">📅 Alinhamento Pendente</span>` : '';
+
+                const tr = document.createElement('tr');
+                tr.className = "clickable-row";
+                tr.setAttribute('onclick', `abrirDetalhamentoGerir(${plano.id}, event)`);
+                tr.innerHTML = `
+                    <td><strong>${plano.nome}</strong>${alertaIcone}<br><span class="badge ${statusClass}">${plano.status}</span></td>
+                    <td>👤 ${plano.responsavelGeral}</td>
+                    <td>
+                        <strong>${mediaProgresso}%</strong>
+                        <div class="progress-bar-container">
+                            <div class="progress-bar-fill" style="width: ${mediaProgresso}%"></div>
+                        </div>
+                    </td>
+                    <td>
+                        <select onchange="alterarStatusPlanoMacro(${plano.id}, this.value)" onclick="event.stopPropagation()">
+                            <option value="Ativo" ${plano.status === 'Ativo' ? 'selected' : ''}>Ativo</option>
+                            <option value="Suspenso" ${plano.status === 'Suspenso' ? 'selected' : ''}>Suspenso</option>
+                            <option value="Concluído" ${plano.status === 'Concluído' ? 'selected' : ''}>Concluído</option>
+                        </select>
+                    </td>
+                    <td style="text-align: center;">
+                        <div style="display:flex; gap:0.4rem; justify-content:center;">
+                            <button class="btn-warning" style="padding:0.4rem 0.8rem; font-size:0.85rem;" onclick="event.stopPropagation(); abrirModalEdicao(${plano.id})">✏️ Editar / Alinhar</button>
+                            <button class="btn-danger" style="padding: 0.4rem 0.8rem; font-size: 0.85rem;" onclick="event.stopPropagation(); excluirPlanoCompleto(${plano.id})">Excluir</button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        /* DRILL DOWN DETALHAMENTO */
+        function abrirDetalhamentoGerir(planoId, event) {
+            if (event && event.stopPropagation) {
+                const tag = event.target.tagName.toLowerCase();
+                if (tag === 'button' || tag === 'select' || tag === 'option') return;
+            }
+
+            const planosExistentes = JSON.parse(localStorage.getItem('planosDeAcaoDB')) || [];
+            const plano = planosExistentes.find(p => p.id === planoId);
+
+            if (!plano) return;
+
+            document.getElementById('cardResultadoGerir').style.display = 'none';
+            document.getElementById('containerDetalhamentoGerir').style.display = 'block';
+
+            document.getElementById('gerirDetalheNomePlano').innerText = plano.nome;
+            document.getElementById('gerirDetalheDescPlano').innerText = plano.descricao;
+
+            const acoesConcluidas = plano.acoes.filter(a => a.status === 'Concluído').length;
+            const pendentesAprovacao = plano.acoes.filter(a => a.status === 'Aguardando Aprovação' || a.status === 'Contraproposta de Prazo').length;
+            const semData = plano.acoes.filter(a => !a.prazo || a.prazo === "").length;
+
+            const acoesValidas = plano.acoes.filter(a => a.status !== 'Aguardando Aprovação' && a.status !== 'Recusada' && a.status !== 'Contraproposta de Prazo');
+            const somaProgresso = acoesValidas.reduce((acc, acao) => acc + (acao.progresso || 0), 0);
+            const mediaProgresso = acoesValidas.length > 0 ? Math.round(somaProgresso / acoesValidas.length) : 0;
+
+            document.getElementById('gerirMetricPorcentagem').innerText = `${mediaProgresso}%`;
+            document.getElementById('gerirMetricConcluidas').innerText = acoesConcluidas;
+            document.getElementById('gerirMetricPendentesAprovacao').innerText = pendentesAprovacao;
+            document.getElementById('gerirMetricSemData').innerText = semData;
+
+            const tbodyAcoes = document.getElementById('tabelaAcoesDoPlanoGerirBody');
+            tbodyAcoes.innerHTML = '';
+
+            plano.acoes.forEach(acao => {
+                const dataFormatada = acao.prazo ? acao.prazo.split('-').reverse().join('/') : '<span style="color:var(--danger); font-weight:bold;">Sem Data</span>';
+                
+                let badgeClass = 'badge-pendente';
+                if (acao.status === 'Em Andamento') badgeClass = 'badge-andamento';
+                if (acao.status === 'Concluído') badgeClass = 'badge-concluido';
+                if (acao.status === 'Recusada') badgeClass = 'badge-recusada';
+                if (acao.status === 'Aguardando Aprovação') badgeClass = 'badge-analise';
+                if (acao.status === 'Contraproposta de Prazo') badgeClass = 'badge-contraproposta';
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><strong>${acao.descricao}</strong></td>
+                    <td>👤 ${acao.responsavel}</td>
+                    <td>📅 ${dataFormatada}</td>
+                    <td><span class="badge ${badgeClass}">${acao.status}</span></td>
+                    <td>
+                        <strong>${acao.progresso}%</strong>
+                        <div class="progress-bar-container" style="width:120px;">
+                            <div class="progress-bar-fill" style="width: ${acao.progresso}%"></div>
+                        </div>
+                    </td>
+                `;
+                tbodyAcoes.appendChild(tr);
+            });
+        }
+
+        function fecharDetalhamentoGerir() {
+            document.getElementById('cardResultadoGerir').style.display = document.getElementById('inputBuscaEmissor').value.trim() ? 'block' : 'none';
+            document.getElementById('containerDetalhamentoGerir').style.display = 'none';
+        }
+
+        /* MODAL DE EDIÇÃO AVANÇADO */
+        function abrirModalEdicao(planoId) {
+            const planosExistentes = JSON.parse(localStorage.getItem('planosDeAcaoDB')) || [];
+            const plano = planosExistentes.find(p => p.id === planoId);
+            
+            if (!plano) return;
+
+            document.getElementById('editPlanoId').value = plano.id;
+            document.getElementById('editNomePlano').value = plano.nome;
+            document.getElementById('editResponsavelPlano').value = plano.responsavelGeral;
+            document.getElementById('editTipoPlano').value = plano.tipo;
+            document.getElementById('editDescricaoPlano').value = plano.descricao;
+
+            acoesEmEdicao = JSON.parse(JSON.stringify(plano.acoes));
+            renderizarAcoesNoModal();
+
+            document.getElementById('modalEdicaoPlano').style.display = 'flex';
+        }
+
+        function fecharModalEdicao() {
+            document.getElementById('modalEdicaoPlano').style.display = 'none';
+        }
+
+        function renderizarAcoesNoModal() {
+            const tbody = document.getElementById('tabelaEditAcoesBody');
+            tbody.innerHTML = '';
+
+            if (acoesEmEdicao.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:#64748b;">Nenhuma ação vinculada. Adicione uma acima.</td></tr>`;
+                return;
+            }
+
+            acoesEmEdicao.forEach((acao, index) => {
+                let badgeClass = 'badge-pendente';
+                if (acao.status === 'Aguardando Aprovação') badgeClass = 'badge-analise';
+                if (acao.status === 'Em Andamento') badgeClass = 'badge-andamento';
+                if (acao.status === 'Concluído') badgeClass = 'badge-concluido';
+                if (acao.status === 'Recusada') badgeClass = 'badge-recusada';
+                if (acao.status === 'Contraproposta de Prazo') badgeClass = 'badge-contraproposta';
+
+                const desabilitarProgresso = (acao.status === 'Aguardando Aprovação' || acao.status === 'Recusada' || acao.status === 'Contraproposta de Prazo') ? 'disabled' : '';
+
+                let colunaMotivo = `<span style="color:#64748b; font-size:0.9rem;">--</span>`;
+                if (acao.status === 'Contraproposta de Prazo') {
+                    const dataSugeridaFormatada = acao.prazoSugerido ? acao.prazoSugerido.split('-').reverse().join('/') : '';
+                    colunaMotivo = `
+                        <div style="background-color:#fffbeb; color:#b45309; padding:0.5rem; border-radius:4px; border-left:3px solid var(--negotiate); font-size:0.85rem;">
+                            <strong>Sugerido pelo Executor:</strong> ${dataSugeridaFormatada}<br>
+                            <strong>Motivo:</strong> "${acao.motivoPrazo}"
+                            <div style="margin-top:0.4rem;">
+                                <button type="button" class="btn-success" style="padding:0.2rem 0.5rem; font-size:0.75rem;" onclick="aceitarContrapropostaGestor(${index})">Aceitar Prazo</button>
+                            </div>
+                        </div>`;
+                } else if (acao.status === 'Recusada' && acao.justificativaRecusa) {
+                    colunaMotivo = `<div style="background-color:#fee2e2; color:#b91c1c; padding:0.4rem 0.6rem; border-radius:4px; border-left:3px solid var(--danger); font-size:0.85rem;"><strong>Recusada:</strong> ${acao.justificativaRecusa}</div>`;
+                } else if (acao.status === 'Aguardando Aprovação') {
+                    colunaMotivo = `<span style="color:var(--status-ativo); font-size:0.85rem;">⚠️ Aguarda resposta do executor</span>`;
+                }
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><strong>${acao.descricao}</strong></td>
+                    <td>👤 ${acao.responsavel}</td>
+                    <td>
+                        <input type="date" value="${acao.prazo || ''}" id="modal-date-input-${index}" onchange="atualizarPrazoArrayEdicao(${index}, this.value)" style="padding: 0.3rem; font-size: 0.85rem;">
+                    </td>
+                    <td><span class="badge ${badgeClass}" id="badge-modal-${index}">${acao.status}</span></td>
+                    <td>
+                        <div style="display:flex; align-items:center; gap:0.25rem;">
+                            <input type="number" min="0" max="100" value="${acao.progresso || 0}" 
+                                   onchange="atualizarProgressoArrayEdicao(${index}, this.value)" 
+                                   style="width:65px; padding:0.3rem; text-align:center;" ${desabilitarProgresso}> %
+                        </div>
+                    </td>
+                    <td>${colunaMotivo}</td>
+                    <td style="text-align:center;">
+                        <button type="button" class="btn-danger" style="padding:0.25rem 0.6rem; font-size:0.8rem;" onclick="removerAcaoNaEdicao(${acao.id})">Excluir</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function aceitarContrapropostaGestor(index) {
+            acoesEmEdicao[index].prazo = acoesEmEdicao[index].prazoSugerido;
+            acoesEmEdicao[index].status = 'Pendente';
+            acoesEmEdicao[index].progresso = 0;
+            renderizarAcoesNoModal();
+        }
+
+        function atualizarPrazoArrayEdicao(index, novoPrazo) {
+            acoesEmEdicao[index].prazo = novoPrazo;
+            if (acoesEmEdicao[index].status === 'Contraproposta de Prazo') {
+                acoesEmEdicao[index].status = 'Pendente';
+                renderizarAcoesNoModal();
+            }
+        }
+
+        function atualizarProgressoArrayEdicao(index, novoProgresso) {
+            let valor = parseInt(novoProgresso);
+            if (isNaN(valor) || valor < 0) valor = 0;
+            if (valor > 100) valor = 100;
+
+            acoesEmEdicao[index].progresso = valor;
+
+            if (acoesEmEdicao[index].status !== 'Aguardando Aprovação' && acoesEmEdicao[index].status !== 'Recusada' && acoesEmEdicao[index].status !== 'Contraproposta de Prazo') {
+                if (valor === 100) {
+                    acoesEmEdicao[index].status = 'Concluído';
+                    acoesEmEdicao[index].dataConclusao = new Date().toISOString().split('T')[0];
+                } else if (valor > 0) {
+                    acoesEmEdicao[index].status = 'Em Andamento';
+                    acoesEmEdicao[index].dataConclusao = '';
+                } else {
+                    acoesEmEdicao[index].status = 'Pendente';
+                    acoesEmEdicao[index].dataConclusao = '';
+                }
+            }
+            
+            const badge = document.getElementById(`badge-modal-${index}`);
+            if (badge) {
+                badge.innerText = acoesEmEdicao[index].status;
+                badge.className = 'badge';
+                if (acoesEmEdicao[index].status === 'Em Andamento') badge.classList.add('badge-andamento');
+                else if (acoesEmEdicao[index].status === 'Concluído') badge.classList.add('badge-concluido');
+                else badge.classList.add('badge-pendente');
+            }
+        }
+
+        function adicionarAcaoNaEdicao() {
+            const desc = document.getElementById('editInputAcao').value.trim();
+            const resp = document.getElementById('editInputResponsavel').value.trim();
+            const prazo = document.getElementById('editInputPrazo').value;
+
+            if (!desc || !resp) {
+                alert("Defina a tarefa e o executor responsável!");
+                return;
+            }
+
+            acoesEmEdicao.push({
+                id: Date.now() + Math.random(),
+                descricao: desc,
+                responsavel: resp,
+                prazo: prazo,
+                progresso: 0,
+                status: 'Aguardando Aprovação',
+                justificativaRecusa: '',
+                prazoSugerido: '',
+                motivoPrazo: '',
+                dataConclusao: ''
+            });
+
+            document.getElementById('editInputAcao').value = '';
+            document.getElementById('editInputResponsavel').value = '';
+            document.getElementById('editInputPrazo').value = '';
+
+            renderizarAcoesNoModal();
+        }
+
+        function removerAcaoNaEdicao(id) {
+            acoesEmEdicao = acoesEmEdicao.filter(a => a.id !== id);
+            renderizarAcoesNoModal();
+        }
+
+        function salvarAlteracoesPlano() {
+            const planoId = parseInt(document.getElementById('editPlanoId').value);
+            let planosExistentes = JSON.parse(localStorage.getItem('planosDeAcaoDB')) || [];
+
+            planosExistentes = planosExistentes.map(p => {
+                if (p.id === planoId) {
+                    p.nome = document.getElementById('editNomePlano').value;
+                    p.tipo = document.getElementById('editTipoPlano').value;
+                    p.descricao = document.getElementById('editDescricaoPlano').value;
+                    p.acoes = acoesEmEdicao;
+                    
+                    // Se todas as ações integradas forem concluídas, o plano fecha automaticamente
+                    const todasConcluidas = p.acoes.length > 0 && p.acoes.every(a => a.status === 'Concluído');
+                    if (todasConcluidas) p.status = 'Concluído';
+                }
+                return p;
+            });
+
+            localStorage.setItem('planosDeAcaoDB', JSON.stringify(planosExistentes));
+            alert("Plano atualizado e sincronizado com os executores!");
+            fecharModalEdicao();
+            renderizarGerirPlanos();
+        }
+
+        function alterarStatusPlanoMacro(planoId, novoStatus) {
+            let planosExistentes = JSON.parse(localStorage.getItem('planosDeAcaoDB')) || [];
+            planosExistentes = planosExistentes.map(p => {
+                if (p.id === planoId) p.status = novoStatus;
+                return p;
+            });
+            localStorage.setItem('planosDeAcaoDB', JSON.stringify(planosExistentes));
+            renderizarGerirPlanos();
+        }
+
+        function excluirPlanoCompleto(planoId) {
+            if (confirm("Deseja apagar permanentemente este plano?")) {
+                let planosExistentes = JSON.parse(localStorage.getItem('planosDeAcaoDB')) || [];
+                planosExistentes = planosExistentes.filter(p => p.id !== planoId);
+                localStorage.setItem('planosDeAcaoDB', JSON.stringify(planosExistentes));
+                renderizarGerirPlanos();
+            }
+        }
+
+        /* PLANOS ATIVOS GLOBAL */
+        function renderizarPlanosAtivos() {
+            const tbody = document.getElementById('tabelaPlanosAtivosBody');
+            tbody.innerHTML = '';
+            const planosExistentes = JSON.parse(localStorage.getItem('planosDeAcaoDB')) || [];
+            const planosAtivos = planosExistentes.filter(p => p.status === 'Ativo');
+
+            if (planosAtivos.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: #64748b; padding: 2rem;">Nenhum plano ativo global na fábrica.</td></tr>`;
+                return;
+            }
+
+            planosAtivos.forEach(plano => {
+                const tr = document.createElement('tr');
+                tr.className = "clickable-row";
+                tr.setAttribute('onclick', `abrirDetalhamentoPlano(${plano.id})`);
+                tr.innerHTML = `
+                    <td><strong>${plano.nome}</strong><br><small style="color:#64748b">${plano.descricao}</small></td>
+                    <td>👤 ${plano.responsavelGeral}</td>
+                    <td>📂 ${plano.tipo}</td>
+                    <td><span class="badge badge-ativo">${plano.status}</span></td>
+                    <td>📅 ${plano.dataCriacao}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function abrirDetalhamentoPlano(planoId) {
+            const planosExistentes = JSON.parse(localStorage.getItem('planosDeAcaoDB')) || [];
+            const plano = planosExistentes.find(p => p.id === planoId);
+
+            if (!plano) return;
+
+            document.getElementById('containerListagemPlanosAtivos').style.display = 'none';
+            document.getElementById('containerDetalhamentoPlano').style.display = 'block';
+
+            document.getElementById('detalheNomePlano').innerText = plano.nome;
+            document.getElementById('detalheDescPlano').innerText = plano.descricao;
+
+            const acoesConcluidas = plano.acoes.filter(a => a.status === 'Concluído').length;
+            const pendentesAprovacao = plano.acoes.filter(a => a.status === 'Aguardando Aprovação' || a.status === 'Contraproposta de Prazo').length;
+            const semData = plano.acoes.filter(a => !a.prazo || a.prazo === "").length;
+
+            const acoesValidas = plano.acoes.filter(a => a.status !== 'Aguardando Aprovação' && a.status !== 'Recusada' && a.status !== 'Contraproposta de Prazo');
+            const somaProgresso = acoesValidas.reduce((acc, acao) => acc + (acao.progresso || 0), 0);
+            const mediaProgresso = acoesValidas.length > 0 ? Math.round(somaProgresso / acoesValidas.length) : 0;
+
+            document.getElementById('metricPorcentagem').innerText = `${mediaProgresso}%`;
+            document.getElementById('metricConcluidas').innerText = acoesConcluidas;
+            document.getElementById('metricPendentesAprovacao').innerText = pendentesAprovacao;
+            document.getElementById('metricSemData').innerText = semData;
+
+            const tbodyAcoes = document.getElementById('tabelaAcoesDoPlanoBody');
+            tbodyAcoes.innerHTML = '';
+
+            plano.acoes.forEach(acao => {
+                const dataFormatada = acao.prazo ? acao.prazo.split('-').reverse().join('/') : '<span style="color:var(--danger); font-weight:bold;">Sem Data</span>';
+                
+                let badgeClass = 'badge-pendente';
+                if (acao.status === 'Em Andamento') badgeClass = 'badge-andamento';
+                if (acao.status === 'Concluído') badgeClass = 'badge-concluido';
+                if (acao.status === 'Recusada') badgeClass = 'badge-recusada';
+                if (acao.status === 'Aguardando Aprovação') badgeClass = 'badge-analise';
+                if (acao.status === 'Contraproposta de Prazo') badgeClass = 'badge-contraproposta';
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><strong>${acao.descricao}</strong></td>
+                    <td>👤 ${acao.responsavel}</td>
+                    <td>📅 ${dataFormatada}</td>
+                    <td><span class="badge ${badgeClass}">${acao.status}</span></td>
+                    <td>
+                        <strong>${acao.progresso}%</strong>
+                        <div class="progress-bar-container" style="width:120px;">
+                            <div class="progress-bar-fill" style="width: ${acao.progresso}%"></div>
+                        </div>
+                    </td>
+                `;
+                tbodyAcoes.appendChild(tr);
+            });
+        }
+
+        function fecharDetalhamentoPlano() {
+            document.getElementById('containerListagemPlanosAtivos').style.display = 'block';
+            document.getElementById('containerDetalhamentoPlano').style.display = 'none';
+        }
+
+        /* PAINEL DO COLABORADOR */
+        function buscarAcoesPorResponsavel() {
+            const termoBusca = document.getElementById('inputBuscaResponsavel').value.trim().toLowerCase();
+            const tbodyNotificacoes = document.getElementById('tabelaNovasAcoesBody');
+            const tbodyExecucao = document.getElementById('tabelaMinhasAcoesBody');
+            
+            tbodyNotificacoes.innerHTML = '';
+            tbodyExecucao.innerHTML = '';
+
+            if (!termoBusca) {
+                alert("Digite seu nome para acessar seu painel!");
+                return;
+            }
+
+            const planosExistentes = JSON.parse(localStorage.getItem('planosDeAcaoDB')) || [];
+            let temNotificacao = false;
+            let temTarefaAtiva = false;
+
+            planosExistentes.forEach(plano => {
+                plano.acoes.forEach(acao => {
+                    if (acao.responsavel.toLowerCase().includes(termoBusca)) {
+                        const dataFormatada = acao.prazo ? acao.prazo.split('-').reverse().join('/') : 'Não definida';
+
+                        if (acao.status === 'Aguardando Aprovação') {
+                            temNotificacao = true;
+                            const tr = document.createElement('tr');
+                            tr.innerHTML = `
+                                <td><strong>${acao.descricao}</strong></td>
+                                <td>📁 ${plano.nome}</td>
+                                <td>👤 ${plano.responsavelGeral}</td>
+                                <td>📅 ${dataFormatada}</td>
+                                <td style="text-align:center; display: flex; gap: 0.3rem; justify-content: center;">
+                                    <button class="btn-success" style="padding: 0.4rem 0.6rem; font-size:0.8rem;" onclick="decidirTarefa(${plano.id}, ${acao.id}, 'aceitar')">Aceitar</button>
+                                    <button class="btn-negotiate" style="padding: 0.4rem 0.6rem; font-size:0.8rem;" onclick="sugerirNovoPrazo(${plano.id}, ${acao.id})">Sugerir Prazo</button>
+                                    <button class="btn-danger" style="padding: 0.4rem 0.6rem; font-size:0.8rem;" onclick="decidirTarefa(${plano.id}, ${acao.id}, 'recusar')">Recusar</button>
+                                </td>
+                            `;
+                            tbodyNotificacoes.appendChild(tr);
+                        } else {
+                            temTarefaAtiva = true;
+                            let badgeClass = 'badge-pendente';
+                            if (acao.status === 'Em Andamento') badgeClass = 'badge-andamento';
+                            if (acao.status === 'Concluído') badgeClass = 'badge-concluido';
+                            if (acao.status === 'Recusada') badgeClass = 'badge-recusada';
+                            if (acao.status === 'Contraproposta de Prazo') badgeClass = 'badge-contraproposta';
+
+                            const disabledStr = (acao.status === 'Recusada' || acao.status === 'Contraproposta de Prazo') ? 'disabled' : '';
+
+                            let infoExtraLinha = '';
+                            if (acao.status === 'Contraproposta de Prazo') {
+                                const dsFmt = acao.prazoSugerido ? acao.prazoSugerido.split('-').reverse().join('/') : '';
+                                infoExtraLinha = `<br><small style="color:var(--negotiate)"><strong>Contraproposta enviada:</strong> Aguardando validação do Líder para a data ${dsFmt}.</small>`;
+                            } else if (acao.status === 'Recusada' && acao.justificativaRecusa) {
+                                infoExtraLinha = `<br><small style="color:var(--danger)"><strong>Motivo da Recusa:</strong> ${acao.justificativaRecusa}</small>`;
+                            }
+
+                            const tr = document.createElement('tr');
+                            tr.innerHTML = `
+                                <td>
+                                    <strong>${acao.descricao}</strong>
+                                    ${infoExtraLinha}
+                                </td>
+                                <td>📁 ${plano.nome}</td>
+                                <td>📅 ${dataFormatada}</td>
+                                <td><span class="badge ${badgeClass}">${acao.status}</span></td>
+                                <td>
+                                    <div class="progresso-input-container">
+                                        <input type="number" id="prog-${plano.id}-${acao.id}" min="0" max="100" value="${acao.progresso}" ${disabledStr}> %
+                                    </div>
+                                </td>
+                                <td>
+                                    <button type="button" class="btn-primary" style="padding: 0.4rem 0.8rem; font-size: 0.85rem;" 
+                                        onclick="atualizarProgressoTarefa(${plano.id}, ${acao.id})" ${disabledStr}>Salvar</button>
+                                </td>
+                            `;
+                            tbodyExecucao.appendChild(tr);
+                        }
+                    }
+                });
+            });
+
+            if (!temNotificacao) {
+                tbodyNotificacoes.innerHTML = `<tr><td colspan="5" style="text-align: center; color: #64748b; padding: 1rem;">✅ Nenhuma nova atribuição pendente de resposta.</td></tr>`;
+            }
+            if (!temTarefaAtiva) {
+                tbodyExecucao.innerHTML = `<tr><td colspan="6" style="text-align: center; color: #64748b; padding: 1rem;">Nenhuma tarefa confirmada em andamento.</td></tr>`;
+            }
+        }
+
+        function sugerirNovoPrazo(planoId, acaoId) {
+            const dataSugerida = prompt("Insira a nova data limite ideal para a tarefa (Formato: AAAA-MM-DD):");
+            if (!dataSugerida) return;
+
+            if (dataSugerida.length !== 10 || !dataSugerida.includes('-')) {
+                alert("Por favor utilize o formato padrão internacional exigido pelo sistema: AAAA-MM-DD");
+                return;
+            }
+
+            const motivo = prompt("Explique o motivo do ajuste (capacidade, gargalo, material, etc):");
+            if (!motivo) {
+                alert("É necessário fornecer uma justificativa para propor um novo prazo!");
+                return;
+            }
+
+            let planosExistentes = JSON.parse(localStorage.getItem('planosDeAcaoDB')) || [];
+            planosExistentes = planosExistentes.map(plano => {
+                if (plano.id === planoId) {
+                    plano.acoes = plano.acoes.map(acao => {
+                        if (acao.id === acaoId) {
+                            acao.status = 'Contraproposta de Prazo';
+                            acao.prazoSugerido = dataSugerida;
+                            acao.motivoPrazo = motivo;
+                        }
+                        return acao;
+                    });
+                }
+                return plano;
+            });
+
+            localStorage.setItem('planosDeAcaoDB', JSON.stringify(planosExistentes));
+            alert("Contraproposta de prazo encaminhada ao gestor do plano!");
+            buscarAcoesPorResponsavel();
+        }
+
+        function decidirTarefa(planoId, acaoId, decisao) {
+            let planosExistentes = JSON.parse(localStorage.getItem('planosDeAcaoDB')) || [];
+            let justificativa = "";
+
+            if (decisao === 'recusar') {
+                justificativa = prompt("Informe o motivo do cancelamento / recusa da tarefa:");
+                if (!justificativa) {
+                    alert("Justificativa obrigatória para recusar.");
+                    return;
+                }
+            }
+
+            planosExistentes = planosExistentes.map(plano => {
+                if (plano.id === planoId) {
+                    plano.acoes = plano.acoes.map(acao => {
+                        if (acao.id === acaoId) {
+                            if (decisao === 'aceitar') acao.status = 'Pendente';
+                            else {
+                                acao.status = 'Recusada';
+                                acao.justificativaRecusa = justificativa;
+                            }
+                        }
+                        return acao;
+                    });
+                }
+                return plano;
+            });
+
+            localStorage.setItem('planosDeAcaoDB', JSON.stringify(planosExistentes));
+            buscarAcoesPorResponsavel();
+        }
+
+        function atualizarProgressoTarefa(planoId, acaoId) {
+            const inputVal = parseInt(document.getElementById(`prog-${planoId}-${acaoId}`).value);
+            if (isNaN(inputVal) || inputVal < 0 || inputVal > 100) {
+                alert("Insira um valor entre 0 e 100%.");
+                return;
+            }
+
+            let planosExistentes = JSON.parse(localStorage.getItem('planosDeAcaoDB')) || [];
+            planosExistentes = planosExistentes.map(plano => {
+                if (plano.id === planoId) {
+                    plano.acoes = plano.acoes.map(acao => {
+                        if (acao.id === acaoId) {
+                            acao.progresso = inputVal;
+                            if (inputVal === 0) {
+                                acao.status = 'Pendente';
+                                acao.dataConclusao = '';
+                            } else if (inputVal === 100) {
+                                acao.status = 'Concluído';
+                                acao.dataConclusao = new Date().toISOString().split('T')[0];
+                            } else {
+                                acao.status = 'Em Andamento';
+                                acao.dataConclusao = '';
+                            }
+                        }
+                        return acao;
+                    });
+
+                    const todasAcoesConcluidas = plano.acoes.length > 0 && plano.acoes.every(a => a.status === 'Concluído');
+                    if (todasAcoesConcluidas) plano.status = 'Concluído';
+                }
+                return plano;
+            });
+
+            localStorage.setItem('planosDeAcaoDB', JSON.stringify(planosExistentes));
+            alert("Progresso salvo com sucesso!");
+            buscarAcoesPorResponsavel();
+        }
+
+        /* LÓGICA DE PROGRESÃO DE GAMIFICAÇÃO & RANKING */
+        function calcularERenderizarRanking() {
+            const planosExistentes = JSON.parse(localStorage.getItem('planosDeAcaoDB')) || [];
+            const pontuacoes = {};
+
+            // Inicializador de estrutura de dados por usuário
+            function verificarUsuario(nome) {
+                if (!nome) return;
+                if (!pontuacoes[nome]) {
+                    pontuacoes[nome] = { nome: nome, pontos: 0, planosConcluidos: 0, noPrazo: 0, atrasadas: 0 };
+                }
+            }
+
+            planosExistentes.forEach(plano => {
+                verificarUsuario(plano.responsavelGeral);
+                
+                let totalAcoesDoPlano = plano.acoes.length;
+                let concluidasDoPlano = 0;
+
+                plano.acoes.forEach(acao => {
+                    verificarUsuario(acao.responsavel);
+
+                    if (acao.status === 'Concluído') {
+                        concluidasDoPlano++;
+                        
+                        // Validação de Prazo: Se não houver prazo estipulado, assume-se "no prazo"
+                        if (!acao.prazo || !acao.dataConclusao) {
+                            pontuacoes[acao.responsavel].pontos += 30;
+                            pontuacoes[acao.responsavel].noPrazo += 1;
+                        } else {
+                            const limite = new Date(acao.prazo);
+                            const conclusao = new Date(acao.dataConclusao);
+
+                            if (conclusao <= limite) {
+                                pontuacoes[acao.responsavel].pontos += 30; // NO PRAZO
+                                pontuacoes[acao.responsavel].noPrazo += 1;
+                            } else {
+                                pontuacoes[acao.responsavel].pontos += 10; // FORA DO PRAZO
+                                pontuacoes[acao.responsavel].atrasadas += 1;
+                            }
+                        }
+                    }
+                });
+
+                // Se o plano bateu 100% de conclusão ou o status macro mudou para Concluído pelo Gestor
+                if ((totalAcoesDoPlano > 0 && concluidasDoPlano === totalAcoesDoPlano) || plano.status === 'Concluído') {
+                    if (plano.responsavelGeral) {
+                        pontuacoes[plano.responsavelGeral].pontos += 100; // PLANO FECHADO
+                        pontuacoes[plano.responsavelGeral].planosConcluidos += 1;
+                    }
+                }
+            });
+
+            // Ordena o array do maior pontuador para o menor
+            const listaOrdenada = Object.values(pontuacoes).sort((a, b) => b.pontos - a.pontos);
+
+            // 1. CONSTRUÇÃO DO PÓDIO VISUAL
+            const podioDiv = document.getElementById('podioVisual');
+            podioDiv.innerHTML = '';
+
+            if (listaOrdenada.length === 0) {
+                podioDiv.innerHTML = `<p style="color: #64748b; padding: 1rem;">Nenhuma atividade computada para gerar o pódio.</p>`;
+            } else {
+                const top3 = listaOrdenada.slice(0, 3);
+                
+                // Gera a estruturaHTML injetando os avatares e classes correspondentes
+                let htmlPodio = '';
+                
+                // 2º Lugar
+                if (top3[1]) {
+                    htmlPodio += `
+                    <div class="podium-place">
+                        <div class="podium-avatar">🥈</div>
+                        <div class="podium-name">${top3[1].nome}</div>
+                        <div class="podium-pts">${top3[1].pontos} pts</div>
+                        <div class="podium-bar podium-2">2º</div>
+                    </div>`;
+                }
+                // 1º Lugar
+                if (top3[0]) {
+                    htmlPodio += `
+                    <div class="podium-place">
+                        <div class="podium-avatar">👑</div>
+                        <div class="podium-name" style="font-size:1.1rem;">${top3[0].nome}</div>
+                        <div class="podium-pts" style="font-size:1.1rem;">${top3[0].pontos} pts</div>
+                        <div class="podium-bar podium-1">1º</div>
+                    </div>`;
+                }
+                // 3º Lugar
+                if (top3[2]) {
+                    htmlPodio += `
+                    <div class="podium-place">
+                        <div class="podium-avatar">🥉</div>
+                        <div class="podium-name">${top3[2].nome}</div>
+                        <div class="podium-pts">${top3[2].pontos} pts</div>
+                        <div class="podium-bar podium-3">3º</div>
+                    </div>`;
+                }
+                podioDiv.innerHTML = htmlPodio;
+            }
+
+            // 2. CONSTRUÇÃO DA TABELA COMPLETA
+            const tbody = document.getElementById('tabelaRankingBody');
+            tbody.innerHTML = '';
+
+            if (listaOrdenada.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:#64748b; padding:2rem;">Nenhum dado de pontuação disponível ainda na fábrica.</td></tr>`;
+                return;
+            }
+
+            listaOrdenada.forEach((user, i) => {
+                let medalha = i + 1;
+                if (i === 0) medalha = '🥇';
+                if (i === 1) medalha = '🥈';
+                if (i === 2) medalha = '🥉';
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td style="text-align: center; font-weight: bold; font-size: 1.1rem;">${medalha}</td>
+                    <td><strong>${user.nome}</strong></td>
+                    <td style="text-align: center; font-weight: 800; color: var(--primary); font-size: 1.05rem;">${user.pontos} pts</td>
+                    <td style="text-align: center; font-weight: bold;">${user.planosConcluidos}</td>
+                    <td style="text-align: center; font-weight: bold; color: var(--success);">${user.noPrazo}</td>
+                    <td style="text-align: center; font-weight: bold; color: var(--danger);">${user.atrasadas}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        atualizarListaAcoesDOM();
+    </script>
+</body>
+</html>

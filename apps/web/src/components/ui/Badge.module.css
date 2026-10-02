@@ -1,0 +1,67 @@
+/* Mallory DS — Badge (pílula, fundo -soft + texto na cor do tom).
+   Desvio intencional: o texto mistura 25% de --fg para ter contraste legível (amarelo/verde puros ficam fracos). */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3125rem;
+  padding: 0.1875rem 0.625rem;
+  border-radius: var(--r-pill);
+  font-size: 0.71875rem;
+  font-weight: var(--fw-semibold);
+  line-height: 1.35;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.neutro {
+  background: var(--bg-2);
+  color: var(--fg-muted);
+}
+
+.primaria {
+  background: var(--primary-soft);
+  color: var(--primary-soft-fg);
+}
+
+.sucesso {
+  background: var(--success-soft);
+  color: color-mix(in oklab, var(--success) 75%, var(--fg));
+}
+
+.aviso {
+  background: var(--warning-soft);
+  color: color-mix(in oklab, var(--warning) 75%, var(--fg));
+}
+
+.erro {
+  background: var(--danger-soft);
+  color: color-mix(in oklab, var(--danger) 75%, var(--fg));
+}
+
+.info {
+  background: var(--info-soft);
+  color: color-mix(in oklab, var(--info) 75%, var(--fg));
+}
+
+.sm {
+  padding: 0.125rem 0.4375rem;
+  font-size: var(--text-2xs);
+}
+
+.negrito {
+  font-weight: var(--fw-extrabold);
+}
+
+.ponto {
+  width: 0.375rem;
+  height: 0.375rem;
+  border-radius: var(--r-pill);
+  background: currentColor;
+  flex-shrink: 0;
+}
+
+.grupo {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}

@@ -1,0 +1,102 @@
+.cabecalho {
+  /* Fixo no topo enquanto o conteúdo das abas rola. */
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-3);
+  margin: calc(-1 * var(--margem-pagina)) calc(-1 * var(--margem-pagina)) 0;
+  padding: var(--espaco-4) var(--margem-pagina);
+  border-bottom: var(--borda-fina) solid var(--cor-borda);
+  background: var(--cor-fundo);
+}
+
+.faixaArquivado {
+  margin: 0;
+  padding: var(--espaco-2) var(--espaco-3);
+  border: var(--borda-fina) dashed var(--cor-texto-suave);
+  border-radius: var(--raio-2);
+  color: var(--cor-texto-suave);
+  font-size: var(--fonte-md);
+}
+
+.linhaTitulo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--espaco-3);
+}
+
+.identificacao {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-1);
+  min-width: 0;
+}
+
+.codigo {
+  font-size: var(--fonte-sm);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--cor-texto-suave);
+}
+
+.nome {
+  margin: 0;
+  font-size: var(--fonte-xl);
+}
+
+.selos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--espaco-2);
+  margin-top: var(--espaco-1);
+}
+
+.botoes {
+  display: flex;
+  gap: var(--espaco-2);
+}
+
+.metadados {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--espaco-2) var(--espaco-6);
+  margin: 0;
+  font-size: var(--fonte-md);
+}
+
+.metadados dt {
+  font-size: var(--fonte-xs);
+  color: var(--cor-texto-suave);
+}
+
+.metadados dd {
+  margin: 0;
+}
+
+.prazoVencido {
+  font-weight: 600;
+}
+
+.erro {
+  color: var(--cor-erro-texto);
+}
+
+/* Celular: o cabeçalho rola com a página (fixo, ocuparia metade da tela) e os botões quebram linha. */
+@media (--mobile) {
+  .cabecalho {
+    position: static;
+  }
+
+  .botoes {
+    flex-wrap: wrap;
+    width: 100%;
+  }
+
+  .botoes > * {
+    flex: 1 1 auto;
+  }
+}

@@ -1,0 +1,103 @@
+.planosPage {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-4);
+}
+
+.cabecalho {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--espaco-4);
+}
+
+.titulo {
+  margin: 0;
+  font-size: var(--fonte-xl);
+}
+
+.atualizando {
+  font-size: var(--fonte-sm);
+  color: var(--cor-texto-suave);
+}
+
+.estado {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--espaco-2);
+  margin: 0;
+  padding: var(--espaco-6);
+  border: var(--borda-fina) dashed var(--cor-borda);
+  border-radius: var(--raio-3);
+  color: var(--cor-texto-suave);
+  text-align: center;
+}
+
+.estado p {
+  margin: 0;
+}
+
+.erro {
+  margin: 0;
+  color: var(--cor-erro-texto);
+}
+
+/* Exibição: Ativos | Arquivados | Todos (segmentado em pílula). */
+.exibicao {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.125rem;
+  padding: 0.1875rem;
+  border: var(--borda-fina) solid var(--border);
+  border-radius: var(--r-pill);
+  background: var(--bg-2);
+}
+
+.rotuloExibicao {
+  padding: 0 var(--espaco-2);
+  color: var(--fg-muted);
+  font-size: var(--text-sm);
+}
+
+.opcaoExibicao {
+  padding: 0.3125rem 0.75rem;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: transparent;
+  color: var(--fg-muted);
+  font-size: var(--text-sm);
+  font-weight: var(--fw-semibold);
+  cursor: pointer;
+}
+
+.opcaoExibicao:hover {
+  color: var(--fg);
+}
+
+.opcaoAtiva {
+  background: var(--surface);
+  color: var(--fg);
+  box-shadow: var(--shadow-sm);
+}
+
+.avisoEscopo {
+  margin: 0;
+  padding: var(--espaco-2) var(--espaco-3);
+  border-left: var(--borda-destaque) solid var(--cor-dado-neutro);
+  border-radius: var(--raio-2);
+  background: var(--bg-2);
+  font-size: var(--fonte-md);
+}
+
+@media (--ate-tablet) {
+  .opcaoExibicao {
+    min-height: var(--alvo-toque);
+  }
+}
+
+@media (--mobile) {
+  .cabecalho {
+    flex-wrap: wrap;
+  }
+}

@@ -1,0 +1,139 @@
+/* Configurações de e-mail: formulário do modelo à esquerda, variáveis à direita. */
+.dados {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: var(--espaco-2) var(--espaco-4);
+  margin: 0 0 var(--espaco-3);
+  font-size: var(--fonte-md);
+}
+
+.dados dt {
+  color: var(--cor-texto-suave);
+}
+
+.dados dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.nota {
+  font-size: var(--fonte-sm);
+  color: var(--cor-texto-suave);
+}
+
+.alerta {
+  margin: 0;
+  padding: var(--espaco-2) var(--espaco-3);
+  border-radius: var(--raio-2);
+  background: var(--warning-soft);
+  color: var(--fg);
+  font-size: var(--fonte-sm);
+}
+
+.rodape {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--espaco-3);
+  margin-top: var(--espaco-3);
+}
+
+.botoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--espaco-2);
+}
+
+.modelo {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 19rem;
+  gap: var(--espaco-5);
+  align-items: start;
+  padding-top: var(--espaco-4);
+}
+
+.colunaForm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-3);
+  min-width: 0;
+}
+
+.colunaVariaveis {
+  position: sticky;
+  top: var(--espaco-4);
+  padding: var(--espaco-4);
+  border: var(--borda-fina) solid var(--cor-borda);
+  border-radius: var(--raio-3);
+  background: var(--cor-superficie);
+}
+
+.tituloVariaveis {
+  margin: 0 0 var(--espaco-1);
+  font-size: var(--fonte-base);
+}
+
+.variaveis {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-2);
+  margin: var(--espaco-3) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.variaveis li {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.variavel {
+  align-self: flex-start;
+  padding: 0.125rem var(--espaco-2);
+  border: var(--borda-fina) solid var(--cor-borda);
+  border-radius: var(--raio-2);
+  background: var(--bg-2);
+  color: var(--fg);
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: var(--fonte-sm);
+  cursor: pointer;
+}
+
+.variavel:hover,
+.variavel:focus-visible {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.previa {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-3);
+}
+
+.assuntoPrevia {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  margin: 0;
+}
+
+.quadroPrevia {
+  width: 100%;
+  height: 34rem;
+  border: var(--borda-fina) solid var(--cor-borda);
+  border-radius: var(--raio-3);
+  background: #faf7f5;
+}
+
+@media (--ate-tablet) {
+  .modelo {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .colunaVariaveis {
+    position: static;
+  }
+}

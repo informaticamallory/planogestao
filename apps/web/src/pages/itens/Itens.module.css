@@ -1,0 +1,61 @@
+.pagina {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-4);
+}
+
+.cabecalho {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--espaco-3);
+}
+
+.titulo {
+  margin: 0;
+  font-size: var(--fonte-xl);
+}
+
+.subtitulo {
+  margin: 0;
+  color: var(--cor-texto-suave);
+  font-size: var(--fonte-md);
+}
+
+.filtros {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-3);
+  padding: var(--espaco-4);
+  border: var(--borda-fina) solid var(--cor-borda);
+  border-radius: var(--raio-3);
+  background: var(--cor-superficie);
+}
+
+.estado {
+  margin: 0;
+  color: var(--cor-texto-suave);
+}
+
+.erro {
+  margin: 0;
+  color: var(--cor-erro-texto);
+}
+
+.numero {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.caminho {
+  display: block;
+  color: var(--cor-texto-suave);
+  font-size: var(--fonte-xs);
+}
+
+.escopo {
+  margin: 0;
+  color: var(--cor-texto-suave);
+  font-size: var(--fonte-sm);
+}

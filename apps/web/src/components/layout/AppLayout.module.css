@@ -1,0 +1,123 @@
+/* A coluna do menu acompanha a largura da sidebar (que anima): o conteúdo se realinha ao lado,
+   nunca fica por baixo do menu. */
+.appLayout {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  min-height: 100vh;
+  background: var(--bg);
+}
+
+/* Celular: a sidebar vira gaveta fora do fluxo; o conteúdo ocupa 100% da largura. */
+.appLayout[data-menu="gaveta"] {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.area {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/* Topbar do kit: fixa, translúcida com desfoque. */
+.barraSuperior {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  height: var(--altura-barra);
+  padding: 0 var(--margem-pagina);
+  border-bottom: var(--borda-fina) solid var(--border);
+  background: color-mix(in oklab, var(--bg) 82%, transparent);
+  backdrop-filter: blur(12px);
+}
+
+.controlesBarra {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-left: auto;
+}
+
+.avatarTopo {
+  display: grid;
+  place-items: center;
+  min-width: var(--alvo-toque);
+  min-height: var(--alvo-toque);
+  border-radius: var(--r-md);
+}
+
+.avatarTopo:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+.botaoMenu {
+  flex-shrink: 0;
+}
+
+.marcaMobile {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  font-family: var(--font-head);
+  font-size: var(--text-md);
+  font-weight: var(--fw-bold);
+  white-space: nowrap;
+}
+
+.logomarca {
+  display: grid;
+  place-items: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 0.5rem;
+  background: var(--primary);
+  color: var(--primary-fg);
+  font-size: var(--text-base);
+  font-weight: var(--fw-extrabold);
+}
+
+/* Camada escura por trás da gaveta aberta (toque fora fecha). */
+.camada {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: var(--overlay);
+  animation: aparecer 0.2s ease;
+}
+
+@keyframes aparecer {
+  from {
+    opacity: 0;
+  }
+}
+
+/* Área de conteúdo do kit (.content): largura máxima e ritmo pela densidade. */
+.conteudo {
+  width: 100%;
+  max-width: 90rem;
+  margin: 0 auto;
+  padding: var(--margem-pagina);
+  min-width: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .camada {
+    animation: none;
+  }
+}
+
+@media print {
+  .appLayout {
+    display: block;
+    background: none;
+  }
+
+  .conteudo {
+    max-width: none;
+    padding: 0;
+  }
+}

@@ -1,0 +1,18 @@
+/*
+ * Breakpoints oficiais do projeto — ÚNICO lugar onde as larguras são definidas.
+ *
+ *   mobile   < 768px
+ *   tablet   768px – 1199px
+ *   desktop  ≥ 1200px
+ *
+ * Use nos CSS Modules com `@media (--mobile) { … }` (sem importar nada): o postcss.config.js injeta
+ * este arquivo em todos os CSS (postcss-global-data) e resolve os nomes (postcss-custom-media).
+ * No TypeScript, use src/utils/breakpoints.ts, que lê estas mesmas larguras.
+ */
+@custom-media --mobile (max-width: 767.98px);
+@custom-media --tablet (min-width: 768px) and (max-width: 1199.98px);
+@custom-media --desktop (min-width: 1200px);
+/* Mobile + tablet: onde valem os alvos de toque de 44px e a fonte maior. */
+@custom-media --ate-tablet (max-width: 1199.98px);
+/* Tablet + desktop. */
+@custom-media --a-partir-tablet (min-width: 768px);

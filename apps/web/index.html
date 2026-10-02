@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="pt-BR" data-theme="light" data-density="comfortable">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PlanoGestão</title>
+    <script>
+      // Aplica a última aparência conhecida antes da primeira pintura (cache de src/store/aparenciaStore.ts;
+      // a fonte da verdade é a conta do usuário, aplicada assim que a sessão é restaurada).
+      try {
+        var h = document.documentElement;
+        var a = JSON.parse(localStorage.getItem("planogestao:aparencia") || "{}");
+        var p = a.preferencia || (a.tema === "dark" ? "escuro" : a.tema === "light" ? "claro" : "automatico");
+        var escuro = p === "escuro" || (p === "automatico" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+        h.dataset.theme = escuro ? "dark" : "light";
+        if (["azul", "verde", "roxo", "petroleo"].indexOf(a.cor) >= 0) h.dataset.accent = a.cor;
+        if (["pequeno", "padrao", "grande", "extra_grande"].indexOf(a.fonte) >= 0) h.dataset.fonte = a.fonte;
+        if (["compact", "comfortable", "spacious"].indexOf(a.densidade) >= 0) h.dataset.density = a.densidade;
+      } catch (e) {}
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

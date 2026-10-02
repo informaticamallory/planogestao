@@ -1,0 +1,43 @@
+/* Mallory DS — rótulo de campo: 10px, maiúsculas, peso 700, tracking .06em; erro em --danger. */
+.campo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3125rem;
+  min-width: 0;
+}
+
+.rotulo {
+  font-size: 0.625rem;
+  font-weight: var(--fw-bold);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-caps);
+  color: var(--fg-subtle);
+}
+
+.campo:has([aria-invalid="true"]) .rotulo {
+  color: var(--danger);
+}
+
+.obrigatorio {
+  color: var(--danger);
+}
+
+.ajuda {
+  font-size: 0.71875rem;
+  line-height: var(--leading-normal);
+  color: var(--fg-subtle);
+}
+
+.erro {
+  font-size: 0.71875rem;
+  line-height: var(--leading-normal);
+  color: var(--danger);
+}
+
+.aviso {
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--r-sm);
+  background: var(--warning-soft);
+  color: var(--fg);
+  font-size: 0.71875rem;
+}

@@ -1,0 +1,97 @@
+.miniCalendario {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-2);
+}
+
+.navegacao {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--espaco-1);
+}
+
+.estado {
+  margin: 0;
+  color: var(--danger);
+  font-size: var(--fonte-sm);
+  text-align: center;
+}
+
+.mesAtual {
+  min-width: 9ch;
+  text-align: center;
+}
+
+.grade {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: var(--espaco-05);
+}
+
+.diaSemana {
+  padding: var(--espaco-1) 0;
+  font-size: var(--fonte-xs);
+  color: var(--cor-texto-suave);
+  text-align: center;
+}
+
+.dia {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--espaco-05);
+  min-height: 2.5rem;
+  padding: var(--espaco-1) 0;
+  border: var(--borda-fina) solid transparent;
+  border-radius: var(--raio-2);
+  background: none;
+  font: inherit;
+  font-size: var(--fonte-sm);
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+
+.dia:hover,
+.dia:focus-visible {
+  border-color: var(--cor-borda);
+}
+
+.diaComAcoes {
+  font-weight: 600;
+}
+
+.diaHoje {
+  border-color: var(--cor-primaria);
+}
+
+.pontos {
+  display: flex;
+  gap: var(--espaco-05);
+  min-height: 0.375rem;
+}
+
+.ponto {
+  display: inline-block;
+  width: 0.375rem;
+  height: 0.375rem;
+  border-radius: var(--raio-circulo);
+  flex-shrink: 0;
+}
+
+.legenda {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--espaco-1) var(--espaco-3);
+  margin: var(--espaco-3) 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--fonte-xs);
+  color: var(--cor-texto-suave);
+}
+
+.itemLegenda {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--espaco-1);
+}

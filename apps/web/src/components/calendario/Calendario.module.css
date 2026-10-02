@@ -1,0 +1,394 @@
+.pagina {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-secao);
+}
+
+.cabecalho {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--espaco-3);
+}
+
+.titulo {
+  margin: 0;
+  font-size: var(--fonte-xl);
+}
+
+.filtros {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--espaco-3);
+}
+
+.campo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-1);
+}
+
+.rotulo {
+  font-size: var(--fonte-xs);
+  color: var(--cor-texto-suave);
+}
+
+.barra {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--espaco-3);
+}
+
+.navegacao {
+  display: flex;
+  align-items: center;
+  gap: var(--espaco-2);
+}
+
+.periodo {
+  margin: 0 0 0 var(--espaco-2);
+  font-size: var(--fonte-lg);
+}
+
+.totalPeriodo {
+  font-size: var(--fonte-md);
+  font-weight: 400;
+  color: var(--cor-texto-suave);
+}
+
+.alternador {
+  display: inline-flex;
+  border: var(--borda-fina) solid var(--cor-borda);
+  border-radius: var(--raio-2);
+  overflow: hidden;
+}
+
+.opcaoVisao {
+  padding: var(--espaco-2) var(--espaco-4);
+  border: 0;
+  background: var(--cor-superficie);
+  font: inherit;
+  cursor: pointer;
+}
+
+.opcaoVisaoAtiva {
+  background: var(--cor-primaria);
+  color: var(--cor-primaria-texto);
+}
+
+.legenda {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--espaco-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--fonte-sm);
+  color: var(--cor-texto-suave);
+}
+
+.vazio {
+  margin: 0;
+  padding: var(--espaco-5);
+  border: var(--borda-fina) dashed var(--cor-borda);
+  border-radius: var(--raio-3);
+  color: var(--cor-texto-suave);
+  text-align: center;
+}
+
+.erro {
+  margin: 0;
+  color: var(--cor-erro-texto);
+}
+
+/* ---- mês ---- */
+.gradeMes {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: var(--borda-fina);
+  border: var(--borda-fina) solid var(--cor-borda);
+  border-radius: var(--raio-3);
+  background: var(--cor-borda);
+  overflow: hidden;
+}
+
+.cabecalhoDia {
+  padding: var(--espaco-2);
+  background: var(--cor-fundo);
+  font-size: var(--fonte-xs);
+  font-weight: 600;
+  color: var(--cor-texto-suave);
+  text-align: center;
+}
+
+.celula {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--espaco-1);
+  min-height: 6rem;
+  padding: var(--espaco-2);
+  border: 0;
+  background: var(--cor-superficie);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.celula:hover:not(:disabled),
+.celula:focus-visible {
+  background: var(--cor-fundo);
+}
+
+.foraDoMes {
+  color: var(--cor-texto-suave);
+  cursor: default;
+  opacity: 0.5;
+}
+
+.hoje .numeroDia {
+  display: inline-grid;
+  place-items: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: var(--raio-circulo);
+  background: var(--cor-primaria);
+  color: var(--cor-primaria-texto);
+}
+
+.selecionado {
+  box-shadow: inset 0 0 0 var(--borda-media) var(--cor-primaria);
+}
+
+.numeroDia {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.totalDia {
+  font-size: var(--fonte-xs);
+  color: var(--cor-texto-suave);
+}
+
+.indicadores {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--espaco-1) var(--espaco-2);
+  font-size: var(--fonte-sm);
+}
+
+.indicador {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--espaco-05);
+}
+
+.numeroIndicador {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- semana ---- */
+.semana {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(8.75rem, 1fr));
+  gap: var(--espaco-2);
+  overflow-x: auto;
+}
+
+.colunaSemana {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-2);
+  min-height: 15rem;
+  padding: var(--espaco-2);
+  border: var(--borda-fina) solid var(--cor-borda);
+  border-radius: var(--raio-3);
+  background: var(--cor-fundo);
+}
+
+.tituloColunaSemana {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--espaco-1) var(--espaco-2);
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.cartaoAcao {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-1);
+  padding: var(--espaco-2);
+  border: var(--borda-fina) solid var(--cor-borda);
+  border-radius: var(--raio-2);
+  background: var(--cor-superficie);
+  color: inherit;
+  text-decoration: none;
+  font-size: var(--fonte-sm);
+}
+
+.cartaoAcao:hover,
+.cartaoAcao:focus-visible {
+  border-color: var(--cor-primaria);
+}
+
+.descricaoAcao {
+  overflow-wrap: anywhere;
+}
+
+.metaAcao {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--espaco-1) var(--espaco-3);
+  font-size: var(--fonte-xs);
+  color: var(--cor-texto-suave);
+}
+
+/* ---- lista ---- */
+.lista {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tituloGrupo {
+  margin-bottom: var(--espaco-2);
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.itensGrupo {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(16.25rem, 100%), 1fr));
+  gap: var(--espaco-2);
+}
+
+/* ---- painel do dia ---- */
+.listaDia {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.itemDia {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-2);
+  padding-bottom: var(--espaco-3);
+  border-bottom: var(--borda-fina) solid var(--cor-borda);
+}
+
+.itemDia:last-child {
+  border-bottom: 0;
+}
+
+.linkAcaoDia {
+  color: inherit;
+  font-weight: 600;
+}
+
+.linhaItemDia {
+  display: grid;
+  grid-template-columns: auto minmax(7.5rem, 1fr);
+  align-items: center;
+  gap: var(--espaco-3);
+}
+
+/* ---- responsivo ---- */
+@media (--ate-tablet) {
+  .opcaoVisao {
+    min-height: var(--alvo-toque);
+  }
+}
+
+@media (--mobile) {
+  .barra {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .navegacao {
+    justify-content: space-between;
+  }
+
+  .periodo {
+    margin: 0;
+    font-size: var(--fonte-md);
+    text-align: center;
+  }
+
+  .alternador {
+    align-self: stretch;
+  }
+
+  .opcaoVisao {
+    flex: 1;
+  }
+
+  /* Mês: células compactas; as contagens por situação ficam no painel do dia (toque no dia). */
+  .cabecalhoDia {
+    padding: var(--espaco-1) 0;
+  }
+
+  .celula {
+    align-items: center;
+    min-height: 3.25rem;
+    padding: var(--espaco-1) 0.125rem;
+  }
+
+  .indicadores {
+    display: none;
+  }
+
+  .totalDia {
+    font-size: var(--fonte-2xs);
+    text-align: center;
+  }
+
+  /* Semana: os 7 dias empilhados (um por linha), em vez de colunas espremidas ou rolagem lateral. */
+  .semana {
+    grid-template-columns: minmax(0, 1fr);
+    overflow-x: visible;
+  }
+
+  .colunaSemana {
+    min-height: 0;
+  }
+
+  .linhaItemDia {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Celular: filtros dois por linha, com o controle na largura do campo (nada fica espremido). */
+@media (--mobile) {
+  .filtros > .campo {
+    flex: 1 1 calc(50% - var(--espaco-3));
+    min-width: 0;
+  }
+
+  .filtros > .campo select,
+  .filtros > .campo input {
+    width: 100%;
+  }
+}

@@ -1,0 +1,91 @@
+/* Mallory DS — KpiCard. A faixa colorida no rodapé indica o tom (a cor nunca é a única informação). */
+.kpi {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5625rem;
+  min-width: 0;
+  padding: 0.875rem 1rem;
+  border: var(--borda-fina) solid var(--border);
+  border-radius: var(--card-radius, var(--r-xl));
+  background: var(--surface);
+  box-shadow: var(--card-shadow, var(--shadow-sm));
+  overflow: hidden;
+}
+
+.topo {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.valorLinha {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-1);
+  flex: 1;
+  min-width: 0;
+}
+
+.valor {
+  font-family: var(--font-head);
+  font-size: var(--text-kpi);
+  font-weight: var(--fw-bold);
+  color: var(--fg);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.sufixo {
+  font-size: 0.78125rem;
+  font-weight: var(--fw-semibold);
+  color: var(--fg-muted);
+}
+
+.spark {
+  overflow: visible;
+  flex-shrink: 0;
+}
+
+.delta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.125rem;
+  padding: 0.125rem 0.4375rem 0.125rem 0.3125rem;
+  border-radius: var(--r-pill);
+  font-size: var(--text-sm);
+  font-weight: var(--fw-semibold);
+  flex-shrink: 0;
+}
+
+.deltaAlta {
+  background: var(--success-soft);
+  color: color-mix(in oklab, var(--success) 75%, var(--fg));
+}
+
+.deltaBaixa {
+  background: var(--danger-soft);
+  color: color-mix(in oklab, var(--danger) 75%, var(--fg));
+}
+
+.rotulo {
+  font-size: 0.78125rem;
+  font-weight: var(--fw-semibold);
+  color: var(--fg);
+}
+
+.dica {
+  margin-top: 0.125rem;
+  font-size: 0.71875rem;
+  color: var(--fg-subtle);
+}
+
+.faixa {
+  position: absolute;
+  left: 1rem;
+  right: 1rem;
+  bottom: 0;
+  height: 0.1875rem;
+  border-radius: var(--r-pill) var(--r-pill) 0 0;
+  opacity: 0.85;
+}

@@ -1,0 +1,51 @@
+.atalhos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--espaco-1);
+  border-bottom: var(--borda-fina) solid var(--cor-borda);
+}
+
+.atalho {
+  padding: var(--espaco-2) var(--espaco-3);
+  border: 0;
+  border-bottom: var(--borda-media) solid transparent;
+  margin-bottom: calc(-1 * var(--borda-fina));
+  background: none;
+  font: inherit;
+  color: var(--cor-texto-suave);
+  cursor: pointer;
+}
+
+.atalho:hover {
+  color: var(--cor-texto);
+}
+
+.atalhoAtivo {
+  border-bottom-color: var(--cor-primaria);
+  color: var(--cor-texto);
+  font-weight: 600;
+}
+
+@media (--ate-tablet) {
+  .atalho {
+    min-height: var(--alvo-toque);
+  }
+}
+
+/* Celular: os atalhos ficam numa faixa que rola na horizontal, sem quebrar em várias linhas. */
+@media (--mobile) {
+  .atalhos {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .atalhos::-webkit-scrollbar {
+    display: none;
+  }
+
+  .atalho {
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+}

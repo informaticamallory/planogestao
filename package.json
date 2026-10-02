@@ -1,0 +1,15 @@
+{
+  "name": "gestao-planos",
+  "private": true,
+  "packageManager": "pnpm@9.15.9",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "pnpm --filter @planogestao/web dev",
+    "dev:web": "pnpm --filter @planogestao/web dev",
+    "build:web": "pnpm --filter @planogestao/web build",
+    "gen:types": "pnpm --filter @planogestao/shared-types generate",
+    "typecheck": "pnpm -r typecheck"
+  }
+}

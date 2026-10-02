@@ -1,0 +1,31 @@
+.planoDetalhePage {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-5);
+}
+
+.estado {
+  color: var(--cor-texto-suave);
+}
+
+.erro {
+  color: var(--cor-erro-texto);
+}
+
+.avisos {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--espaco-3);
+  padding: var(--espaco-3);
+  border-left: var(--borda-destaque) solid var(--cor-dado-vencendo);
+  border-radius: var(--raio-2);
+  background: var(--cor-superficie);
+  font-size: var(--fonte-md);
+}
+
+.avisos ul {
+  flex: 1;
+  margin: 0;
+  padding-left: var(--espaco-4);
+}
+

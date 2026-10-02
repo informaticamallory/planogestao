@@ -1,0 +1,23 @@
+.seletorPeriodo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--espaco-3);
+}
+
+.campo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-1);
+}
+
+.rotulo {
+  font-size: var(--fonte-xs);
+  color: var(--cor-texto-suave);
+}
+
+.aviso {
+  font-size: var(--fonte-xs);
+  color: var(--cor-texto-suave);
+  padding-bottom: var(--espaco-2);
+}

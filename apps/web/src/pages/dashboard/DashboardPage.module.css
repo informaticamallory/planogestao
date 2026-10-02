@@ -1,0 +1,32 @@
+.dashboardPage {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-5);
+  min-width: 0;
+}
+
+.cabecalho {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--espaco-4);
+}
+
+.acoesCabecalho {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--espaco-3);
+}
+
+.titulo {
+  margin: 0;
+  font-size: var(--fonte-xl);
+}
+
+.subtitulo {
+  margin: var(--espaco-1) 0 0;
+  font-size: var(--fonte-md);
+  color: var(--cor-texto-suave);
+}

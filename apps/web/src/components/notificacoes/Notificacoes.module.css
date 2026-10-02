@@ -1,0 +1,242 @@
+/* ---- sino ---- */
+.sino {
+  position: relative;
+}
+
+.botaoSino {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border: var(--borda-fina) solid var(--cor-borda);
+  border-radius: var(--raio-circulo);
+  background: var(--cor-superficie);
+  font-size: var(--fonte-lg);
+  cursor: pointer;
+}
+
+.botaoSino[aria-expanded="true"],
+.botaoSino:hover {
+  border-color: var(--cor-primaria);
+}
+
+.contador {
+  position: absolute;
+  top: -0.25rem;
+  right: -0.375rem;
+  min-width: 1.25rem;
+  height: 1.25rem;
+  padding: 0 var(--espaco-1);
+  border: var(--borda-media) solid var(--cor-fundo);
+  border-radius: var(--raio-pilula);
+  background: var(--cor-erro-texto);
+  color: var(--cor-texto-invertido);
+  font-size: var(--fonte-2xs);
+  font-weight: 700;
+  line-height: 1rem;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.painel {
+  position: absolute;
+  top: calc(100% + var(--espaco-2));
+  right: 0;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  width: min(25rem, calc(100vw - 2rem));
+  max-height: min(35rem, 80vh);
+  border: var(--borda-fina) solid var(--cor-borda);
+  border-radius: var(--raio-3);
+  background: var(--cor-superficie);
+  box-shadow: var(--sombra-2);
+}
+
+.cabecalhoPainel,
+.rodapePainel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--espaco-2);
+  padding: var(--espaco-3) var(--espaco-4);
+}
+
+.cabecalhoPainel {
+  border-bottom: var(--borda-fina) solid var(--cor-borda);
+}
+
+.rodapePainel {
+  justify-content: center;
+  border-top: var(--borda-fina) solid var(--cor-borda);
+  font-size: var(--fonte-md);
+}
+
+.listaPainel {
+  flex: 1;
+  overflow-y: auto;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.itemPainel {
+  display: flex;
+  gap: var(--espaco-3);
+  width: 100%;
+  padding: var(--espaco-3) var(--espaco-4);
+  border: 0;
+  border-bottom: var(--borda-fina) solid var(--cor-borda);
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.itemPainel:hover,
+.itemPainel:focus-visible {
+  background: var(--cor-fundo);
+}
+
+/* Não lida: marcador lateral + texto em negrito (não depende só da cor). */
+.naoLida {
+  box-shadow: inset var(--borda-destaque) 0 0 var(--cor-primaria);
+}
+
+.naoLida .tituloItem {
+  font-weight: 700;
+}
+
+.icone {
+  flex-shrink: 0;
+  font-size: var(--fonte-lg);
+}
+
+.textoItem {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-05);
+  min-width: 0;
+  flex: 1;
+}
+
+.tituloItem {
+  font-size: var(--fonte-md);
+  font-weight: 600;
+}
+
+.mensagemItem {
+  font-size: var(--fonte-sm);
+  color: var(--cor-texto-suave);
+  overflow-wrap: anywhere;
+}
+
+.meta {
+  font-size: var(--fonte-xs);
+  color: var(--cor-texto-suave);
+}
+
+.vazio {
+  margin: 0;
+  padding: var(--espaco-5);
+  color: var(--cor-texto-suave);
+  text-align: center;
+}
+
+/* ---- página ---- */
+.pagina {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-secao);
+  max-width: 62.5rem;
+}
+
+.cabecalhoPagina {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--espaco-3);
+}
+
+.titulo {
+  margin: 0;
+  font-size: var(--fonte-xl);
+}
+
+.subtitulo {
+  margin: var(--espaco-1) 0 0;
+  font-size: var(--fonte-md);
+  color: var(--cor-texto-suave);
+}
+
+.filtros {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--espaco-3);
+}
+
+.campo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-1);
+}
+
+.campo .controleTipo {
+  min-width: 13.75rem;
+}
+
+.rotulo {
+  font-size: var(--fonte-xs);
+  color: var(--cor-texto-suave);
+}
+
+/* Alinha a caixa de seleção com a base dos controles ao lado. */
+.opcao {
+  padding-bottom: var(--espaco-2);
+}
+
+.listaPagina {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.itemPagina {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--espaco-3);
+  padding: var(--espaco-3) var(--espaco-4);
+  border-bottom: var(--borda-fina) solid var(--cor-borda);
+}
+
+.itemPagina:last-child {
+  border-bottom: 0;
+}
+
+.itemPagina .tituloItem a {
+  color: inherit;
+}
+
+.erro {
+  margin: 0;
+  color: var(--cor-erro-texto);
+}
+
+/* Celular: filtros dois por linha, controle na largura do campo. */
+@media (--mobile) {
+  .filtros > .campo {
+    flex: 1 1 calc(50% - var(--espaco-3));
+    min-width: 0;
+  }
+
+  .campo .controleTipo {
+    min-width: 0;
+    width: 100%;
+  }
+}
