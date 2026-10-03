@@ -34,10 +34,11 @@ export const MENU_ADMINISTRACAO: GrupoMenu = {
   itens: [
     { titulo: "Usuários", caminho: "/admin/usuarios", permissao: "admin:usuarios", icone: "users" },
     { titulo: "Perfis", caminho: "/admin/perfis", permissao: "admin:perfis", icone: "shield" },
-    { titulo: "Áreas", caminho: "/admin/areas", permissao: "admin:areas", icone: "building" },
-    { titulo: "Setores", caminho: "/admin/setores", permissao: "admin:setores", icone: "layout" },
-    { titulo: "Tipos de Plano", caminho: "/admin/tipos-plano", permissao: "admin:tipos_plano", icone: "folder" },
-    { titulo: "Origens", caminho: "/admin/origens", permissao: "admin:origens", icone: "flag" },
+    // Cadastros: permissão atribuível (Administrador e Gestor por padrão), não exclusiva do Administrador.
+    { titulo: "Áreas", caminho: "/admin/areas", permissao: "cadastros:gerenciar", icone: "building" },
+    { titulo: "Setores", caminho: "/admin/setores", permissao: "cadastros:gerenciar", icone: "layout" },
+    { titulo: "Tipos de Plano", caminho: "/admin/tipos-plano", permissao: "cadastros:gerenciar", icone: "folder" },
+    { titulo: "Origens", caminho: "/admin/origens", permissao: "cadastros:gerenciar", icone: "flag" },
     { titulo: "Configurações", caminho: "/admin/configuracoes", permissao: "admin:configuracoes", icone: "settings" },
     { titulo: "Configurações de e-mail", caminho: "/admin/email", permissao: "admin:configuracoes", icone: "mail" },
   ],

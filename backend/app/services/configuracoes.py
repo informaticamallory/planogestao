@@ -46,8 +46,8 @@ CATALOGO: dict[str, DefParametro] = {
         ),
         DefParametro(
             "gamificacao_minimo_podio", "Gamificação", "Mínimo de colaboradores para exibir o pódio",
-            "Abaixo disso o painel mostra um aviso em vez do Top 3.",
-            padrao=3, minimo=1, maximo=3, unidade="colaboradores",
+            "Abaixo disso o painel mostra um aviso em vez do pódio (Top 5).",
+            padrao=3, minimo=1, maximo=5, unidade="colaboradores",
         ),
     ]
 }

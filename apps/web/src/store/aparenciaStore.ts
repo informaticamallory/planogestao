@@ -30,6 +30,9 @@ interface Aparencia {
 const midiaEscura = typeof window !== "undefined" ? window.matchMedia("(prefers-color-scheme: dark)") : null;
 const temaEfetivo = (p: TemaPreferido): Tema => (p === "escuro" || (p === "automatico" && midiaEscura?.matches) ? "dark" : "light");
 
+/** Mostra o seletor Compacta/Confortável/Espaçosa no cabeçalho. Oculto: vale sempre a densidade padrão. */
+export const SELETOR_DENSIDADE_VISIVEL = false;
+
 function ler(): Aparencia {
   const padrao: Aparencia = { preferencia: "automatico", cor: null, fonte: "padrao", densidade: "comfortable" };
   try {
@@ -40,7 +43,8 @@ function ler(): Aparencia {
       preferencia: PREFERENCIAS.includes(salvo.preferencia as TemaPreferido) ? (salvo.preferencia as TemaPreferido) : antigo ?? padrao.preferencia,
       cor: CORES.includes(salvo.cor as CorDestaque) ? (salvo.cor as CorDestaque) : null,
       fonte: FONTES.includes(salvo.fonte as TamanhoFonte) ? (salvo.fonte as TamanhoFonte) : padrao.fonte,
-      densidade: DENSIDADES.includes(salvo.densidade as Densidade) ? (salvo.densidade as Densidade) : padrao.densidade,
+      // O seletor de densidade está oculto no cabeçalho: todos usam a padrão (uma escolha antiga salva não prende ninguém).
+      densidade: SELETOR_DENSIDADE_VISIVEL && DENSIDADES.includes(salvo.densidade as Densidade) ? (salvo.densidade as Densidade) : padrao.densidade,
     };
   } catch {
     return padrao;

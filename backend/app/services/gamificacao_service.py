@@ -20,6 +20,9 @@ from app.models.enums import STATUS_PLANO_EM_EXECUCAO
 from app.services.configuracoes import valor_inteiro
 from app.services.periodo import Periodo
 
+# Quantos colaboradores o pódio mostra (Top 5).
+TAMANHO_PODIO = 5
+
 
 @dataclass(frozen=True)
 class FiltrosGamificacao:
@@ -161,12 +164,13 @@ class GamificacaoService:
         inicio = (page - 1) * page_size
         return dict(items=linhas[inicio : inicio + page_size], total=len(linhas), page=page, page_size=page_size)
 
-    def top3(self, f: FiltrosGamificacao) -> dict:
+    def podio(self, f: FiltrosGamificacao) -> dict:
+        """Top TAMANHO_PODIO, só com dados suficientes (pelo menos `minimo` colaboradores com pontos)."""
         pontuaram = [l for l in self._classificacao(f) if l.pontos > 0]
         minimo = valor_inteiro("gamificacao_minimo_podio")
         suficiente = len(pontuaram) >= minimo
         return dict(suficiente=suficiente, minimo=minimo, colaboradores_pontuando=len(pontuaram),
-                    items=pontuaram[:3] if suficiente else [])
+                    items=pontuaram[:TAMANHO_PODIO] if suficiente else [])
 
     def regras(self) -> list[GamificacaoRegra]:
         return list(self.db.scalars(select(GamificacaoRegra).order_by(GamificacaoRegra.ordem, GamificacaoRegra.id)))

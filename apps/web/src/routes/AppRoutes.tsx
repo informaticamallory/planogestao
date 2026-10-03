@@ -72,7 +72,8 @@ const PAGINAS: Record<string, ReactNode> = {
   "/equipes/nova": <EquipeFormPage />,
   "/equipes/:id": <EquipeDetalhePage />,
   "/equipes/:id/editar": <EquipeFormPage />,
-  // Administração: o menu e a rota exigem admin:* (só o perfil Administrador tem); a API responde 403 aos demais.
+  // Administração: usuários, perfis e configurações exigem admin:* (só o Administrador); áreas, setores, tipos e
+  // origens exigem cadastros:gerenciar (Administrador e Gestor). A API responde 403 aos demais.
   "/admin/usuarios": <UsuariosPage />,
   "/admin/perfis": <PerfisPage />,
   "/admin/areas": <AreasPage />,

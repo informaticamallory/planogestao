@@ -9,6 +9,7 @@ import { Avatar } from "../ui/Avatar";
 import { Button } from "../ui/Button";
 import { Icon } from "../ui/Icon";
 import styles from "./AppLayout.module.css";
+import { SELETOR_DENSIDADE_VISIVEL } from "../../store/aparenciaStore";
 import { ControlesAparencia } from "./ControlesAparencia";
 import { Sidebar } from "./Sidebar";
 
@@ -97,7 +98,7 @@ export function AppLayout() {
             </span>
           )}
           <div className={styles.controlesBarra}>
-            <ControlesAparencia />
+            <ControlesAparencia comDensidade={SELETOR_DENSIDADE_VISIVEL} />
             <SinoNotificacoes />
             {/* Foto (ou iniciais) do usuário, como na sidebar: atalho para Meu Perfil. */}
             {usuario && (

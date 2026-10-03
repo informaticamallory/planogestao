@@ -1,6 +1,7 @@
 """Módulo Administração: perfis, áreas, setores, tipos de plano, origens e configurações.
 
-Tudo exige o perfil Administrador (require_admin), exceto GET /configuracoes/publicas,
+Perfis e configurações exigem o perfil Administrador (require_admin). Áreas, setores, tipos de plano e
+origens exigem a permissão cadastros:gerenciar (Administrador e Gestor por padrão). Exceção: GET /configuracoes/publicas,
 que expõe a qualquer usuário logado os parâmetros usados em textos da interface.
 Usuários ficam em routers/usuarios.py (mesma regra).
 """
@@ -14,7 +15,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.core.deps import get_current_user, require_admin
+from app.core.deps import get_current_user, require_admin, require_permission
 from app.core.tempo import como_utc
 from app.models import Configuracao, EnvioEmail, Usuario
 from app.schemas.comum import Pagina
@@ -23,6 +24,8 @@ from app.services.admin_cadastros_service import CadastrosService
 from app.services.admin_perfis_service import PerfisService
 
 UsuarioAdmin = Annotated[Usuario, Depends(require_admin)]
+# Áreas, setores, tipos de plano e origens: permissão atribuível (Administrador e Gestor por padrão).
+UsuarioCadastros = Annotated[Usuario, Depends(require_permission("cadastros:gerenciar"))]
 
 
 def _sem_conteudo() -> Response:
@@ -181,22 +184,22 @@ areas_router = APIRouter(prefix="/areas", tags=["administracao"])
 
 
 @areas_router.get("", response_model=list[AreaItem])
-def listar_areas(_: UsuarioAdmin, db: Session = Depends(get_db)):
+def listar_areas(_: UsuarioCadastros, db: Session = Depends(get_db)):
     return CadastrosService(db).listar_areas()
 
 
 @areas_router.post("", response_model=AreaItem, status_code=status.HTTP_201_CREATED)
-def criar_area(corpo: CadastroSalvar, _: UsuarioAdmin, db: Session = Depends(get_db)):
+def criar_area(corpo: CadastroSalvar, _: UsuarioCadastros, db: Session = Depends(get_db)):
     return CadastrosService(db).salvar_area(corpo.nome, corpo.ativo)
 
 
 @areas_router.put("/{area_id}", response_model=AreaItem)
-def atualizar_area(area_id: int, corpo: CadastroSalvar, _: UsuarioAdmin, db: Session = Depends(get_db)):
+def atualizar_area(area_id: int, corpo: CadastroSalvar, _: UsuarioCadastros, db: Session = Depends(get_db)):
     return CadastrosService(db).salvar_area(corpo.nome, corpo.ativo, area_id)
 
 
 @areas_router.delete("/{area_id}", status_code=status.HTTP_204_NO_CONTENT)
-def excluir_area(area_id: int, _: UsuarioAdmin, db: Session = Depends(get_db)):
+def excluir_area(area_id: int, _: UsuarioCadastros, db: Session = Depends(get_db)):
     """409 se houver usuários, setores ou planos na área: nesse caso, inative."""
     CadastrosService(db).excluir_area(area_id)
     return _sem_conteudo()
@@ -206,22 +209,22 @@ setores_router = APIRouter(prefix="/setores", tags=["administracao"])
 
 
 @setores_router.get("", response_model=list[SetorItem])
-def listar_setores(_: UsuarioAdmin, area_id: int | None = None, db: Session = Depends(get_db)):
+def listar_setores(_: UsuarioCadastros, area_id: int | None = None, db: Session = Depends(get_db)):
     return CadastrosService(db).listar_setores(area_id)
 
 
 @setores_router.post("", response_model=SetorItem, status_code=status.HTTP_201_CREATED)
-def criar_setor(corpo: SetorSalvar, _: UsuarioAdmin, db: Session = Depends(get_db)):
+def criar_setor(corpo: SetorSalvar, _: UsuarioCadastros, db: Session = Depends(get_db)):
     return CadastrosService(db).salvar_setor(corpo.nome, corpo.area_id, corpo.ativo)
 
 
 @setores_router.put("/{setor_id}", response_model=SetorItem)
-def atualizar_setor(setor_id: int, corpo: SetorSalvar, _: UsuarioAdmin, db: Session = Depends(get_db)):
+def atualizar_setor(setor_id: int, corpo: SetorSalvar, _: UsuarioCadastros, db: Session = Depends(get_db)):
     return CadastrosService(db).salvar_setor(corpo.nome, corpo.area_id, corpo.ativo, setor_id)
 
 
 @setores_router.delete("/{setor_id}", status_code=status.HTTP_204_NO_CONTENT)
-def excluir_setor(setor_id: int, _: UsuarioAdmin, db: Session = Depends(get_db)):
+def excluir_setor(setor_id: int, _: UsuarioCadastros, db: Session = Depends(get_db)):
     CadastrosService(db).excluir_setor(setor_id)
     return _sem_conteudo()
 
@@ -230,28 +233,28 @@ tipos_router = APIRouter(prefix="/tipos-plano", tags=["administracao"])
 
 
 @tipos_router.get("", response_model=list[TipoPlanoItem])
-def listar_tipos(_: UsuarioAdmin, db: Session = Depends(get_db)):
+def listar_tipos(_: UsuarioCadastros, db: Session = Depends(get_db)):
     return CadastrosService(db).listar_tipos()
 
 
 @tipos_router.post("", response_model=TipoPlanoItem, status_code=status.HTTP_201_CREATED)
-def criar_tipo(corpo: CadastroSalvar, _: UsuarioAdmin, db: Session = Depends(get_db)):
+def criar_tipo(corpo: CadastroSalvar, _: UsuarioCadastros, db: Session = Depends(get_db)):
     return CadastrosService(db).salvar_tipo(corpo.nome, corpo.ativo)
 
 
 @tipos_router.put("/{tipo_id}", response_model=TipoPlanoItem)
-def atualizar_tipo(tipo_id: int, corpo: CadastroSalvar, _: UsuarioAdmin, db: Session = Depends(get_db)):
+def atualizar_tipo(tipo_id: int, corpo: CadastroSalvar, _: UsuarioCadastros, db: Session = Depends(get_db)):
     return CadastrosService(db).salvar_tipo(corpo.nome, corpo.ativo, tipo_id)
 
 
 @tipos_router.delete("/{tipo_id}", status_code=status.HTTP_204_NO_CONTENT)
-def excluir_tipo(tipo_id: int, _: UsuarioAdmin, db: Session = Depends(get_db)):
+def excluir_tipo(tipo_id: int, _: UsuarioCadastros, db: Session = Depends(get_db)):
     CadastrosService(db).excluir_tipo(tipo_id)
     return _sem_conteudo()
 
 
 @tipos_router.put("/{tipo_id}/origens", response_model=TipoPlanoItem)
-def definir_origens_do_tipo(tipo_id: int, corpo: DefinirOrigensTipo, _: UsuarioAdmin, db: Session = Depends(get_db)):
+def definir_origens_do_tipo(tipo_id: int, corpo: DefinirOrigensTipo, _: UsuarioCadastros, db: Session = Depends(get_db)):
     """Quais origens são válidas para este tipo (multi-seleção). Planos existentes não mudam."""
     return CadastrosService(db).definir_origens_do_tipo(tipo_id, corpo.origem_ids)
 
@@ -262,22 +265,22 @@ origens_router = APIRouter(prefix="/origens", tags=["administracao"])
 
 
 @origens_router.get("", response_model=list[OrigemItem])
-def listar_origens(_: UsuarioAdmin, db: Session = Depends(get_db)):
+def listar_origens(_: UsuarioCadastros, db: Session = Depends(get_db)):
     return CadastrosService(db).listar_origens()
 
 
 @origens_router.post("", response_model=OrigemItem, status_code=status.HTTP_201_CREATED)
-def criar_origem(corpo: CadastroSalvar, _: UsuarioAdmin, db: Session = Depends(get_db)):
+def criar_origem(corpo: CadastroSalvar, _: UsuarioCadastros, db: Session = Depends(get_db)):
     return CadastrosService(db).salvar_origem(corpo.nome, corpo.ativo)
 
 
 @origens_router.put("/{origem_id}", response_model=OrigemItem)
-def atualizar_origem(origem_id: int, corpo: CadastroSalvar, _: UsuarioAdmin, db: Session = Depends(get_db)):
+def atualizar_origem(origem_id: int, corpo: CadastroSalvar, _: UsuarioCadastros, db: Session = Depends(get_db)):
     return CadastrosService(db).salvar_origem(corpo.nome, corpo.ativo, origem_id)
 
 
 @origens_router.delete("/{origem_id}", status_code=status.HTTP_204_NO_CONTENT)
-def excluir_origem(origem_id: int, _: UsuarioAdmin, db: Session = Depends(get_db)):
+def excluir_origem(origem_id: int, _: UsuarioCadastros, db: Session = Depends(get_db)):
     """409 se houver planos com esta origem: nesse caso, inative."""
     CadastrosService(db).excluir_origem(origem_id)
     return _sem_conteudo()

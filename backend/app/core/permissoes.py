@@ -30,6 +30,7 @@ MODULOS: list[tuple[str, str]] = [
     ("relatorios", "Relatórios"),
     ("notificacoes", "Notificações"),
     ("gamificacao", "Gamificação"),
+    ("cadastros", "Cadastros (áreas, setores, tipos e origens)"),
     (MODULO_ADMINISTRACAO, "Administração"),
 ]
 
@@ -57,13 +58,11 @@ PERMISSOES: list[DefPermissao] = [
     DefPermissao("relatorios:ver", "relatorios", "visualizar", "Visualizar e exportar relatórios"),
     DefPermissao("notificacoes:ver", "notificacoes", "visualizar", "Visualizar notificações"),
     DefPermissao("gamificacao:ver", "gamificacao", "visualizar", "Visualizar gamificação e eficiência"),
+    # Atribuível (Administrador e Gestor por padrão): cadastros usados nos planos.
+    DefPermissao("cadastros:gerenciar", "cadastros", "editar", "Gerenciar áreas, setores, tipos de plano e origens"),
     # Exclusivas do Administrador (usadas pelo front para exibir o menu).
     DefPermissao("admin:usuarios", MODULO_ADMINISTRACAO, "outra", "Gerenciar usuários"),
     DefPermissao("admin:perfis", MODULO_ADMINISTRACAO, "outra", "Gerenciar perfis e permissões"),
-    DefPermissao("admin:areas", MODULO_ADMINISTRACAO, "outra", "Gerenciar áreas"),
-    DefPermissao("admin:setores", MODULO_ADMINISTRACAO, "outra", "Gerenciar setores"),
-    DefPermissao("admin:tipos_plano", MODULO_ADMINISTRACAO, "outra", "Gerenciar tipos de plano"),
-    DefPermissao("admin:origens", MODULO_ADMINISTRACAO, "outra", "Gerenciar origens e a compatibilidade com os tipos"),
     DefPermissao("admin:configuracoes", MODULO_ADMINISTRACAO, "outra", "Gerenciar configurações"),
 ]
 

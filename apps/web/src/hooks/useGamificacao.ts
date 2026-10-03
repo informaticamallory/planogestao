@@ -11,7 +11,7 @@ export const useResumoGamificacao = (f: FiltrosGamificacao) =>
   useQuery({ queryKey: k("resumo", f), queryFn: () => api.gamificacao.resumo(f), ...opcoes });
 
 export const usePodio = (f: FiltrosGamificacao) =>
-  useQuery({ queryKey: k("top3", f), queryFn: () => api.gamificacao.top3(f), ...opcoes });
+  useQuery({ queryKey: k("podio", f), queryFn: () => api.gamificacao.podio(f), ...opcoes });
 
 export const useRanking = (f: FiltrosGamificacao, page: number, pageSize: number) =>
   useQuery({ queryKey: k("ranking", f, page, pageSize), queryFn: () => api.gamificacao.ranking(f, page, pageSize), ...opcoes });

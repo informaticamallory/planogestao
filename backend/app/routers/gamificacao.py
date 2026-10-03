@@ -133,10 +133,10 @@ def ranking(
     return GamificacaoService(db).ranking(f, page, page_size)
 
 
-@router.get("/top3", response_model=Podio)
-def top3(f: FiltrosDep, _: UsuarioGamificacao, db: Session = Depends(get_db)):
-    """Pódio só com dados suficientes (pelo menos `minimo` colaboradores com pontos); senão `items` vem vazio."""
-    return GamificacaoService(db).top3(f)
+@router.get("/podio", response_model=Podio)
+def podio(f: FiltrosDep, _: UsuarioGamificacao, db: Session = Depends(get_db)):
+    """Top 5, só com dados suficientes (pelo menos `minimo` colaboradores com pontos); senão `items` vem vazio."""
+    return GamificacaoService(db).podio(f)
 
 
 @router.get("/regras", response_model=list[RegraPontuacao])

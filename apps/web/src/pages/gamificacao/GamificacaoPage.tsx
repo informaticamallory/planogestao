@@ -218,7 +218,7 @@ export function GamificacaoPage() {
       </section>
 
       <Card aria-labelledby="titulo-podio" aria-busy={podio.isLoading}>
-        <h2 id="titulo-podio" className={styles.secaoTitulo}>Top 3 Colaboradores do Período</h2>
+        <h2 id="titulo-podio" className={styles.secaoTitulo}>Top 5 Colaboradores do Período</h2>
         {podio.error ? (
           <p className={styles.erro}>Não foi possível carregar o pódio.</p>
         ) : !podio.data ? (
@@ -232,11 +232,11 @@ export function GamificacaoPage() {
           </p>
         ) : (
           <ol className={styles.podio}>
-            {/* Ordem visual 2º · 1º · 3º (CSS order); a ordem de leitura continua 1º, 2º, 3º. */}
+            {/* Ordem visual 4º · 2º · 1º · 3º · 5º (CSS order); a ordem de leitura continua 1º, 2º, 3º, 4º, 5º. */}
             {podio.data.items.map((c, i) => {
               return (
-                <li key={c.usuario_id} className={`${styles.degrau} ${styles[`lugar${i + 1}`]}`} style={{ order: [2, 1, 3][i] }}>
-                  <Avatar nome={c.nome} url={c.avatar_url} tamanho={i === 0 ? "xl" : "lg"} className={styles.avatarPodio} />
+                <li key={c.usuario_id} className={`${styles.degrau} ${styles[`lugar${i + 1}`]}`} style={{ order: [3, 2, 4, 1, 5][i] }}>
+                  <Avatar nome={c.nome} url={c.avatar_url} tamanho={i === 0 ? "xl" : i < 3 ? "lg" : "md"} className={styles.avatarPodio} />
                   <span className={styles.nomePodio}>{c.nome}</span>
                   <span className={styles.pontosPodio}>{num(c.pontos)} pts</span>
                   <span className={styles.base} aria-label={`${c.posicao}º lugar`}>

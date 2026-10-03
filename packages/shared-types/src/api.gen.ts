@@ -831,7 +831,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/gamificacao/top3": {
+    "/gamificacao/podio": {
         parameters: {
             query?: never;
             header?: never;
@@ -839,10 +839,10 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Top3
-         * @description Pódio só com dados suficientes (pelo menos `minimo` colaboradores com pontos); senão `items` vem vazio.
+         * Podio
+         * @description Top 5, só com dados suficientes (pelo menos `minimo` colaboradores com pontos); senão `items` vem vazio.
          */
-        get: operations["top3_gamificacao_top3_get"];
+        get: operations["podio_gamificacao_podio_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -6535,7 +6535,7 @@ export interface operations {
             };
         };
     };
-    top3_gamificacao_top3_get: {
+    podio_gamificacao_podio_get: {
         parameters: {
             query?: {
                 periodo?: components["schemas"]["TipoPeriodo"];
