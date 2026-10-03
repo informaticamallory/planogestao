@@ -61,7 +61,8 @@ def _obter_ou_criar(db: Session, model, filtros: dict, **valores):
     return obj
 
 
-def executar(db: Session) -> None:
+def criar_permissoes_e_perfis(db: Session) -> dict[str, Perfil]:
+    """Catálogo de permissões e perfis padrão (idempotente). Usado também pela configuração inicial de produção."""
     permissoes = {
         p.codigo: _obter_ou_criar(db, Permissao, {"codigo": p.codigo}, modulo=p.modulo, acao=p.acao, descricao=p.descricao)
         for p in PERMISSOES
@@ -75,6 +76,11 @@ def executar(db: Session) -> None:
         if novo or nome == "Administrador":
             perfil.permissoes = [permissoes[c] for c in sorted(codigos)]
         perfis[nome] = perfil
+    return perfis
+
+
+def executar(db: Session) -> None:
+    perfis = criar_permissoes_e_perfis(db)
 
     setores: dict[tuple[str, str], Setor] = {}
     areas: dict[str, Area] = {}
