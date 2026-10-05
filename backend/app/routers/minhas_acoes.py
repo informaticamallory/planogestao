@@ -15,6 +15,7 @@ from app.models import Acao, AcaoSolicitacaoAlteracao, PlanoDeAcao, Usuario
 from app.models.enums import Prioridade, StatusAcao, StatusSolicitacao
 from app.schemas.comum import Pagina
 from app.schemas.dashboard import ReferenciaPlano
+from app.services.escopo import filtro_areas_autorizadas
 from app.services.regras import SituacaoPrazo, situacao_prazo_sql
 
 router = APIRouter(prefix="/minhas-acoes", tags=["minhas-acoes"])
@@ -51,6 +52,8 @@ def _base(usuario: Usuario, hoje: date):
     situacao = situacao_prazo_sql(Acao.status, Acao.prazo, hoje)
     filtro: ColumnElement[bool] = and_(
         Acao.responsavel_id == usuario.id,
+        # Fora das áreas autorizadas a ação não aparece (o Administrador ajusta o acesso).
+        filtro_areas_autorizadas(usuario),
         PlanoDeAcao.arquivado_em.is_(None),
         situacao.is_not(None),
     )

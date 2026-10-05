@@ -41,7 +41,7 @@ from app.services.historico import registrar_historico
 from app.services.alertas_prazo import verificar_acao
 from app.services.ciclo_plano import recalcular_status
 from app.services.eventos import Evento, TipoEvento, publicar
-from app.services.pontuacao import creditar_conclusao_acao
+from app.services.pontuacao import creditar_conclusao_acao, reverter_por_reabertura
 from app.services.regras import acao_vencendo, categoria_acao, tag_prazo_acao
 
 PERMISSAO_APROVAR_PRAZO = "acoes:aprovar_prazo"
@@ -86,7 +86,10 @@ class AcaoService:
         própria e as que estão abaixo dela — que ele mesmo desdobrou —, nunca as irmãs nem as de cima."""
         if self._plano_visivel(acao):
             return True
-        return any(a.responsavel_id == self.usuario.id for a in (acao, *acao.ancestrais))
+        # Fora das áreas autorizadas, nem o próprio sub-item aparece (o Administrador ajusta o acesso).
+        return self.usuario.acessa_area(acao.plano.area_id) and any(
+            a.responsavel_id == self.usuario.id for a in (acao, *acao.ancestrais)
+        )
 
     def _obter(self, acao_id: int, *, bloquear: bool = False) -> Acao:
         stmt = select(Acao).where(Acao.id == acao_id)
@@ -536,6 +539,10 @@ class AcaoService:
             raise RegraAcao(erro)
         self._mudar_status(acao, StatusAcao.EM_ANDAMENTO, detalhe=f"Reaberta: {dados.justificativa}")
         acao.concluida_em = None  # a conclusão anterior continua no histórico
+        reverter_por_reabertura(
+            self.db, ReferenciaNotificacao.ACAO, acao.id, f"Ação {acao.numero_exibicao} do plano {acao.plano.codigo}",
+            self.usuario.id, dados.justificativa,
+        )
         publicar(
             self.db,
             Evento(

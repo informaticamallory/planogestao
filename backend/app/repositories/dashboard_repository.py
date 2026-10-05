@@ -1,6 +1,6 @@
 from datetime import date, datetime
 
-from sqlalchemy import ColumnElement, Row, and_, func, or_, select
+from sqlalchemy import ColumnElement, Row, and_, func, or_, select, true
 from sqlalchemy.orm import Session, aliased
 
 from app.models import Acao, AcaoHistorico, PlanoDeAcao, Usuario
@@ -151,7 +151,7 @@ class DashboardRepository:
             )
         )
 
-    def acoes_abertas_do_usuario(self, usuario_id: int, limite: int) -> list[Row]:
+    def acoes_abertas_do_usuario(self, usuario_id: int, limite: int, areas: ColumnElement[bool] | None = None) -> list[Row]:
         return list(
             self.db.execute(
                 select(
@@ -166,7 +166,7 @@ class DashboardRepository:
                     PlanoDeAcao.nome.label("plano_nome"),
                 )
                 .join(PlanoDeAcao, Acao.plano_id == PlanoDeAcao.id)
-                .where(Acao.responsavel_id == usuario_id, Acao.status.in_(STATUS_ACAO_ABERTOS))
+                .where(Acao.responsavel_id == usuario_id, Acao.status.in_(STATUS_ACAO_ABERTOS), areas if areas is not None else true())
                 .order_by(Acao.prazo.asc(), Acao.id.asc())
                 .limit(limite)
             )

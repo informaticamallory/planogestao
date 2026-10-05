@@ -57,6 +57,9 @@ export const ROTAS_SEM_MENU: ItemMenu[] = [
   { titulo: "Nova Equipe", caminho: "/equipes/nova", permissao: "equipes:gerenciar" },
   { titulo: "Detalhe da Equipe", caminho: "/equipes/:id", permissao: "equipes:ver" },
   { titulo: "Editar Equipe", caminho: "/equipes/:id/editar", permissao: "equipes:gerenciar" },
+  // Gamificação: as ações de cada tela dependem das permissões de apuração (a API confere cada uma).
+  { titulo: "Períodos e prêmios", caminho: "/gamificacao/periodos", permissao: "gamificacao:ver" },
+  { titulo: "Auditoria da pontuação", caminho: "/gamificacao/auditoria", permissao: "gamificacao:auditoria" },
 ];
 
 export const TODOS_ITENS: ItemMenu[] = [...MENU_PRINCIPAL, ...MENU_ADMINISTRACAO.itens, ...ROTAS_SEM_MENU];

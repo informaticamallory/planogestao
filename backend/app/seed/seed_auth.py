@@ -102,7 +102,7 @@ def executar(db: Session) -> None:
 
     senha_hash = hash_senha(SENHA_PADRAO_DEV)
     for nome, email, perfil, area, setor in USUARIOS:
-        _obter_ou_criar(
+        usuario = _obter_ou_criar(
             db,
             Usuario,
             {"email": email},
@@ -112,6 +112,9 @@ def executar(db: Session) -> None:
             area_id=areas[area].id if area else None,
             setor_id=setores[(area, setor)].id if area and setor else None,
         )
+        # Áreas autorizadas começam pela lotação (o Administrador amplia em Administração › Usuários).
+        if area and not usuario.areas_autorizadas:
+            usuario.areas_autorizadas = [areas[area]]
 
     db.commit()
 

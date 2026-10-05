@@ -17,6 +17,7 @@ from app.core.tempo import como_utc
 from app.models import Acao, Area, OrigemPlano, PlanoAnexo, PlanoDeAcao, Setor, TipoPlano, Usuario
 from app.models.enums import (
     STATUS_ACAO_ABERTOS,
+    STATUS_ACAO_DESCARTADOS,
     EventoHistorico,
     EventoPlano,
     ReferenciaNotificacao,
@@ -41,7 +42,7 @@ from app.services import dependencias
 from app.services.armazenamento import Armazenamento
 from app.services.email_notificacoes import enfileirar_criacao_item, enfileirar_criacao_plano
 from app.services.eventos import Evento, TipoEvento, publicar
-from app.services.escopo import filtro_planos_visiveis
+from app.services.escopo import MENSAGEM_SEM_ACESSO_AREA, filtro_planos_visiveis
 from app.services.ciclo_plano import recalcular_status
 from app.services.historico import registrar_historico, registrar_historico_plano
 from app.services.indicadores import calcular_indicadores
@@ -181,6 +182,21 @@ class PlanoEscritaService:
             self._validar_area_setor(dados.area_id, dados.setor_id, "do plano")
         self._exigir_ativo(Usuario, dados.responsavel_id, "Responsável")
 
+    # ---- acesso por área ------------------------------------------------------------------
+
+    def _exigir_acesso_area(self, usuario_id: int, area_id: int) -> None:
+        """Responsável (plano, ação ou sub-item) precisa ter a área do plano entre as autorizadas."""
+        usuario = self.db.get(Usuario, usuario_id)
+        if usuario is not None and not usuario.acessa_area(area_id):
+            raise RegraNegocio(f"{usuario.nome}: {MENSAGEM_SEM_ACESSO_AREA}")
+
+    def _exigir_area_do_autor(self, area_id: int) -> None:
+        # Sem isso, quem cria/edita perderia o acesso ao próprio plano logo depois de salvar.
+        if not self.usuario.acessa_area(area_id):
+            raise RegraNegocio(
+                "Você não possui acesso à área do plano. Solicite ao Administrador a atualização das áreas autorizadas."
+            )
+
     def _area_do_plano(self, dados: PlanoCriar) -> tuple[int, int | None]:
         """A área/setor do plano (visibilidade e indicadores): a informada, a da 1ª ação ou a do responsável."""
         if dados.area_id is not None:
@@ -199,6 +215,9 @@ class PlanoEscritaService:
         self._validar_identificacao(dados)
         avisos, _ = self._validar_acoes(dados.acoes, dados.data_fim_estimado)
         area_id, setor_id = self._area_do_plano(dados)
+        self._exigir_area_do_autor(area_id)
+        for responsavel_id in dict.fromkeys([dados.responsavel_id, *(a.responsavel_id for a in dados.acoes)]):
+            self._exigir_acesso_area(responsavel_id, area_id)
 
         assert dados.data_inicio_estimado is not None  # preenchida pelo validador
         plano = PlanoDeAcao(
@@ -363,6 +382,8 @@ class PlanoEscritaService:
         # Trava o plano: duas inclusões simultâneas não repetem a numeração.
         self.db.execute(select(PlanoDeAcao.id).where(PlanoDeAcao.id == plano.id).with_for_update())
         avisos, existentes = self._validar_acoes(acoes, plano.data_fim_estimado, plano.id, pai=pai)
+        for responsavel_id in dict.fromkeys(a.responsavel_id for a in acoes):
+            self._exigir_acesso_area(responsavel_id, plano.area_id)
         primeiro = dependencias.proximo_numero(self.db, plano.id, pai.id if pai is not None else None)
         criadas = self._criar_acoes(plano, acoes, existentes, primeiro, pai=pai)
         # Nova ação pendente num plano concluído o faz voltar a em andamento (subações não mudam o status).
@@ -404,6 +425,7 @@ class PlanoEscritaService:
         plano = self._plano_editavel(plano_id)
         self._validar_identificacao(dados, plano)
         self._validar_rascunho(plano, dados.rascunho)
+        responsavel_antes, area_antes = plano.responsavel_id, plano.area_id
 
         # Auditoria campo a campo, na mesma transação da alteração.
         for campo in self._CAMPOS_SIMPLES:
@@ -421,6 +443,14 @@ class PlanoEscritaService:
                     plano, EventoPlano.ALTERACAO, campo.removesuffix("_id"), self._nome(model, anterior), self._nome(model, novo)
                 )
                 setattr(plano, campo, novo)
+
+        # Responsável ou área trocados: quem responde pelo plano e pelas ações precisa acessar a área.
+        if plano.responsavel_id != responsavel_antes or plano.area_id != area_antes:
+            self._exigir_area_do_autor(plano.area_id)
+            self._exigir_acesso_area(plano.responsavel_id, plano.area_id)
+        if plano.area_id != area_antes:
+            for responsavel_id in dict.fromkeys(a.responsavel_id for a in plano.acoes if a.status not in STATUS_ACAO_DESCARTADOS):
+                self._exigir_acesso_area(responsavel_id, plano.area_id)
 
         if plano.rascunho and not dados.rascunho:
             # Rascunho liberado: agora as ações valem para os responsáveis (avisos e alertas).

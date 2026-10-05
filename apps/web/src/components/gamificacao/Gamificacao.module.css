@@ -269,6 +269,50 @@
   color: var(--cor-erro-texto);
 }
 
+/* Resultado congelado do período encerrado. */
+.avisoEncerrado {
+  display: flex;
+  align-items: center;
+  gap: var(--espaco-2);
+  margin: 0;
+  padding: var(--espaco-3) var(--espaco-4);
+  border-radius: var(--raio-3);
+  background: var(--cor-sucesso-fundo);
+  color: var(--cor-texto);
+  font-size: var(--fonte-sm);
+}
+
+.nota {
+  margin: var(--espaco-3) 0 0;
+  font-size: var(--fonte-sm);
+  color: var(--cor-texto-suave);
+}
+
+.premioPodio {
+  font-size: var(--fonte-xs);
+  font-weight: 600;
+  color: var(--cor-primaria);
+  text-align: center;
+}
+
+/* Nome clicável no ranking: abre o detalhamento dos itens que compõem a pontuação. */
+.linkNome {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--cor-primaria);
+  font: inherit;
+  text-align: left;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.linkNome:focus-visible {
+  outline: 2px solid var(--cor-primaria);
+  outline-offset: 2px;
+}
+
 @media (--mobile) {
   .lugar1 .base {
     height: 6rem;

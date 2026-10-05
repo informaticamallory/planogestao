@@ -65,6 +65,10 @@ class UsuarioAdminItem(BaseModel):
     avatar_url: str | None
     ultimo_login_em: datetime | None
     criado_em: datetime
+    todas_areas: bool = Field(description="Todas as áreas, inclusive as futuras.")
+    areas_autorizadas: list[Opcao] = Field(description="Áreas cujos planos o usuário acessa (separadas da lotação).")
+    acesso_automatico: bool = Field(description="Administrador: todas as áreas, sem configuração.")
+    sem_areas_autorizadas: bool = Field(description="Pendência: não é Administrador e não tem área autorizada.")
 
     @classmethod
     def de(cls, u: Usuario) -> "UsuarioAdminItem":
@@ -75,6 +79,8 @@ class UsuarioAdminItem(BaseModel):
             ativo=u.ativo, avatar_url=u.avatar_url,
             ultimo_login_em=como_utc(u.ultimo_login_em) if u.ultimo_login_em else None,
             criado_em=como_utc(u.criado_em),
+            todas_areas=u.todas_areas, areas_autorizadas=[Opcao(id=a.id, nome=a.nome) for a in u.areas_autorizadas],
+            acesso_automatico=u.eh_administrador, sem_areas_autorizadas=u.areas_de_acesso == set(),
         )
 
 
@@ -85,7 +91,11 @@ class UsuarioBase(BaseModel):
     area_id: int | None = None
     setor_id: int | None = None
     ativo: bool = True
-    avatar_url: str | None = Field(default=None, max_length=500)
+    avatar_url: str | None = Field(default=None, max_length=500, description="Só é alterada quando enviada.")
+    todas_areas: bool | None = Field(default=None, description="Todas as áreas (inclui futuras). Não enviado = mantém.")
+    areas_autorizadas: list[int] | None = Field(
+        default=None, max_length=500, description="Substitui as áreas autorizadas. Não enviado = mantém (na criação: a lotação)."
+    )
 
     @field_validator("nome")
     @classmethod
@@ -145,6 +155,8 @@ def _dados(corpo: UsuarioBase, senha: str | None) -> DadosUsuario:
     return DadosUsuario(
         nome=corpo.nome, email=corpo.email, perfil_id=corpo.perfil_id, area_id=corpo.area_id,
         setor_id=corpo.setor_id, ativo=corpo.ativo, avatar_url=corpo.avatar_url, senha=senha,
+        alterar_avatar="avatar_url" in corpo.model_fields_set,
+        todas_areas=corpo.todas_areas, areas_autorizadas=corpo.areas_autorizadas,
     )
 
 
@@ -166,6 +178,49 @@ def listar_usuarios(
 @router.post("", response_model=UsuarioAdminItem, status_code=status.HTTP_201_CREATED)
 def criar_usuario(corpo: UsuarioCriar, admin: UsuarioAdmin, db: Session = Depends(get_db)):
     return UsuarioAdminItem.de(UsuariosAdminService(db, admin).criar(_dados(corpo, corpo.senha)))
+
+
+class PendenciaUsuario(BaseModel):
+    id: int
+    nome: str
+    perfil: str
+    area: str | None
+
+
+class PendenciaAtribuicao(BaseModel):
+    usuario: PendenciaUsuario
+    papel: str
+    plano_id: int
+    plano_codigo: str
+    plano_area: str
+    acao_id: int | None
+    acao: str | None
+
+
+class PendenciasAreas(BaseModel):
+    sem_area: list[PendenciaUsuario]
+    atribuicoes: list[PendenciaAtribuicao]
+
+
+def _pendente(u: Usuario) -> PendenciaUsuario:
+    return PendenciaUsuario(id=u.id, nome=u.nome, perfil=u.perfil.nome, area=u.area.nome if u.area else None)
+
+
+@router.get("/pendencias-areas", response_model=PendenciasAreas)
+def pendencias_areas(admin: UsuarioAdmin, db: Session = Depends(get_db)):
+    """Usuários ativos sem área autorizada e atribuições (responsáveis) em planos de áreas não autorizadas."""
+    p = UsuariosAdminService(db, admin).pendencias_areas()
+    return PendenciasAreas(
+        sem_area=[_pendente(u) for u in p["sem_area"]],
+        atribuicoes=[
+            PendenciaAtribuicao(
+                usuario=_pendente(x["usuario"]), papel=x["papel"], plano_id=x["plano"].id, plano_codigo=x["plano"].codigo,
+                plano_area=x["plano"].area.nome, acao_id=x["acao"].id if x["acao"] else None,
+                acao=f"{x['acao'].numero_exibicao} — {x['acao'].descricao[:80]}" if x["acao"] else None,
+            )
+            for x in p["atribuicoes"]
+        ],
+    )
 
 
 @router.get("/{usuario_id}", response_model=UsuarioAdminItem)

@@ -1,0 +1,81 @@
+/* Períodos, prêmios e auditoria da apuração (complementa Gamificacao.module.css). */
+.acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--espaco-2);
+}
+
+.ano {
+  width: 6.5rem;
+}
+
+.valor {
+  width: 8rem;
+}
+
+.listaPremios,
+.lista {
+  margin: 0;
+  padding-left: var(--espaco-4);
+  font-size: var(--fonte-sm);
+}
+
+.form {
+  display: grid;
+  gap: var(--espaco-3);
+  min-width: min(28rem, 100%);
+}
+
+.premios {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-3);
+  margin-bottom: var(--espaco-3);
+}
+
+.linhaPremio {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--espaco-2) var(--espaco-3);
+  margin: 0;
+  padding: var(--espaco-3);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-3);
+}
+
+.largo {
+  flex: 1 1 16rem;
+}
+
+/* Totais e conferência do relatório. */
+.totais {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--espaco-2) var(--espaco-5);
+  margin: 0 0 var(--espaco-3);
+  font-size: var(--fonte-sm);
+}
+
+.confere {
+  color: var(--cor-sucesso-texto);
+  font-weight: 600;
+}
+
+.diverge {
+  color: var(--cor-erro-texto);
+  font-weight: 600;
+}
+
+.justificativa {
+  display: block;
+  margin-top: var(--espaco-1);
+  font-style: italic;
+  color: var(--cor-texto-suave);
+}
+
+@media (--mobile) {
+  .form {
+    min-width: 0;
+  }
+}

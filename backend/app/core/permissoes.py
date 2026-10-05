@@ -46,7 +46,8 @@ class DefPermissao:
 PERMISSOES: list[DefPermissao] = [
     DefPermissao("dashboard:ver", "dashboard", "visualizar", "Visualizar o dashboard"),
     DefPermissao("planos:ver", "planos", "visualizar", "Visualizar planos de ação (da própria área e em que participa)"),
-    DefPermissao("planos:ver_todos", "planos", "outra", "Visualizar planos de todas as áreas"),
+    # Vê todos os planos das ÁREAS AUTORIZADAS do usuário (cadastro do usuário), não de todas as áreas.
+    DefPermissao("planos:ver_todos", "planos", "outra", "Visualizar planos das áreas autorizadas"),
     DefPermissao("planos:criar", "planos", "criar", "Criar planos de ação"),
     DefPermissao("planos:editar", "planos", "editar", "Editar e arquivar planos de qualquer autor"),
     DefPermissao("acoes:ver_proprias", "acoes", "visualizar", "Minhas Ações: ver e atualizar as próprias ações"),
@@ -58,6 +59,12 @@ PERMISSOES: list[DefPermissao] = [
     DefPermissao("relatorios:ver", "relatorios", "visualizar", "Visualizar e exportar relatórios"),
     DefPermissao("notificacoes:ver", "notificacoes", "visualizar", "Visualizar notificações"),
     DefPermissao("gamificacao:ver", "gamificacao", "visualizar", "Visualizar gamificação e eficiência"),
+    # Apuração por período: nenhum perfil além do Administrador recebe automaticamente.
+    DefPermissao("gamificacao:auditoria", "gamificacao", "visualizar", "Consultar a auditoria da pontuação"),
+    DefPermissao("gamificacao:exportar", "gamificacao", "outra", "Exportar a auditoria da pontuação"),
+    DefPermissao("gamificacao:periodos", "gamificacao", "editar", "Gerenciar períodos, prêmios, regularizações e correções da pontuação"),
+    DefPermissao("gamificacao:encerrar", "gamificacao", "aprovar", "Encerrar a apuração de um período"),
+    DefPermissao("gamificacao:reabrir", "gamificacao", "outra", "Reabrir a apuração de um período encerrado"),
     # Atribuível (Administrador e Gestor por padrão): cadastros usados nos planos.
     DefPermissao("cadastros:gerenciar", "cadastros", "editar", "Gerenciar áreas, setores, tipos de plano e origens"),
     # Exclusivas do Administrador (usadas pelo front para exibir o menu).

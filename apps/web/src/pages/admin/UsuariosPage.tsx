@@ -3,6 +3,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { useSearchParams } from "react-router-dom";
 
 import styles from "../../components/admin/Admin.module.css";
+import { AreasAutorizadas, type SelecaoAreas } from "../../components/admin/AreasAutorizadas";
 import { Badge } from "../../components/ui/Badge";
 import { Button } from "../../components/ui/Button";
 import { Card } from "../../components/ui/Card";
@@ -12,7 +13,7 @@ import { Modal } from "../../components/ui/Modal";
 import { Pagination } from "../../components/ui/Pagination";
 import { Select } from "../../components/ui/Select";
 import { Table } from "../../components/ui/Table";
-import { useAreasAdmin, useMutacaoAdmin, usePerfisAdmin, useSetoresAdmin, useUsuariosAdmin } from "../../hooks/useAdministracao";
+import { useAreasAdmin, useMutacaoAdmin, usePendenciasAreas, usePerfisAdmin, useSetoresAdmin, useUsuariosAdmin } from "../../hooks/useAdministracao";
 import { api } from "../../services/api";
 import { useAuthStore } from "../../store/authStore";
 import { formatarDataHora } from "../../utils/datas";
@@ -26,14 +27,16 @@ interface Form {
   perfil_id: string;
   area_id: string;
   setor_id: string;
-  avatar_url: string;
+  /** Acesso a planos por área (separado da lotação acima). */
+  acesso: SelecaoAreas;
   ativo: boolean;
   senha: string;
 }
 
 type Erros = Partial<Record<keyof Form, string>>;
 
-const vazio: Form = { nome: "", email: "", perfil_id: "", area_id: "", setor_id: "", avatar_url: "", ativo: true, senha: "" };
+const PERFIL_ADMINISTRADOR = "Administrador";
+const vazio: Form = { nome: "", email: "", perfil_id: "", area_id: "", setor_id: "", acesso: { todas: false, ids: [] }, ativo: true, senha: "" };
 
 function validar(f: Form, criando: boolean): Erros {
   const e: Erros = {};
@@ -41,7 +44,6 @@ function validar(f: Form, criando: boolean): Erros {
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(f.email.trim())) e.email = "E-mail inválido.";
   if (!f.perfil_id) e.perfil_id = "Selecione o perfil.";
   if (f.setor_id && !f.area_id) e.setor_id = "Selecione a área do setor.";
-  if (f.avatar_url.trim() && !/^(https?:\/\/|\/usuarios\/fotos\/)/.test(f.avatar_url.trim())) e.avatar_url = "Use um endereço http(s).";
   if (criando && !f.senha) e.senha = "Informe a senha inicial.";
   if (f.senha && (f.senha.length < 8 || !/[A-Za-z]/.test(f.senha) || !/\d/.test(f.senha)))
     e.senha = "Mínimo de 8 caracteres, com letras e números.";
@@ -67,6 +69,7 @@ export function UsuariosPage() {
   const perfis = usePerfisAdmin();
   const areas = useAreasAdmin();
   const setores = useSetoresAdmin();
+  const pendencias = usePendenciasAreas();
 
   const atualizar = (mudancas: Record<string, string | null>, manterPagina = false) =>
     setParams(
@@ -94,6 +97,8 @@ export function UsuariosPage() {
   const [erros, setErros] = useState<Erros>({});
   const [inativando, setInativando] = useState<UsuarioAdminItem | null>(null);
   const [mensagem, setMensagem] = useState<string | null>(null);
+  // Na criação, a lotação é sugerida como área autorizada até o Administrador mexer na seleção.
+  const [acessoTocado, setAcessoTocado] = useState(false);
 
   const criando = editando === "novo";
   const proprio = !criando && editando !== null && editando.id === eu?.id;
@@ -105,8 +110,10 @@ export function UsuariosPage() {
       perfil_id: Number(f.perfil_id),
       area_id: f.area_id ? Number(f.area_id) : null,
       setor_id: f.setor_id ? Number(f.setor_id) : null,
-      avatar_url: f.avatar_url.trim() || null,
       ativo: f.ativo,
+      // A foto não é enviada: a já armazenada (ou a do Meu Perfil) é mantida.
+      todas_areas: f.acesso.todas,
+      areas_autorizadas: f.acesso.ids,
     };
     return id ? api.admin.usuarios.atualizar(id, { ...base, nova_senha: f.senha || null }) : api.admin.usuarios.criar({ ...base, senha: f.senha });
   });
@@ -114,7 +121,7 @@ export function UsuariosPage() {
   const reativar = useMutacaoAdmin((u: UsuarioAdminItem) => {
     const corpo: UsuarioAtualizar = {
       nome: u.nome, email: u.email, perfil_id: u.perfil.id, area_id: u.area?.id ?? null, setor_id: u.setor?.id ?? null,
-      avatar_url: u.avatar_url, ativo: true,
+      ativo: true,
     };
     return api.admin.usuarios.atualizar(u.id, corpo);
   });
@@ -123,16 +130,26 @@ export function UsuariosPage() {
     setEditando(u ?? "novo");
     setForm(
       u
-        ? { nome: u.nome, email: u.email, perfil_id: String(u.perfil.id), area_id: String(u.area?.id ?? ""), setor_id: String(u.setor?.id ?? ""), avatar_url: u.avatar_url ?? "", ativo: u.ativo, senha: "" }
+        ? {
+            nome: u.nome, email: u.email, perfil_id: String(u.perfil.id), area_id: String(u.area?.id ?? ""), setor_id: String(u.setor?.id ?? ""),
+            // Edição: os vínculos salvos, nunca recalculados pela lotação.
+            acesso: { todas: u.todas_areas, ids: u.areas_autorizadas.map((a) => a.id) },
+            ativo: u.ativo, senha: "",
+          }
         : vazio,
     );
+    setAcessoTocado(false);
     setErros({});
     salvar.reset();
   };
 
   const mudar = <K extends keyof Form>(campo: K, valor: Form[K]) => {
     setErros((e) => ({ ...e, [campo]: undefined }));
-    setForm((f) => ({ ...f, [campo]: valor, ...(campo === "area_id" ? { setor_id: "" } : {}) }));
+    setForm((f) => {
+      const novo = { ...f, [campo]: valor, ...(campo === "area_id" ? { setor_id: "" } : {}) };
+      if (campo === "area_id" && criando && !acessoTocado) novo.acesso = { todas: false, ids: valor ? [Number(valor)] : [] };
+      return novo;
+    });
   };
 
   const enviar = (e: FormEvent) => {
@@ -150,6 +167,17 @@ export function UsuariosPage() {
       },
     );
   };
+
+  const perfilEscolhido = perfis.data?.find((p) => String(p.id) === form.perfil_id);
+  const acessoAutomatico = perfilEscolhido?.nome === PERFIL_ADMINISTRADOR;
+  const ajudaAcesso = acessoAutomatico
+    ? undefined
+    : !form.acesso.todas && form.acesso.ids.length === 0
+      ? "Sem área autorizada, o usuário não vê nenhum plano."
+      : perfilEscolhido && !perfilEscolhido.permissoes.includes("planos:ver_todos")
+        ? "Com este perfil, vê só os planos em que participa, dentro destas áreas."
+        : "Vê os planos destas áreas. A lotação acima não dá acesso por si só.";
+  const totalPendencias = (pendencias.data?.sem_area.length ?? 0) + (pendencias.data?.atribuicoes.length ?? 0);
 
   const setoresDaArea = (setores.data ?? []).filter((s) => String(s.area_id) === form.area_id && (s.ativo || String(s.id) === form.setor_id));
   const dados = lista.data;
@@ -211,6 +239,38 @@ export function UsuariosPage() {
           {mensagem}
         </p>
       )}
+      {totalPendencias > 0 && pendencias.data && (
+        <details className={styles.pendencias}>
+          <summary>{totalPendencias} pendência(s) de acesso por área para regularizar</summary>
+          {pendencias.data.sem_area.length > 0 && (
+            <>
+              <p className={styles.meta}>Usuários ativos sem área autorizada (não veem nenhum plano):</p>
+              <ul>
+                {pendencias.data.sem_area.map((u) => (
+                  <li key={u.id}>
+                    {u.nome} · {u.perfil}
+                    {u.area ? ` · lotação ${u.area}` : " · sem lotação"}
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+          {pendencias.data.atribuicoes.length > 0 && (
+            <>
+              <p className={styles.meta}>Responsáveis em planos de áreas não autorizadas (não conseguem abrir o item):</p>
+              <ul>
+                {pendencias.data.atribuicoes.map((a, i) => (
+                  <li key={i}>
+                    {a.usuario.nome} — {a.papel} em {a.plano_codigo}
+                    {a.acao ? ` (${a.acao})` : ""} · área do plano: {a.plano_area}
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+          <p className={styles.meta}>Ajuste as áreas autorizadas do usuário (Editar) ou troque o responsável no plano.</p>
+        </details>
+      )}
       {(inativar.error || reativar.error) && <p className={styles.erro}>{(inativar.error ?? reativar.error)!.message}</p>}
 
       <Card semPadding>
@@ -246,6 +306,20 @@ export function UsuariosPage() {
                   <td>
                     {u.area?.nome ?? "—"}
                     {u.setor && <span className={styles.meta}>{u.setor.nome}</span>}
+                    {(u.acesso_automatico || u.todas_areas || u.areas_autorizadas.length > 0) && (
+                      <span className={styles.meta}>
+                        {u.acesso_automatico
+                          ? "Acesso: todas as áreas (automático)"
+                          : u.todas_areas
+                            ? "Acesso: todas as áreas"
+                            : `Acesso: ${u.areas_autorizadas.map((a) => a.nome).join(", ")}`}
+                      </span>
+                    )}
+                    {u.sem_areas_autorizadas && (
+                      <Badge tom="aviso" tamanho="sm">
+                        Sem área autorizada
+                      </Badge>
+                    )}
                   </td>
                   <td>{u.ultimo_login_em ? formatarDataHora(u.ultimo_login_em) : "Nunca"}</td>
                   <td>
@@ -351,8 +425,17 @@ export function UsuariosPage() {
               ))}
             </Select>
           </Field>
-          <Field id="u-foto" rotulo="Foto (URL)" erro={erros.avatar_url}>
-            <Input {...fieldAria("u-foto", erros.avatar_url)} value={form.avatar_url} placeholder="https://…" maxLength={500} onChange={(e) => mudar("avatar_url", e.target.value)} />
+          <Field id="u-acesso" rotulo="Áreas autorizadas" ajuda={ajudaAcesso}>
+            <AreasAutorizadas
+              id="u-acesso"
+              areas={areas.data ?? []}
+              valor={form.acesso}
+              automatico={acessoAutomatico}
+              onChange={(acesso) => {
+                setAcessoTocado(true);
+                mudar("acesso", acesso);
+              }}
+            />
           </Field>
           <Field
             id="u-senha"

@@ -9,12 +9,21 @@ from app.models.email_config import ConfigEmail, HistoricoConfigEmail, ModeloEma
 from app.models.envio_email import EnvioEmail, SituacaoEnvio
 from app.models.equipe import Equipe, EquipeMembro
 from app.models.estrutura import Area, Setor
-from app.models.gamificacao import GamificacaoLancamento, GamificacaoRegra, GatilhoPontuacao
+from app.models.gamificacao import (
+    CategoriaPontuacao,
+    GamificacaoAuditoria,
+    GamificacaoFotografia,
+    GamificacaoLancamento,
+    GamificacaoPeriodo,
+    GamificacaoPremio,
+    GamificacaoRegra,
+    GatilhoPontuacao,
+)
 from app.models.perfil import Perfil, Permissao, perfil_permissao
 from app.models.plano import OrigemPlano, PlanoAnexo, PlanoDeAcao, PlanoHistorico, PlanoSequencia, TipoPlano, tipo_origem
 from app.models.preferencia import PreferenciaLayout
 from app.models.refresh_token import RefreshToken
-from app.models.usuario import Usuario
+from app.models.usuario import Usuario, usuario_area_autorizada
 
 __all__ = [
     "Acao",
@@ -32,7 +41,12 @@ __all__ = [
     "SituacaoEnvio",
     "Equipe",
     "EquipeMembro",
+    "CategoriaPontuacao",
+    "GamificacaoAuditoria",
+    "GamificacaoFotografia",
     "GamificacaoLancamento",
+    "GamificacaoPeriodo",
+    "GamificacaoPremio",
     "GamificacaoRegra",
     "GatilhoPontuacao",
     "OrigemPlano",
@@ -50,4 +64,5 @@ __all__ = [
     "acao_dependencia",
     "perfil_permissao",
     "tipo_origem",
+    "usuario_area_autorizada",
 ]

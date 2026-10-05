@@ -62,8 +62,18 @@ MEDIA_TYPES = {
 }
 
 
+@dataclass(frozen=True)
+class Aba:
+    """Aba adicional do XLSX (ex.: totais, histórico). CSV e PDF levam só a aba principal."""
+
+    titulo: str
+    colunas: Sequence[Coluna]
+    linhas: Sequence[Any]
+
+
 def gerar_arquivo(
-    formato: str, titulo: str, nome_base: str, cabecalho: Sequence[str], colunas: Sequence[Coluna], linhas: Sequence[Any]
+    formato: str, titulo: str, nome_base: str, cabecalho: Sequence[str], colunas: Sequence[Coluna], linhas: Sequence[Any],
+    abas: Sequence[Aba] = (),
 ) -> ArquivoGerado:
     """Um só ponto de geração: o mesmo conjunto de linhas vira CSV, XLSX ou PDF.
 
@@ -76,19 +86,40 @@ def gerar_arquivo(
     if formato == "csv":
         conteudo = gerar_csv(colunas, linhas)
     elif formato == "xlsx":
-        conteudo = gerar_xlsx(titulo, colunas, linhas, cabecalho)
+        conteudo = gerar_xlsx(titulo, colunas, linhas, cabecalho, abas)
     else:
         conteudo = gerar_pdf(titulo, cabecalho, colunas, linhas)
     return ArquivoGerado(conteudo, MEDIA_TYPES[formato], nome)
 
 
-def gerar_xlsx(titulo: str, colunas: Sequence[Coluna], linhas: Sequence[Any], cabecalho: Sequence[str] = ()) -> bytes:
+def gerar_xlsx(
+    titulo: str, colunas: Sequence[Coluna], linhas: Sequence[Any], cabecalho: Sequence[str] = (), abas: Sequence[Aba] = ()
+) -> bytes:
     from openpyxl import Workbook
+    from openpyxl.styles import Font
+
+    wb = Workbook()
+    _preencher_aba(wb.active, titulo, colunas, linhas)
+    for aba in abas:
+        _preencher_aba(wb.create_sheet(), aba.titulo, aba.colunas, aba.linhas)
+
+    if cabecalho:
+        info = wb.create_sheet("Filtros")
+        info.append([titulo])
+        info["A1"].font = Font(bold=True)
+        for linha in cabecalho:
+            info.append([linha])
+        info.column_dimensions["A"].width = 100
+
+    saida = io.BytesIO()
+    wb.save(saida)
+    return saida.getvalue()
+
+
+def _preencher_aba(ws, titulo: str, colunas: Sequence[Coluna], linhas: Sequence[Any]) -> None:
     from openpyxl.styles import Font, PatternFill
     from openpyxl.utils import get_column_letter
 
-    wb = Workbook()
-    ws = wb.active
     ws.title = titulo[:31]  # limite do Excel
     ws.append([c.titulo for c in colunas])
     for celula in ws[1]:
@@ -112,18 +143,6 @@ def gerar_xlsx(titulo: str, colunas: Sequence[Coluna], linhas: Sequence[Any], ca
 
     ws.freeze_panes = "A2"
     ws.auto_filter.ref = ws.dimensions
-
-    if cabecalho:
-        info = wb.create_sheet("Filtros")
-        info.append([titulo])
-        info["A1"].font = Font(bold=True)
-        for linha in cabecalho:
-            info.append([linha])
-        info.column_dimensions["A"].width = 100
-
-    saida = io.BytesIO()
-    wb.save(saida)
-    return saida.getvalue()
 
 
 def gerar_pdf(titulo: str, subtitulos: Sequence[str], colunas: Sequence[Coluna], linhas: Sequence[Any]) -> bytes:

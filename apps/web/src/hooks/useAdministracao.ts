@@ -6,6 +6,9 @@ import { api } from "../services/api";
 export const useUsuariosAdmin = (consulta: ConsultaUsuariosAdmin) =>
   useQuery({ queryKey: ["admin", "usuarios", consulta], queryFn: () => api.admin.usuarios.listar(consulta), placeholderData: keepPreviousData });
 
+/** Usuários sem área autorizada e atribuições fora das áreas (chave em "admin": salvar um usuário recarrega). */
+export const usePendenciasAreas = () => useQuery({ queryKey: ["admin", "usuarios", "pendencias-areas"], queryFn: api.admin.usuarios.pendenciasAreas });
+
 export const usePerfisAdmin = () => useQuery({ queryKey: ["admin", "perfis"], queryFn: api.admin.perfis.listar });
 
 export const useCatalogoPermissoes = () =>

@@ -31,6 +31,8 @@ export function criarAdministracao(http: HttpClient) {
       criar: async (body: UsuarioCriar) => exigirDados(await http.POST("/usuarios", { body })),
       atualizar: async (usuarioId: number, body: UsuarioAtualizar) =>
         exigirDados(await http.PUT("/usuarios/{usuario_id}", { ...id("usuario_id", usuarioId), body })),
+      /** Pendências de acesso por área: usuários sem área autorizada e responsáveis fora das áreas. */
+      pendenciasAreas: async () => exigirDados(await http.GET("/usuarios/pendencias-areas")),
       /** Inativa (usuários não são apagados). */
       inativar: async (usuarioId: number) => exigirSucesso(await http.DELETE("/usuarios/{usuario_id}", id("usuario_id", usuarioId))),
     },

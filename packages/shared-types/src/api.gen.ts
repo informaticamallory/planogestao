@@ -508,6 +508,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/usuarios/pendencias-areas": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Pendencias Areas
+         * @description Usuários ativos sem área autorizada e atribuições (responsáveis) em planos de áreas não autorizadas.
+         */
+        get: operations["pendencias_areas_usuarios_pendencias_areas_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/usuarios/{usuario_id}": {
         parameters: {
             query?: never;
@@ -821,7 +841,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Ranking */
+        /**
+         * Ranking
+         * @description Ranking de uma categoria. Mesma pontuação = mesma colocação; prêmio disputado por empate fica pendente.
+         */
         get: operations["ranking_gamificacao_ranking_get"];
         put?: never;
         post?: never;
@@ -840,9 +863,29 @@ export interface paths {
         };
         /**
          * Podio
-         * @description Top 5, só com dados suficientes (pelo menos `minimo` colaboradores com pontos); senão `items` vem vazio.
+         * @description Top 5 da categoria, só com dados suficientes (pelo menos `minimo` colaboradores com pontos).
          */
         get: operations["podio_gamificacao_podio_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/gamificacao/participantes/{usuario_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Itens Do Participante
+         * @description Itens que compõem a pontuação. Mostra planos e ações: só o próprio participante ou quem tem a auditoria.
+         */
+        get: operations["itens_do_participante_gamificacao_participantes__usuario_id__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -877,6 +920,250 @@ export interface paths {
         };
         /** Opcoes */
         get: operations["opcoes_gamificacao_opcoes_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/gamificacao/periodos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Listar Periodos */
+        get: operations["listar_periodos_gamificacao_periodos_get"];
+        put?: never;
+        /** Criar Periodo */
+        post: operations["criar_periodo_gamificacao_periodos_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/gamificacao/periodos/{periodo_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Atualizar Periodo */
+        put: operations["atualizar_periodo_gamificacao_periodos__periodo_id__put"];
+        post?: never;
+        /** Excluir Periodo */
+        delete: operations["excluir_periodo_gamificacao_periodos__periodo_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/gamificacao/periodos/gerar-trimestres": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Gerar Trimestres
+         * @description Os 4 trimestres civis do ano, sem duplicar os que já existem.
+         */
+        post: operations["gerar_trimestres_gamificacao_periodos_gerar_trimestres_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/gamificacao/periodos/{periodo_id}/premios": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Definir Premios
+         * @description Substitui a lista de prêmios do período (uma colocação por categoria).
+         */
+        put: operations["definir_premios_gamificacao_periodos__periodo_id__premios_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/gamificacao/periodos/{periodo_id}/recalcular": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Recalcular
+         * @description Concilia o extrato com as conclusões do período (cria o que falta, reverte o que deixou de valer).
+         */
+        post: operations["recalcular_gamificacao_periodos__periodo_id__recalcular_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/gamificacao/periodos/{periodo_id}/verificacao": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Verificar */
+        get: operations["verificar_gamificacao_periodos__periodo_id__verificacao_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/gamificacao/periodos/{periodo_id}/encerrar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Encerrar
+         * @description Encerra e congela o resultado (fotografia). Recusado com empates em prêmios ou pendências.
+         */
+        post: operations["encerrar_gamificacao_periodos__periodo_id__encerrar_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/gamificacao/periodos/{periodo_id}/reabrir": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reabrir */
+        post: operations["reabrir_gamificacao_periodos__periodo_id__reabrir_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/gamificacao/inconsistencias": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Inconsistencias
+         * @description Concluídos sem data de conclusão: não pontuam até a data efetiva ser informada.
+         */
+        get: operations["inconsistencias_gamificacao_inconsistencias_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/gamificacao/regularizacoes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Regularizar */
+        post: operations["regularizar_gamificacao_regularizacoes_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/gamificacao/lancamentos/{lancamento_id}/corrigir": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Corrigir
+         * @description Recalcula um item pelos dados atuais (ex.: responsável ou prazo corrigidos): reverte e lança de novo.
+         */
+        post: operations["corrigir_gamificacao_lancamentos__lancamento_id__corrigir_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/gamificacao/auditoria": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Auditoria */
+        get: operations["auditoria_gamificacao_auditoria_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/gamificacao/auditoria/exportar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Exportar Auditoria
+         * @description Excel com a pontuação (mesmas linhas da tela), os totais por participante e o histórico de ajustes.
+         */
+        get: operations["exportar_auditoria_gamificacao_auditoria_exportar_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2289,6 +2576,13 @@ export interface components {
             /** Papel Na Equipe */
             papel_na_equipe?: string | null;
         };
+        /** BloqueioSaida */
+        BloqueioSaida: {
+            /** Tipo */
+            tipo: string;
+            /** Mensagem */
+            mensagem: string;
+        };
         /** Body_enviar_anexos_planos__plano_id__anexos_post */
         Body_enviar_anexos_planos__plano_id__anexos_post: {
             /**
@@ -2360,6 +2654,12 @@ export interface components {
          * @enum {string}
          */
         CategoriaAcao: "pendente" | "em_andamento" | "concluida";
+        /**
+         * CategoriaPontuacao
+         * @description Papel no trabalho (não o perfil de acesso): quem responde pelo plano ou executa a ação.
+         * @enum {string}
+         */
+        CategoriaPontuacao: "gestor" | "executor";
         /** CcoPadrao */
         CcoPadrao: {
             /** Enderecos */
@@ -2378,6 +2678,8 @@ export interface components {
         ColaboradorRanking: {
             /** Posicao */
             posicao: number;
+            /** Empatado */
+            empatado: boolean;
             /** Usuario Id */
             usuario_id: number;
             /** Nome */
@@ -2390,14 +2692,19 @@ export interface components {
             setor: string | null;
             /** Pontos */
             pontos: number;
-            /** Planos Fechados */
-            planos_fechados: number;
+            /** Planos Concluidos */
+            planos_concluidos: number;
             /** Acoes No Prazo */
             acoes_no_prazo: number;
-            /** Acoes Atrasadas */
-            acoes_atrasadas: number;
+            /** Acoes Fora Prazo */
+            acoes_fora_prazo: number;
             /** Desempenho */
             desempenho: number | null;
+            premio: components["schemas"]["PremioSaida"] | null;
+            /** Premio Pendente */
+            premio_pendente: boolean;
+            /** Colocacoes Disputadas */
+            colocacoes_disputadas: number[];
             /** Pontos Periodo Anterior */
             pontos_periodo_anterior: number;
             /** Variacao */
@@ -2626,6 +2933,26 @@ export interface components {
          * @enum {string}
          */
         EventoHistorico: "criacao" | "alteracao" | "comentario" | "solicitacao" | "resposta_solicitacao";
+        /** EventoSaida */
+        EventoSaida: {
+            /** Id */
+            id: number;
+            /** Evento */
+            evento: string;
+            /** Detalhe */
+            detalhe: string;
+            /** Justificativa */
+            justificativa: string | null;
+            /** Autor */
+            autor: string;
+            /**
+             * Criado Em
+             * Format: date-time
+             */
+            criado_em: string;
+            /** Lancamento Id */
+            lancamento_id: number | null;
+        };
         /** EventoTimeline */
         EventoTimeline: {
             /**
@@ -2693,6 +3020,11 @@ export interface components {
          * @enum {string}
          */
         FormatoExportacao: "csv" | "xlsx" | "pdf";
+        /** GerarTrimestres */
+        GerarTrimestres: {
+            /** Ano */
+            ano: number;
+        };
         /**
          * GrupoStatus
          * @enum {string}
@@ -2724,6 +3056,28 @@ export interface components {
              * Format: date-time
              */
             criado_em: string;
+        };
+        /** Inconsistencia */
+        Inconsistencia: {
+            /**
+             * Referencia Tipo
+             * @enum {string}
+             */
+            referencia_tipo: "plano" | "acao";
+            /** Referencia Id */
+            referencia_id: number;
+            /** Plano Id */
+            plano_id: number;
+            /** Plano Codigo */
+            plano_codigo: string;
+            /** Rotulo */
+            rotulo: string;
+            /** Responsavel */
+            responsavel: string;
+            /** Prazo */
+            prazo: string | null;
+            /** Problema */
+            problema: string;
         };
         /** IndicadoresEquipe */
         IndicadoresEquipe: {
@@ -2899,6 +3253,68 @@ export interface components {
             /** Nome */
             nome: string;
         };
+        /** ItemPontuacao */
+        ItemPontuacao: {
+            /** Lancamento Id */
+            lancamento_id: number;
+            /** Usuario Id */
+            usuario_id: number;
+            /** Participante */
+            participante: string;
+            /**
+             * Categoria
+             * @enum {string}
+             */
+            categoria: "gestor" | "executor";
+            /**
+             * Classificacao
+             * @enum {string}
+             */
+            classificacao: "plano_concluido" | "acao_no_prazo" | "acao_fora_do_prazo";
+            /** Pontos */
+            pontos: number;
+            /** Regra */
+            regra: string;
+            /** Plano Id */
+            plano_id: number;
+            /** Plano Codigo */
+            plano_codigo: string | null;
+            /** Plano Nome */
+            plano_nome: string | null;
+            /** Acao Id */
+            acao_id: number | null;
+            /** Acao Codigo */
+            acao_codigo: string | null;
+            /** Acao Descricao */
+            acao_descricao: string | null;
+            /**
+             * Concluido Em
+             * Format: date-time
+             */
+            concluido_em: string;
+            /** Prazo */
+            prazo: string | null;
+            /** Origem */
+            origem: string;
+            /**
+             * Lancado Em
+             * Format: date-time
+             */
+            lancado_em: string;
+        };
+        /** ItensParticipante */
+        ItensParticipante: {
+            /** Periodo Id */
+            periodo_id: number;
+            /** Usuario Id */
+            usuario_id: number;
+            /** Nome */
+            nome: string | null;
+            /** Total */
+            total: number;
+            /** Items */
+            items: components["schemas"]["ItemPontuacao"][];
+        };
         /** ItensPorNivel */
         ItensPorNivel: {
             /** Nao Iniciado */
@@ -2944,6 +3360,11 @@ export interface components {
              * @description Tag Em atraso, contada à parte do status.
              */
             em_atraso: number;
+        };
+        /** Justificativa */
+        Justificativa: {
+            /** Justificativa */
+            justificativa: string;
         };
         /** LayoutTela */
         LayoutTela: {
@@ -3021,6 +3442,13 @@ export interface components {
             criado_em: string;
             /** Concluida Em */
             concluida_em: string | null;
+        };
+        /** ListaPeriodos */
+        ListaPeriodos: {
+            /** Items */
+            items: components["schemas"]["PeriodoSaida"][];
+            /** Padrao Id */
+            padrao_id: number | null;
         };
         /** LoginRequest */
         LoginRequest: {
@@ -3195,10 +3623,7 @@ export interface components {
             /** Nome */
             nome: string;
         };
-        /**
-         * OpcaoDaArea
-         * @description Setor ou equipe, com a área a que pertence (para filtrar em cascata).
-         */
+        /** OpcaoDaArea */
         OpcaoDaArea: {
             /** Id */
             id: number;
@@ -3231,6 +3656,24 @@ export interface components {
             tipos: components["schemas"]["Opcao"][];
             /** Origens */
             origens: components["schemas"]["Opcao"][];
+        };
+        /** OpcoesRelatorio */
+        OpcoesRelatorio: {
+            /** Participantes */
+            participantes: [
+                number,
+                string
+            ][];
+            /** Planos */
+            planos: [
+                number,
+                string
+            ][];
+            /** Acoes */
+            acoes: [
+                number,
+                string
+            ][];
         };
         /**
          * OrdenacaoPlano
@@ -3354,6 +3797,40 @@ export interface components {
             /** Page Size */
             page_size: number;
         };
+        /** PendenciaAtribuicao */
+        PendenciaAtribuicao: {
+            usuario: components["schemas"]["PendenciaUsuario"];
+            /** Papel */
+            papel: string;
+            /** Plano Id */
+            plano_id: number;
+            /** Plano Codigo */
+            plano_codigo: string;
+            /** Plano Area */
+            plano_area: string;
+            /** Acao Id */
+            acao_id: number | null;
+            /** Acao */
+            acao: string | null;
+        };
+        /** PendenciaUsuario */
+        PendenciaUsuario: {
+            /** Id */
+            id: number;
+            /** Nome */
+            nome: string;
+            /** Perfil */
+            perfil: string;
+            /** Area */
+            area: string | null;
+        };
+        /** PendenciasAreas */
+        PendenciasAreas: {
+            /** Sem Area */
+            sem_area: components["schemas"]["PendenciaUsuario"][];
+            /** Atribuicoes */
+            atribuicoes: components["schemas"]["PendenciaAtribuicao"][];
+        };
         /** PerfilItem */
         PerfilItem: {
             /** Id */
@@ -3397,6 +3874,57 @@ export interface components {
              * Format: date
              */
             fim: string;
+        };
+        /** PeriodoEntrada */
+        PeriodoEntrada: {
+            /** Nome */
+            nome: string;
+            /** Ano */
+            ano: number;
+            /**
+             * Data Inicio
+             * Format: date
+             */
+            data_inicio: string;
+            /**
+             * Data Fim
+             * Format: date
+             */
+            data_fim: string;
+            /**
+             * Situacao
+             * @default planejado
+             * @enum {string}
+             */
+            situacao: "planejado" | "aberto";
+        };
+        /** PeriodoSaida */
+        PeriodoSaida: {
+            /** Id */
+            id: number;
+            /** Nome */
+            nome: string;
+            /** Ano */
+            ano: number;
+            /**
+             * Data Inicio
+             * Format: date
+             */
+            data_inicio: string;
+            /**
+             * Data Fim
+             * Format: date
+             */
+            data_fim: string;
+            /**
+             * Situacao
+             * @enum {string}
+             */
+            situacao: "planejado" | "aberto" | "encerrado";
+            /** Encerrado Em */
+            encerrado_em: string | null;
+            /** Premios */
+            premios: components["schemas"]["PremioSaida"][];
         };
         /** PermissaoMatriz */
         PermissaoMatriz: {
@@ -3915,6 +4443,43 @@ export interface components {
             /** No Prazo */
             no_prazo: number;
         };
+        /** PremioEntrada */
+        PremioEntrada: {
+            /**
+             * Categoria
+             * @enum {string}
+             */
+            categoria: "gestor" | "executor";
+            /** Colocacao */
+            colocacao: number;
+            /** Nome */
+            nome: string;
+            /** Descricao */
+            descricao?: string | null;
+            /** Valor */
+            valor?: number | string | null;
+        };
+        /** PremioSaida */
+        PremioSaida: {
+            /**
+             * Categoria
+             * @enum {string}
+             */
+            categoria: "gestor" | "executor";
+            /** Colocacao */
+            colocacao: number;
+            /** Nome */
+            nome: string;
+            /** Descricao */
+            descricao: string | null;
+            /** Valor */
+            valor: string | null;
+        };
+        /** PremiosEntrada */
+        PremiosEntrada: {
+            /** Premios */
+            premios: components["schemas"]["PremioEntrada"][];
+        };
         /** Previa */
         Previa: {
             /** Assunto */
@@ -4018,6 +4583,23 @@ export interface components {
             /** Ativo */
             ativo: boolean;
         };
+        /** Regularizacao */
+        Regularizacao: {
+            /**
+             * Referencia Tipo
+             * @enum {string}
+             */
+            referencia_tipo: "plano" | "acao";
+            /** Referencia Id */
+            referencia_id: number;
+            /**
+             * Data Conclusao
+             * Format: date
+             */
+            data_conclusao: string;
+            /** Justificativa */
+            justificativa: string;
+        };
         /** RelatorioAcoes */
         RelatorioAcoes: {
             /**
@@ -4038,6 +4620,32 @@ export interface components {
             page_size: number;
             /** Items */
             items: components["schemas"]["LinhaRelatorioAcao"][];
+        };
+        /** RelatorioAuditoria */
+        RelatorioAuditoria: {
+            /** Periodo Id */
+            periodo_id: number;
+            /** Periodo Nome */
+            periodo_nome: string;
+            /** Situacao */
+            situacao: string;
+            /** Encerrado */
+            encerrado: boolean;
+            /** Items */
+            items: components["schemas"]["ItemPontuacao"][];
+            /** Totais */
+            totais: components["schemas"]["TotalParticipante"][];
+            /** Total Pontos */
+            total_pontos: number;
+            /** Total Lancamentos */
+            total_lancamentos: number;
+            /** Total Periodo */
+            total_periodo: number;
+            /** Total Ranking */
+            total_ranking: number;
+            opcoes: components["schemas"]["OpcoesRelatorio"];
+            /** Eventos */
+            eventos: components["schemas"]["EventoSaida"][];
         };
         /** RelatorioPlanos */
         RelatorioPlanos: {
@@ -4117,6 +4725,13 @@ export interface components {
             /** Total Pendentes */
             total_pendentes: number;
         };
+        /** ResultadoCorrecao */
+        ResultadoCorrecao: {
+            /** Revertido Id */
+            revertido_id: number;
+            /** Novo Id */
+            novo_id: number | null;
+        };
         /** ResultadoMarcacao */
         ResultadoMarcacao: {
             /** Atualizadas */
@@ -4131,6 +4746,18 @@ export interface components {
              * @description Já estavam na equipe (ignorados).
              */
             ja_membros: number[];
+        };
+        /** ResultadoRecalculo */
+        ResultadoRecalculo: {
+            /** Criados */
+            criados: number;
+            /** Revertidos */
+            revertidos: number;
+        };
+        /** ResultadoRegularizacao */
+        ResultadoRegularizacao: {
+            /** Lancamento Id */
+            lancamento_id: number | null;
         };
         /** ResultadoTeste */
         ResultadoTeste: {
@@ -4147,6 +4774,15 @@ export interface components {
         ResultadoToken: {
             /** Ativo */
             ativo: boolean;
+        };
+        /** ResultadoTrimestres */
+        ResultadoTrimestres: {
+            /** Criados */
+            criados: string[];
+            /** Existentes */
+            existentes: string[];
+            /** Conflitos */
+            conflitos: string[];
         };
         /** ResultadoVerificacaoPrazos */
         ResultadoVerificacaoPrazos: {
@@ -4238,6 +4874,10 @@ export interface components {
         };
         /** ResumoGamificacao */
         ResumoGamificacao: {
+            /** Periodo Id */
+            periodo_id: number;
+            /** Periodo Nome */
+            periodo_nome: string;
             /**
              * Periodo Inicio
              * Format: date
@@ -4249,15 +4889,16 @@ export interface components {
              */
             periodo_fim: string;
             /**
-             * Periodo Anterior Inicio
-             * Format: date
+             * Situacao
+             * @enum {string}
              */
-            periodo_anterior_inicio: string;
-            /**
-             * Periodo Anterior Fim
-             * Format: date
-             */
-            periodo_anterior_fim: string;
+            situacao: "planejado" | "aberto" | "encerrado";
+            /** Encerrado Em */
+            encerrado_em: string | null;
+            /** Gestores */
+            gestores: number;
+            /** Executores */
+            executores: number;
             /** Colaboradores */
             colaboradores: number;
             /** Planos Ativos */
@@ -4268,10 +4909,16 @@ export interface components {
             acoes_concluidas: number;
             /** Acoes No Prazo */
             acoes_no_prazo: number;
+            /** Acoes Fora Prazo */
+            acoes_fora_prazo: number;
             /** Percentual No Prazo */
             percentual_no_prazo: number | null;
             /** Pontos Distribuidos */
             pontos_distribuidos: number;
+            /** Pontos Gestores */
+            pontos_gestores: number;
+            /** Pontos Executores */
+            pontos_executores: number;
         };
         /** ResumoMinhasAcoes */
         ResumoMinhasAcoes: {
@@ -4558,6 +5205,22 @@ export interface components {
             refresh_token?: string | null;
             usuario: components["schemas"]["UsuarioLogado"];
         };
+        /** TotalParticipante */
+        TotalParticipante: {
+            /** Usuario Id */
+            usuario_id: number;
+            /** Participante */
+            participante: string;
+            /**
+             * Categoria
+             * @enum {string}
+             */
+            categoria: "gestor" | "executor";
+            /** Lancamentos */
+            lancamentos: number;
+            /** Pontos */
+            pontos: number;
+        };
         /** TrocarSenha */
         TrocarSenha: {
             /** Senha Atual */
@@ -4590,6 +5253,26 @@ export interface components {
              * Format: date-time
              */
             criado_em: string;
+            /**
+             * Todas Areas
+             * @description Todas as áreas, inclusive as futuras.
+             */
+            todas_areas: boolean;
+            /**
+             * Areas Autorizadas
+             * @description Áreas cujos planos o usuário acessa (separadas da lotação).
+             */
+            areas_autorizadas: components["schemas"]["Opcao"][];
+            /**
+             * Acesso Automatico
+             * @description Administrador: todas as áreas, sem configuração.
+             */
+            acesso_automatico: boolean;
+            /**
+             * Sem Areas Autorizadas
+             * @description Pendência: não é Administrador e não tem área autorizada.
+             */
+            sem_areas_autorizadas: boolean;
         };
         /** UsuarioAtualizar */
         UsuarioAtualizar: {
@@ -4608,8 +5291,21 @@ export interface components {
              * @default true
              */
             ativo: boolean;
-            /** Avatar Url */
+            /**
+             * Avatar Url
+             * @description Só é alterada quando enviada.
+             */
             avatar_url?: string | null;
+            /**
+             * Todas Areas
+             * @description Todas as áreas (inclui futuras). Não enviado = mantém.
+             */
+            todas_areas?: boolean | null;
+            /**
+             * Areas Autorizadas
+             * @description Substitui as áreas autorizadas. Não enviado = mantém (na criação: a lotação).
+             */
+            areas_autorizadas?: number[] | null;
             /**
              * Nova Senha
              * @description Preencha só para redefinir a senha.
@@ -4633,8 +5329,21 @@ export interface components {
              * @default true
              */
             ativo: boolean;
-            /** Avatar Url */
+            /**
+             * Avatar Url
+             * @description Só é alterada quando enviada.
+             */
             avatar_url?: string | null;
+            /**
+             * Todas Areas
+             * @description Todas as áreas (inclui futuras). Não enviado = mantém.
+             */
+            todas_areas?: boolean | null;
+            /**
+             * Areas Autorizadas
+             * @description Substitui as áreas autorizadas. Não enviado = mantém (na criação: a lotação).
+             */
+            areas_autorizadas?: number[] | null;
             /**
              * Senha
              * @description Senha inicial (mín. 8 caracteres, letras e números).
@@ -4713,6 +5422,15 @@ export interface components {
             nome: string;
             /** Descricao */
             descricao: string;
+        };
+        /** VerificacaoSaida */
+        VerificacaoSaida: {
+            /** Pode Encerrar */
+            pode_encerrar: boolean;
+            /** Bloqueios */
+            bloqueios: components["schemas"]["BloqueioSaida"][];
+            /** Avisos */
+            avisos: string[];
         };
         /**
          * Visualizacao
@@ -5888,6 +6606,26 @@ export interface operations {
             };
         };
     };
+    pendencias_areas_usuarios_pendencias_areas_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PendenciasAreas"];
+                };
+            };
+        };
+    };
     detalhe_usuario_usuarios__usuario_id__get: {
         parameters: {
             query?: never;
@@ -6458,9 +7196,8 @@ export interface operations {
     resumo_gamificacao_resumo_get: {
         parameters: {
             query?: {
-                periodo?: components["schemas"]["TipoPeriodo"];
-                data_inicio?: string | null;
-                data_fim?: string | null;
+                /** @description Período de apuração. Sem ele: o que contém hoje. */
+                periodo_id?: number | null;
                 /** @description Área do colaborador. */
                 area_id?: number | null;
                 /** @description Setor do colaborador. */
@@ -6497,11 +7234,11 @@ export interface operations {
     ranking_gamificacao_ranking_get: {
         parameters: {
             query?: {
+                categoria?: components["schemas"]["CategoriaPontuacao"];
                 page?: number;
                 page_size?: number;
-                periodo?: components["schemas"]["TipoPeriodo"];
-                data_inicio?: string | null;
-                data_fim?: string | null;
+                /** @description Período de apuração. Sem ele: o que contém hoje. */
+                periodo_id?: number | null;
                 /** @description Área do colaborador. */
                 area_id?: number | null;
                 /** @description Setor do colaborador. */
@@ -6538,9 +7275,9 @@ export interface operations {
     podio_gamificacao_podio_get: {
         parameters: {
             query?: {
-                periodo?: components["schemas"]["TipoPeriodo"];
-                data_inicio?: string | null;
-                data_fim?: string | null;
+                categoria?: components["schemas"]["CategoriaPontuacao"];
+                /** @description Período de apuração. Sem ele: o que contém hoje. */
+                periodo_id?: number | null;
                 /** @description Área do colaborador. */
                 area_id?: number | null;
                 /** @description Setor do colaborador. */
@@ -6561,6 +7298,40 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Podio"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    itens_do_participante_gamificacao_participantes__usuario_id__get: {
+        parameters: {
+            query?: {
+                periodo_id?: number | null;
+                categoria?: components["schemas"]["CategoriaPontuacao"] | null;
+            };
+            header?: never;
+            path: {
+                usuario_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ItensParticipante"];
                 };
             };
             /** @description Validation Error */
@@ -6610,6 +7381,480 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["OpcoesGamificacao"];
+                };
+            };
+        };
+    };
+    listar_periodos_gamificacao_periodos_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListaPeriodos"];
+                };
+            };
+        };
+    };
+    criar_periodo_gamificacao_periodos_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PeriodoEntrada"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PeriodoSaida"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    atualizar_periodo_gamificacao_periodos__periodo_id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                periodo_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PeriodoEntrada"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PeriodoSaida"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    excluir_periodo_gamificacao_periodos__periodo_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                periodo_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    gerar_trimestres_gamificacao_periodos_gerar_trimestres_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GerarTrimestres"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultadoTrimestres"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    definir_premios_gamificacao_periodos__periodo_id__premios_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                periodo_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PremiosEntrada"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PeriodoSaida"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    recalcular_gamificacao_periodos__periodo_id__recalcular_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                periodo_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultadoRecalculo"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    verificar_gamificacao_periodos__periodo_id__verificacao_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                periodo_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VerificacaoSaida"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    encerrar_gamificacao_periodos__periodo_id__encerrar_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                periodo_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PeriodoSaida"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reabrir_gamificacao_periodos__periodo_id__reabrir_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                periodo_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Justificativa"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PeriodoSaida"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    inconsistencias_gamificacao_inconsistencias_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Inconsistencia"][];
+                };
+            };
+        };
+    };
+    regularizar_gamificacao_regularizacoes_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Regularizacao"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultadoRegularizacao"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    corrigir_gamificacao_lancamentos__lancamento_id__corrigir_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                lancamento_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Justificativa"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultadoCorrecao"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    auditoria_gamificacao_auditoria_get: {
+        parameters: {
+            query?: {
+                periodo_id?: number | null;
+                categoria?: ("gestor" | "executor") | null;
+                /** @description Participante. */
+                usuario_id?: number | null;
+                plano_id?: number | null;
+                acao_id?: number | null;
+                classificacao?: ("plano_concluido" | "acao_no_prazo" | "acao_fora_do_prazo") | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RelatorioAuditoria"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    exportar_auditoria_gamificacao_auditoria_exportar_get: {
+        parameters: {
+            query?: {
+                periodo_id?: number | null;
+                categoria?: ("gestor" | "executor") | null;
+                usuario_id?: number | null;
+                plano_id?: number | null;
+                acao_id?: number | null;
+                classificacao?: ("plano_concluido" | "acao_no_prazo" | "acao_fora_do_prazo") | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

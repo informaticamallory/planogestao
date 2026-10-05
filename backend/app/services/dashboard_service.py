@@ -25,7 +25,7 @@ from app.schemas.dashboard import (
     ResumoDashboard,
     StatusAcoes,
 )
-from app.services.escopo import filtro_planos_visiveis
+from app.services.escopo import filtro_areas_autorizadas, filtro_planos_visiveis
 from app.services.periodo import Periodo
 from app.services.regras import (
     CategoriaAcao,
@@ -203,7 +203,7 @@ class DashboardService:
     def minhas_acoes(self, limite: int) -> list[MinhaAcao]:
         """Ações abertas do próprio usuário, das mais urgentes para as menos (sem filtro de período)."""
         resultado = []
-        for r in self.repo.acoes_abertas_do_usuario(self.usuario.id, limite):
+        for r in self.repo.acoes_abertas_do_usuario(self.usuario.id, limite, filtro_areas_autorizadas(self.usuario)):
             categoria = categoria_acao(r.status, r.prazo, self.hoje)
             assert categoria is not None  # só vêm ações abertas
             resultado.append(

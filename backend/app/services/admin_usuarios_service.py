@@ -29,6 +29,11 @@ class DadosUsuario:
     ativo: bool
     avatar_url: str | None
     senha: str | None  # obrigatória na criação; na edição, preenchida = redefinir
+    # A foto saiu do formulário web: só é gravada quando o campo vem na requisição (não apaga a existente).
+    alterar_avatar: bool = False
+    # Áreas autorizadas. None = não enviado (mantém; na criação, usa a lotação).
+    todas_areas: bool | None = None
+    areas_autorizadas: list[int] | None = None
 
 
 class UsuariosAdminService:
@@ -77,6 +82,15 @@ class UsuariosAdminService:
                 raise RegraInvalida("Setor inválido ou inativo.")
             if setor.area_id != dados.area_id:
                 raise RegraInvalida("O setor informado não pertence à área selecionada.")
+        if dados.areas_autorizadas is not None:
+            ids = set(dados.areas_autorizadas)
+            atuais = {a.id for a in usuario.areas_autorizadas} if usuario else set()
+            encontradas = {a.id: a for a in self.db.scalars(select(Area).where(Area.id.in_(ids)))} if ids else {}
+            if ids - encontradas.keys():
+                raise RegraInvalida("Área autorizada inexistente.")
+            # Área inativa só fica se já estava autorizada (não se concede acesso novo a ela).
+            if any(not a.ativo and a.id not in atuais for a in encontradas.values()):
+                raise RegraInvalida("Não é possível autorizar uma área inativa.")
         duplicado = self.db.scalar(
             select(Usuario.id).where(Usuario.email == dados.email, Usuario.id != (usuario.id if usuario else 0))
         )
@@ -106,6 +120,39 @@ class UsuariosAdminService:
             .values(revogado_em=utcnow())
         )
 
+    def _aplicar_areas(self, usuario: Usuario, dados: DadosUsuario) -> None:
+        if dados.todas_areas is not None:
+            usuario.todas_areas = dados.todas_areas
+        if dados.areas_autorizadas is not None:
+            ids = sorted(set(dados.areas_autorizadas))
+            usuario.areas_autorizadas = list(self.db.scalars(select(Area).where(Area.id.in_(ids)))) if ids else []
+        elif not usuario.areas_autorizadas and usuario.id is None and usuario.area_id is not None:
+            # Criação sem áreas informadas (ex.: app mobile): começa pela lotação.
+            usuario.areas_autorizadas = [self.db.get(Area, usuario.area_id)]
+
+    def pendencias_areas(self) -> dict:
+        """Para o Administrador regularizar: usuários sem área autorizada e atribuições fora das áreas."""
+        from app.models import Acao, PlanoDeAcao
+        from app.models.enums import STATUS_ACAO_DESCARTADOS
+
+        restritos = [u for u in self.db.scalars(select(Usuario).where(Usuario.ativo.is_(True)).order_by(Usuario.nome))
+                     if u.areas_de_acesso is not None]
+        sem_area = [u for u in restritos if not u.areas_de_acesso]
+        atribuicoes: list[dict] = []
+        for u in restritos:
+            areas = u.areas_de_acesso
+            fora = PlanoDeAcao.area_id.not_in(sorted(areas)) if areas else True
+            for p in self.db.scalars(select(PlanoDeAcao).where(
+                PlanoDeAcao.responsavel_id == u.id, PlanoDeAcao.arquivado_em.is_(None), fora
+            ).order_by(PlanoDeAcao.codigo)):
+                atribuicoes.append(dict(usuario=u, papel="Responsável pelo plano", plano=p, acao=None))
+            for a in self.db.scalars(select(Acao).join(PlanoDeAcao, Acao.plano_id == PlanoDeAcao.id).where(
+                Acao.responsavel_id == u.id, Acao.status.not_in(STATUS_ACAO_DESCARTADOS), PlanoDeAcao.arquivado_em.is_(None), fora
+            ).order_by(PlanoDeAcao.codigo, Acao.id)):
+                papel = "Responsável por sub-item" if a.acao_pai_id else "Responsável por ação"
+                atribuicoes.append(dict(usuario=u, papel=papel, plano=a.plano, acao=a))
+        return dict(sem_area=sem_area, atribuicoes=atribuicoes)
+
     def _commit(self) -> None:
         try:
             self.db.commit()
@@ -121,8 +168,10 @@ class UsuariosAdminService:
             raise RegraInvalida("Informe a senha inicial.")
         usuario = Usuario(
             nome=dados.nome, email=dados.email, senha_hash=hash_senha(dados.senha), perfil_id=dados.perfil_id,
-            area_id=dados.area_id, setor_id=dados.setor_id, ativo=dados.ativo, avatar_url=dados.avatar_url,
+            area_id=dados.area_id, setor_id=dados.setor_id, ativo=dados.ativo,
+            avatar_url=dados.avatar_url if dados.alterar_avatar else None,
         )
+        self._aplicar_areas(usuario, dados)
         self.db.add(usuario)
         self._commit()
         self.db.refresh(usuario)
@@ -136,7 +185,10 @@ class UsuariosAdminService:
         revogar = (usuario.ativo and not dados.ativo) or usuario.perfil_id != dados.perfil_id or bool(dados.senha)
         usuario.nome, usuario.email, usuario.perfil_id = dados.nome, dados.email, dados.perfil_id
         usuario.area_id, usuario.setor_id = dados.area_id, dados.setor_id
-        usuario.ativo, usuario.avatar_url = dados.ativo, dados.avatar_url
+        usuario.ativo = dados.ativo
+        if dados.alterar_avatar:
+            usuario.avatar_url = dados.avatar_url
+        self._aplicar_areas(usuario, dados)
         if dados.senha:
             usuario.senha_hash = hash_senha(dados.senha)
         if revogar:

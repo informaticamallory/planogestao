@@ -21,7 +21,9 @@ import { EmConstrucaoPage } from "../pages/EmConstrucaoPage";
 import { EquipeDetalhePage } from "../pages/equipes/EquipeDetalhePage";
 import { EquipeFormPage } from "../pages/equipes/EquipeFormPage";
 import { EquipesPage } from "../pages/equipes/EquipesPage";
+import { AuditoriaPontuacaoPage } from "../pages/gamificacao/AuditoriaPontuacaoPage";
 import { GamificacaoPage } from "../pages/gamificacao/GamificacaoPage";
+import { PeriodosApuracaoPage } from "../pages/gamificacao/PeriodosApuracaoPage";
 import { LoginPage } from "../pages/LoginPage";
 import { NaoEncontradaPage } from "../pages/NaoEncontradaPage";
 import { EditarPlanoPage } from "../pages/planos/EditarPlanoPage";
@@ -68,6 +70,8 @@ const PAGINAS: Record<string, ReactNode> = {
   "/relatorios": <RelatoriosPage />,
   "/notificacoes": <NotificacoesPage />,
   "/gamificacao": <GamificacaoPage />,
+  "/gamificacao/periodos": <PeriodosApuracaoPage />,
+  "/gamificacao/auditoria": <AuditoriaPontuacaoPage />,
   "/equipes": <EquipesPage />,
   "/equipes/nova": <EquipeFormPage />,
   "/equipes/:id": <EquipeDetalhePage />,

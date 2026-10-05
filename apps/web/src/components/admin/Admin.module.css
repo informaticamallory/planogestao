@@ -79,6 +79,24 @@
   color: var(--cor-sucesso-texto);
 }
 
+/* Pendências de acesso por área (Usuários): recolhidas por padrão. */
+.pendencias {
+  padding: var(--espaco-2) var(--espaco-3);
+  border-radius: var(--raio-2);
+  background: var(--cor-aviso-fundo, color-mix(in oklab, var(--warning) 12%, transparent));
+  font-size: var(--fonte-sm);
+}
+
+.pendencias summary {
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.pendencias ul {
+  margin: var(--espaco-1) 0 var(--espaco-2);
+  padding-left: var(--espaco-4);
+}
+
 /* ---- formulário ---- */
 .form {
   display: grid;

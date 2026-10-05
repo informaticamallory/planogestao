@@ -11,7 +11,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel
-from sqlalchemy import Select, or_, select
+from sqlalchemy import Select, and_, or_, select
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
@@ -21,7 +21,7 @@ from app.models import Acao, PlanoDeAcao, Usuario
 from app.models.enums import StatusAcao
 from app.schemas.comum import Opcao
 from app.schemas.dashboard import ReferenciaPlano
-from app.services.escopo import filtro_planos_visiveis
+from app.services.escopo import filtro_areas_autorizadas, filtro_planos_visiveis
 from app.services.regras import SituacaoPrazo, situacao_prazo, situacao_prazo_sql
 
 router = APIRouter(prefix="/calendario", tags=["calendario"])
@@ -76,8 +76,9 @@ def _consulta(usuario: Usuario, hoje: date, inicio: date, fim: date, f: Filtros)
         .join(PlanoDeAcao, Acao.plano_id == PlanoDeAcao.id)
         .join(Usuario, Acao.responsavel_id == Usuario.id)
         .where(
-            # As próprias subações aparecem mesmo sem acesso ao plano (a pessoa só abre a subação).
-            or_(filtro_planos_visiveis(usuario), Acao.responsavel_id == usuario.id),
+            # As próprias subações aparecem mesmo sem acesso ao plano (a pessoa só abre a subação),
+            # mas nunca fora das áreas autorizadas.
+            or_(filtro_planos_visiveis(usuario), and_(Acao.responsavel_id == usuario.id, filtro_areas_autorizadas(usuario))),
             Acao.prazo.between(inicio, fim),
             situacao_prazo_sql(Acao.status, Acao.prazo, hoje).is_not(None),
         )

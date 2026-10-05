@@ -23,7 +23,7 @@ from app.models.enums import (
 )
 from app.services.eventos import Evento, TipoEvento, publicar
 from app.services.historico import registrar_historico_plano
-from app.services.pontuacao import creditar_conclusao_plano
+from app.services.pontuacao import creditar_conclusao_plano, reverter_por_reabertura
 
 MOTIVOS = {
     StatusPlano.NAO_INICIADO: "nenhuma ação iniciada",
@@ -61,8 +61,10 @@ def recalcular_status(db: Session, plano: PlanoDeAcao, autor_id: int | None = No
             _avisar_conclusao(db, plano, autor_id)
             creditar_conclusao_plano(db, plano)
     elif anterior == StatusPlano.CONCLUIDO:
-        # A data da conclusão anterior continua no histórico.
+        # A data da conclusão anterior continua no histórico. Os pontos do gestor são revertidos
+        # (ou mantidos, se pertencem a um período de apuração já encerrado).
         plano.concluido_em = None
+        reverter_por_reabertura(db, ReferenciaNotificacao.PLANO, plano.id, f"Plano {plano.codigo}", autor_id, motivo)
     return True
 
 

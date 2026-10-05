@@ -9,6 +9,6 @@ export type { FiltrosCalendario } from "./recursos/calendario";
 export type { DimensaoPlanos, FiltrosIndicadores } from "./recursos/indicadores";
 export type { ConsultaRelatorioAcoes, ConsultaRelatorioPlanos } from "./recursos/relatorios";
 export type { ConsultaNotificacoes } from "./recursos/notificacoes";
-export type { FiltrosGamificacao } from "./recursos/gamificacao";
+export type { FiltrosAuditoria, FiltrosGamificacao } from "./recursos/gamificacao";
 export type { ConsultaEquipes, PeriodoEquipe } from "./recursos/equipes";
 export type { ConsultaUsuariosAdmin } from "./recursos/administracao";
