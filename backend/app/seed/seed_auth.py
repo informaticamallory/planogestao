@@ -26,13 +26,16 @@ PERFIS: dict[str, tuple[str, set[str]]] = {
         _BASE | {"planos:criar", "planos:editar", "acoes:ver_proprias", "acoes:aprovar_prazo",
                  "equipes:ver", "equipes:gerenciar", "relatorios:ver", "gamificacao:ver", "cadastros:gerenciar"},
     ),
-    "Supervisor": (
+    "Colaborador": (
         "Acompanha a área e aprova solicitações de prazo",
         _BASE | {"acoes:ver_proprias", "acoes:aprovar_prazo", "equipes:ver", "relatorios:ver", "gamificacao:ver"},
     ),
     "Responsável": ("Executa as ações atribuídas", _BASE | {"acoes:ver_proprias", "gamificacao:ver"}),
     "Consulta": ("Somente leitura", _BASE | {"relatorios:ver"}),
 }
+
+# Perfis renomeados: nome antigo → atual (mesmo registro, mesmo ID).
+NOMES_ANTIGOS: dict[str, str] = {"Supervisor": "Colaborador"}
 
 AREAS: dict[str, list[str]] = {
     "Produção": ["Usinagem", "Montagem", "Pintura"],
@@ -45,7 +48,7 @@ AREAS: dict[str, list[str]] = {
 USUARIOS: list[tuple[str, str, str, str | None, str | None]] = [
     ("Administrador do Sistema", "admin@planogestao.com.br", "Administrador", None, None),
     ("João Silva", "joao.silva@planogestao.com.br", "Gestor", "Produção", "Usinagem"),
-    ("Maria Santos", "maria.santos@planogestao.com.br", "Supervisor", "Qualidade", "Controle de Qualidade"),
+    ("Maria Santos", "maria.santos@planogestao.com.br", "Colaborador", "Qualidade", "Controle de Qualidade"),
     ("Carlos Lima", "carlos.lima@planogestao.com.br", "Responsável", "Produção", "Montagem"),
     ("Fernanda Rocha", "fernanda.rocha@planogestao.com.br", "Responsável", "Manutenção", "Manutenção Mecânica"),
     ("Paulo Mendes", "paulo.mendes@planogestao.com.br", "Consulta", "Logística", "Expedição"),
@@ -67,6 +70,13 @@ def criar_permissoes_e_perfis(db: Session) -> dict[str, Perfil]:
         p.codigo: _obter_ou_criar(db, Permissao, {"codigo": p.codigo}, modulo=p.modulo, acao=p.acao, descricao=p.descricao)
         for p in PERMISSOES
     }
+
+    # Banco anterior à migração 0022 (ex.: backup restaurado): renomeia em vez de criar outro perfil.
+    for antigo, atual in NOMES_ANTIGOS.items():
+        perfil_antigo = db.scalar(select(Perfil).filter_by(nome=antigo))
+        if perfil_antigo is not None and db.scalar(select(Perfil).filter_by(nome=atual)) is None:
+            perfil_antigo.nome = atual
+            db.flush()
 
     perfis: dict[str, Perfil] = {}
     for nome, (descricao, codigos) in PERFIS.items():
