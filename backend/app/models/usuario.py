@@ -3,6 +3,7 @@ from datetime import datetime
 from sqlalchemy import Boolean, DateTime, ForeignKey, String, true
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from app.core.permissoes import CODIGOS_CATALOGO, PERFIL_ADMINISTRADOR
 from app.models.base import Base, BigIntPK, TimestampMixin
 from app.models.estrutura import Area, Setor
 from app.models.perfil import Perfil
@@ -33,4 +34,9 @@ class Usuario(TimestampMixin, Base):
 
     @property
     def codigos_permissao(self) -> set[str]:
-        return {p.codigo for p in self.perfil.permissoes}
+        codigos = {p.codigo for p in self.perfil.permissoes}
+        # O Administrador é fixo e tem sempre acesso total: uma permissão nova do catálogo vale para ele
+        # mesmo que a linha em perfil_permissao ainda não exista (migração atrasada ou banco antigo).
+        if self.perfil.nome == PERFIL_ADMINISTRADOR:
+            codigos |= CODIGOS_CATALOGO
+        return codigos

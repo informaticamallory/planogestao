@@ -66,5 +66,6 @@ PERMISSOES: list[DefPermissao] = [
     DefPermissao("admin:configuracoes", MODULO_ADMINISTRACAO, "outra", "Gerenciar configurações"),
 ]
 
+CODIGOS_CATALOGO = frozenset(p.codigo for p in PERMISSOES)
 CODIGOS_ADMIN = frozenset(p.codigo for p in PERMISSOES if p.modulo == MODULO_ADMINISTRACAO)
 CODIGOS_ATRIBUIVEIS = frozenset(p.codigo for p in PERMISSOES if p.modulo != MODULO_ADMINISTRACAO)
