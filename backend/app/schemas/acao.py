@@ -23,6 +23,7 @@ class PlanoDaAcao(BaseModel):
     nome: str
     status: StatusPlano
     data_fim_estimado: date
+    arquivado: bool = Field(default=False, description="Plano arquivado: a ação fica somente leitura e sem situação de prazo.")
 
 
 class SubacaoItem(RefAcao):
@@ -72,6 +73,9 @@ class PermissoesAcao(BaseModel):
     adicionar_subacao: bool
     reabrir: bool = Field(description="Gestor: voltar uma ação concluída para em andamento (com justificativa).")
     transicoes: list[StatusAcao] = Field(description="Status para os quais o usuário pode mudar a ação agora.")
+    arquivar: bool = Field(default=False, description="acoes:arquivar + gestor do item, com o plano ativo.")
+    desarquivar: bool = False
+    excluir: bool = Field(default=False, description="acoes:excluir + gestor do item, com o plano ativo.")
 
 
 class AcaoDetalhe(BaseModel):
@@ -112,7 +116,9 @@ class AcaoDetalhe(BaseModel):
     revisar_prerequisito: bool = Field(
         description="Já iniciada, mas um pré-requisito voltou a ficar em aberto (ex.: reaberto): revisar."
     )
-    prazo_tag: TagPrazo | None = Field(description="Tag do prazo de conclusão; null para concluída/descartada.")
+    prazo_tag: TagPrazo | None = Field(description="Tag do prazo de conclusão; null para concluída/descartada/arquivada.")
+    arquivada: bool = Field(default=False, description="Arquivada individualmente (ou junto com o item acima).")
+    arquivada_em: datetime | None = None
     subacoes: list[SubacaoItem]
     subacoes_pendentes: int = Field(description="Subações diretas em aberto (impedem a conclusão desta ação).")
     total_descendentes: int = Field(description="Subações abaixo, em todos os níveis.")

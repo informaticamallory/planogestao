@@ -9,7 +9,7 @@ import type {
 
 import { nomeDoArquivo, type ArquivoBaixado } from "../arquivos";
 import type { HttpClient } from "../client";
-import { ApiError, exigirDados } from "../errors";
+import { ApiError, exigirDados, exigirSucesso } from "../errors";
 
 export type { ArquivoBaixado } from "../arquivos";
 
@@ -68,6 +68,13 @@ export function criarPlanos(http: HttpClient) {
 
     arquivar: async (planoId: number) =>
       exigirDados(await http.POST("/planos/{plano_id}/arquivar", { params: { path: { plano_id: planoId } } })),
+
+    /** Exclusão lógica do plano com ações e sub-itens (planos:excluir). */
+    excluir: async (planoId: number) => exigirSucesso(await http.DELETE("/planos/{plano_id}", { params: { path: { plano_id: planoId } } })),
+
+    /** Confirma a conclusão de um plano apto (objetivo atingido). */
+    concluir: async (planoId: number, observacao?: string) =>
+      exigirDados(await http.POST("/planos/{plano_id}/concluir", { params: { path: { plano_id: planoId } }, body: { observacao: observacao || null } })),
 
     desarquivar: async (planoId: number) =>
       exigirDados(await http.POST("/planos/{plano_id}/desarquivar", { params: { path: { plano_id: planoId } } })),

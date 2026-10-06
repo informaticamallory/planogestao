@@ -16,6 +16,7 @@ from app.schemas.plano import (
     FormatoExportacao,
     IndicadoresPlano,
     OpcoesPlanos,
+    OperacoesAcao,
     PermissoesPlano,
     PlanoDetalhe,
     PlanoListaItem,
@@ -26,7 +27,8 @@ from app.services import dependencias, exportacao
 from app.services.escopo import filtro_planos_visiveis
 from app.services.exportacao import ArquivoGerado, Coluna
 from app.services.indicadores import IndicadoresAcoes, calcular_indicadores
-from app.services.permissoes_plano import pode_arquivar, pode_editar
+from app.services.ciclo_plano import apto_a_conclusao
+from app.services.permissoes_plano import pode_arquivar, pode_concluir, pode_editar, pode_excluir
 from app.services.regras import (
     CategoriaAcao,
     acao_vencendo,
@@ -75,8 +77,9 @@ class PlanoService:
             codigo=r.codigo,
             nome=r.nome,
             status=r.status,
-            prazo_tag=tag_prazo_plano(r.status, r.data_fim_estimado, self.hoje),
-            atrasado_para_iniciar=plano_atrasado_para_iniciar(r.status, r.data_inicio_estimado, self.hoje),
+            # Arquivado: a listagem mostra "Arquivado", não a situação do prazo.
+            prazo_tag=None if r.arquivado_em else tag_prazo_plano(r.status, r.data_fim_estimado, self.hoje),
+            atrasado_para_iniciar=r.arquivado_em is None and plano_atrasado_para_iniciar(r.status, r.data_inicio_estimado, self.hoje),
             rascunho=r.rascunho,
             prioridade=r.prioridade,
             data_inicio_estimado=r.data_inicio_estimado,
@@ -188,16 +191,18 @@ class PlanoService:
         return calcular_indicadores(self.repo.dados_indicadores(plano_id), self.hoje)
 
     def indicadores(self, plano_id: int) -> IndicadoresPlano:
-        self._obter(plano_id)
+        plano = self._obter(plano_id)
         i = self._indicadores(plano_id)
+        # Plano arquivado: sem situação operacional de prazo (status e prazos originais continuam).
+        arquivado = plano.arquivado_em is not None
         return IndicadoresPlano(
             total_acoes=i.total,
             pendentes=i.pendentes,
             em_andamento=i.em_andamento,
             concluidas=i.concluidas,
-            atrasadas=i.atrasadas,
-            a_vencer=i.a_vencer,
-            no_prazo=i.no_prazo,
+            atrasadas=0 if arquivado else i.atrasadas,
+            a_vencer=0 if arquivado else i.a_vencer,
+            no_prazo=0 if arquivado else i.no_prazo,
             descartadas=i.descartadas,
             progresso=i.progresso,
             concluidas_no_prazo=i.concluidas_no_prazo,
@@ -221,8 +226,9 @@ class PlanoService:
             codigo=plano.codigo,
             nome=plano.nome,
             status=plano.status,
-            prazo_tag=tag_prazo_plano(plano.status, plano.data_fim_estimado, self.hoje),
-            atrasado_para_iniciar=plano_atrasado_para_iniciar(plano.status, plano.data_inicio_estimado, self.hoje),
+            prazo_tag=None if plano.arquivado_em else tag_prazo_plano(plano.status, plano.data_fim_estimado, self.hoje),
+            atrasado_para_iniciar=plano.arquivado_em is None
+            and plano_atrasado_para_iniciar(plano.status, plano.data_inicio_estimado, self.hoje),
             rascunho=plano.rascunho,
             prioridade=plano.prioridade,
             data_inicio_estimado=plano.data_inicio_estimado,
@@ -246,6 +252,7 @@ class PlanoService:
     def detalhe(self, plano_id: int) -> PlanoDetalhe:
         plano = self._obter(plano_id)
         editavel = pode_editar(self.usuario, plano)
+        apto = plano.arquivado_em is None and not plano.rascunho and apto_a_conclusao(plano)
         return PlanoDetalhe(
             **self._montar_resumo(plano).model_dump(),
             descricao=plano.descricao,
@@ -260,12 +267,25 @@ class PlanoService:
                 arquivar=pode_arquivar(self.usuario),
                 adicionar_acoes=editavel,
                 enviar_anexos=editavel,
+                excluir=pode_excluir(self.usuario, plano),
+                concluir=apto and pode_concluir(self.usuario, plano),
             ),
+            apto_conclusao=apto,
         )
 
     def acoes(self, plano_id: int) -> list[AcaoDoPlano]:
-        """Ações e subações (acao_pai_id), na ordem da numeração."""
-        self._obter(plano_id)
+        """Ações e subações (acao_pai_id), na ordem da numeração. Arquivadas vêm marcadas (a tela decide mostrar)."""
+        from app.services.acao_service import AcaoService
+
+        plano = self._obter(plano_id)
+        papeis = AcaoService(self.db, self.usuario, self.hoje)
+        plano_arquivado = plano.arquivado_em is not None
+
+        def operacoes(a) -> OperacoesAcao:
+            fora = plano_arquivado or a.arquivado_em is not None
+            pode_abrir = papeis._eh_gestor(a) or papeis._eh_responsavel(a) or "planos:editar" in self.usuario.codigos_permissao
+            return OperacoesAcao(editar=not fora and pode_abrir, **papeis.operacoes(a))
+
         return [
             AcaoDoPlano(
                 id=a.id,
@@ -283,7 +303,7 @@ class PlanoService:
                 prioridade=a.prioridade,
                 status=a.status,
                 categoria=categoria_acao(a.status, a.prazo, self.hoje),
-                vencendo=acao_vencendo(a.status, a.prazo, self.hoje),
+                vencendo=not (plano_arquivado or a.arquivado_em) and acao_vencendo(a.status, a.prazo, self.hoje),
                 progresso=a.progresso,
                 observacao=a.observacao,
                 aceita_em=como_utc(a.aceita_em) if a.aceita_em else None,
@@ -292,8 +312,11 @@ class PlanoService:
                 criado_em=como_utc(a.criado_em),
                 depende_de=[dependencias.ref(p) for p in a.depende_de],
                 aguardando=[dependencias.ref(p) for p in dependencias.pendentes(a)],
-                prazo_tag=tag_prazo_acao(a.status, a.prazo, self.hoje),
+                # Plano ou ação arquivados: sem "Em atraso/A vencer/No prazo" (o prazo original continua).
+                prazo_tag=None if (plano_arquivado or a.arquivado_em) else tag_prazo_acao(a.status, a.prazo, self.hoje),
                 revisar_prerequisito=dependencias.revisar_prerequisito(a),
+                arquivada=a.arquivado_em is not None,
+                operacoes=operacoes(a),
             )
             for a, nome in self.repo.acoes_detalhadas(plano_id)
         ]

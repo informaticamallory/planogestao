@@ -72,7 +72,7 @@ class RelatorioAcoesService:
             select(Acao, PlanoDeAcao.codigo, PlanoDeAcao.nome, Usuario.nome)
             .join(PlanoDeAcao, Acao.plano_id == PlanoDeAcao.id)
             .join(Usuario, Acao.responsavel_id == Usuario.id)
-            .where(filtro_planos_visiveis(self.usuario))
+            .where(filtro_planos_visiveis(self.usuario), Acao.arquivado_em.is_(None))
         )
         if f.responsavel_id is not None:
             stmt = stmt.where(Acao.responsavel_id == f.responsavel_id)

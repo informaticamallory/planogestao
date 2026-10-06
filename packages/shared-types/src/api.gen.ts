@@ -72,6 +72,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/auth/primeiro-acesso/verificar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Verificar Convite
+         * @description Situação do link de convite (para a página de primeiro acesso mostrar a mensagem certa).
+         */
+        post: operations["verificar_convite_auth_primeiro_acesso_verificar_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/primeiro-acesso": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Primeiro Acesso
+         * @description Define a senha, ativa a conta (link de uso único) e já devolve a sessão, pelo mesmo mecanismo do login.
+         */
+        post: operations["primeiro_acesso_auth_primeiro_acesso_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/dashboard/resumo": {
         parameters: {
             query?: never;
@@ -230,7 +270,12 @@ export interface paths {
          */
         put: operations["atualizar_planos__plano_id__put"];
         post?: never;
-        delete?: never;
+        /**
+         * Excluir
+         * @description Exclusão lógica (planos:excluir + poder editar o plano): o plano, as ações e os sub-itens saem de todas as
+         *     consultas, na mesma transação. Histórico e registros ficam para auditoria (autor e data gravados).
+         */
+        delete: operations["excluir_planos__plano_id__delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -336,6 +381,26 @@ export interface paths {
         put?: never;
         /** Desarquivar */
         post: operations["desarquivar_planos__plano_id__desarquivar_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/planos/{plano_id}/concluir": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Concluir
+         * @description Confirma a conclusão de um plano apto (objetivo atingido). Só aí o gestor pontua.
+         */
+        post: operations["concluir_planos__plano_id__concluir_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -565,7 +630,11 @@ export interface paths {
          */
         put: operations["atualizar_acoes__acao_id__put"];
         post?: never;
-        delete?: never;
+        /**
+         * Excluir
+         * @description Exclusão lógica da ação e de todos os sub-itens (acoes:excluir + gestor do item). O histórico fica.
+         */
+        delete: operations["excluir_acoes__acao_id__delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -674,6 +743,47 @@ export interface paths {
         put?: never;
         /** Responder Solicitacao */
         post: operations["responder_solicitacao_acoes__acao_id__solicitacoes__solicitacao_id__responder_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/acoes/{acao_id}/arquivar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Arquivar
+         * @description Arquiva a ação e os sub-itens abaixo (acoes:arquivar + gestor do item). Sai das listas operacionais e
+         *     do cálculo do plano, com status e prazos originais preservados. Não conclui o plano nem gera pontos.
+         */
+        post: operations["arquivar_acoes__acao_id__arquivar_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/acoes/{acao_id}/desarquivar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Desarquivar
+         * @description Desarquiva a ação e os sub-itens arquivados junto com ela (os arquivados à parte continuam arquivados).
+         */
+        post: operations["desarquivar_acoes__acao_id__desarquivar_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1833,6 +1943,87 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/colaboradores/opcoes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Opcoes */
+        get: operations["opcoes_colaboradores_opcoes_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/colaboradores/convites": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Listar
+         * @description Convites que você criou (o Administrador vê todos), o mais recente de cada pessoa.
+         */
+        get: operations["listar_colaboradores_convites_get"];
+        put?: never;
+        /**
+         * Convidar
+         * @description Cadastra a conta (perfil Colaborador, "Convite pendente") e envia o e-mail com o link de primeiro acesso.
+         */
+        post: operations["convidar_colaboradores_convites_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/colaboradores/convites/{convite_id}/reenviar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reenviar
+         * @description Novo link (48 h) e novo e-mail; o link anterior deixa de valer. Serve também para tentar de novo após falha.
+         */
+        post: operations["reenviar_colaboradores_convites__convite_id__reenviar_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/colaboradores/convites/{convite_id}/cancelar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cancelar
+         * @description Invalida o link. A conta não é excluída (nem uma conta já ativada é afetada).
+         */
+        post: operations["cancelar_colaboradores_convites__convite_id__cancelar_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/perfis": {
         parameters: {
             query?: never;
@@ -2342,8 +2533,16 @@ export interface components {
              * @description Já iniciada, mas um pré-requisito voltou a ficar em aberto (ex.: reaberto): revisar.
              */
             revisar_prerequisito: boolean;
-            /** @description Tag do prazo de conclusão; null para concluída/descartada. */
+            /** @description Tag do prazo de conclusão; null para concluída/descartada/arquivada. */
             prazo_tag: components["schemas"]["TagPrazo"] | null;
+            /**
+             * Arquivada
+             * @description Arquivada individualmente (ou junto com o item acima).
+             * @default false
+             */
+            arquivada: boolean;
+            /** Arquivada Em */
+            arquivada_em?: string | null;
             /** Subacoes */
             subacoes: components["schemas"]["SubacaoItem"][];
             /**
@@ -2442,6 +2641,13 @@ export interface components {
              * @description Pré-requisitos ainda não concluídos (para subações, os da ação principal).
              */
             aguardando: components["schemas"]["RefAcao"][];
+            /**
+             * Arquivada
+             * @description Arquivada individualmente: fora das listas e do cálculo do plano.
+             * @default false
+             */
+            arquivada: boolean;
+            operacoes: components["schemas"]["OperacoesAcao"];
         };
         /** AcaoHistoricoItem */
         AcaoHistoricoItem: {
@@ -2527,6 +2733,15 @@ export interface components {
              * Format: date-time
              */
             criado_em: string;
+        };
+        /** AreaConvite */
+        AreaConvite: {
+            /** Id */
+            id: number;
+            /** Nome */
+            nome: string;
+            /** Setores */
+            setores: components["schemas"]["SetorConvite"][];
         };
         /** AreaItem */
         AreaItem: {
@@ -2715,6 +2930,14 @@ export interface components {
              */
             tendencia: "subiu" | "caiu" | "estavel" | "novo";
         };
+        /** ConcluirPlano */
+        ConcluirPlano: {
+            /**
+             * Observacao
+             * @description Opcional: como o objetivo foi atingido.
+             */
+            observacao?: string | null;
+        };
         /** ConfigEmailTela */
         ConfigEmailTela: {
             remetente: components["schemas"]["Remetente"];
@@ -2778,6 +3001,92 @@ export interface components {
             status: string;
             /** Total */
             total: number;
+        };
+        /** ConviteItem */
+        ConviteItem: {
+            /** Id */
+            id: number;
+            /** Usuario Id */
+            usuario_id: number;
+            /** Nome */
+            nome: string;
+            /** Email */
+            email: string;
+            /** Area */
+            area: string | null;
+            /** Setor */
+            setor: string | null;
+            /** Todas Areas */
+            todas_areas: boolean;
+            /** Areas */
+            areas: string[];
+            /**
+             * Situacao
+             * @enum {string}
+             */
+            situacao: "pendente" | "ativado" | "cancelado" | "expirado";
+            /**
+             * Envio
+             * @description pendente | enviando | enviado | falha | desabilitado | modelo_inativo | ignorado | sem_endereco
+             */
+            envio: string | null;
+            /** Erro Envio */
+            erro_envio: string | null;
+            /** Enviado Em */
+            enviado_em: string | null;
+            /**
+             * Criado Em
+             * Format: date-time
+             */
+            criado_em: string;
+            /**
+             * Expira Em
+             * Format: date-time
+             */
+            expira_em: string;
+            /** Ativado Em */
+            ativado_em: string | null;
+            /** Criado Por */
+            criado_por: string;
+            /** Pode Reenviar */
+            pode_reenviar: boolean;
+            /** Pode Cancelar */
+            pode_cancelar: boolean;
+        };
+        /** ConviteNovo */
+        ConviteNovo: {
+            /** Nome */
+            nome: string;
+            /** Email */
+            email: string;
+            /**
+             * Area Id
+             * @description Área de lotação.
+             */
+            area_id: number;
+            /** Setor Id */
+            setor_id?: number | null;
+            /** Areas Autorizadas */
+            areas_autorizadas?: number[];
+            /**
+             * Todas Areas
+             * @default false
+             */
+            todas_areas: boolean;
+        };
+        /** ConviteVerificado */
+        ConviteVerificado: {
+            /**
+             * Situacao
+             * @enum {string}
+             */
+            situacao: "valido" | "expirado" | "utilizado" | "cancelado" | "substituido" | "invalido";
+            /** Mensagem */
+            mensagem: string;
+            /** Nome */
+            nome?: string | null;
+            /** Email */
+            email?: string | null;
         };
         /** CumprimentoPrazo */
         CumprimentoPrazo: {
@@ -3632,6 +3941,21 @@ export interface components {
             /** Area Id */
             area_id: number;
         };
+        /** OpcoesConvite */
+        OpcoesConvite: {
+            /**
+             * Areas
+             * @description Só as áreas que quem convida acessa.
+             */
+            areas: components["schemas"]["AreaConvite"][];
+            /** Pode Todas Areas */
+            pode_todas_areas: boolean;
+            /**
+             * Perfil
+             * @description Sempre "Colaborador".
+             */
+            perfil: string;
+        };
         /** OpcoesGamificacao */
         OpcoesGamificacao: {
             /** Areas */
@@ -3674,6 +3998,20 @@ export interface components {
                 number,
                 string
             ][];
+        };
+        /**
+         * OperacoesAcao
+         * @description Botões da linha/cartão da ação (o backend revalida em cada endpoint).
+         */
+        OperacoesAcao: {
+            /** Editar */
+            editar: boolean;
+            /** Arquivar */
+            arquivar: boolean;
+            /** Desarquivar */
+            desarquivar: boolean;
+            /** Excluir */
+            excluir: boolean;
         };
         /**
          * OrdenacaoPlano
@@ -3979,6 +4317,23 @@ export interface components {
              * @description Status para os quais o usuário pode mudar a ação agora.
              */
             transicoes: components["schemas"]["StatusAcao"][];
+            /**
+             * Arquivar
+             * @description acoes:arquivar + gestor do item, com o plano ativo.
+             * @default false
+             */
+            arquivar: boolean;
+            /**
+             * Desarquivar
+             * @default false
+             */
+            desarquivar: boolean;
+            /**
+             * Excluir
+             * @description acoes:excluir + gestor do item, com o plano ativo.
+             * @default false
+             */
+            excluir: boolean;
         };
         /**
          * PermissoesPlano
@@ -3993,6 +4348,18 @@ export interface components {
             adicionar_acoes: boolean;
             /** Enviar Anexos */
             enviar_anexos: boolean;
+            /**
+             * Excluir
+             * @description planos:excluir + poder editar o plano.
+             * @default false
+             */
+            excluir: boolean;
+            /**
+             * Concluir
+             * @description Confirmar a conclusão de um plano apto (objetivo atingido).
+             * @default false
+             */
+            concluir: boolean;
         };
         /** PlanoAtualizado */
         PlanoAtualizado: {
@@ -4126,6 +4493,12 @@ export interface components {
              * Format: date
              */
             data_fim_estimado: string;
+            /**
+             * Arquivado
+             * @description Plano arquivado: a ação fica somente leitura e sem situação de prazo.
+             * @default false
+             */
+            arquivado: boolean;
         };
         /** PlanoDetalhe */
         PlanoDetalhe: {
@@ -4202,6 +4575,12 @@ export interface components {
              */
             atualizado_em: string;
             permissoes: components["schemas"]["PermissoesPlano"];
+            /**
+             * Apto Conclusao
+             * @description Ações válidas todas concluídas, mas o plano espera a confirmação (houve arquivamento/exclusão).
+             * @default false
+             */
+            apto_conclusao: boolean;
         };
         /** PlanoListaItem */
         PlanoListaItem: {
@@ -4488,6 +4867,18 @@ export interface components {
             html: string;
             /** Texto */
             texto: string;
+        };
+        /** PrimeiroAcesso */
+        PrimeiroAcesso: {
+            /** Token */
+            token: string;
+            /**
+             * Senha
+             * @description Mín. 8 caracteres, com letras e números.
+             */
+            senha: string;
+            /** Confirmacao */
+            confirmacao: string;
         };
         /**
          * Prioridade
@@ -4939,6 +5330,13 @@ export interface components {
              */
             widgets: components["schemas"]["WidgetLayout"][];
         };
+        /** SetorConvite */
+        SetorConvite: {
+            /** Id */
+            id: number;
+            /** Nome */
+            nome: string;
+        };
         /** SetorItem */
         SetorItem: {
             /** Id */
@@ -5184,6 +5582,11 @@ export interface components {
              */
             origens: components["schemas"]["ReferenciaCadastro"][];
         };
+        /** TokenConvite */
+        TokenConvite: {
+            /** Token */
+            token: string;
+        };
         /** TokenResponse */
         TokenResponse: {
             /** Access Token */
@@ -5273,6 +5676,12 @@ export interface components {
              * @description Pendência: não é Administrador e não tem área autorizada.
              */
             sem_areas_autorizadas: boolean;
+            /**
+             * Convite Pendente
+             * @description Convidado (página Colaboradores) e ainda sem primeiro acesso.
+             * @default false
+             */
+            convite_pendente: boolean;
         };
         /** UsuarioAtualizar */
         UsuarioAtualizar: {
@@ -5583,6 +5992,75 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["UsuarioLogado"];
+                };
+            };
+        };
+    };
+    verificar_convite_auth_primeiro_acesso_verificar_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TokenConvite"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConviteVerificado"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    primeiro_acesso_auth_primeiro_acesso_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "user-agent"?: string | null;
+                "X-Client-Type"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PrimeiroAcesso"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TokenResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -5976,6 +6454,35 @@ export interface operations {
             };
         };
     };
+    excluir_planos__plano_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                plano_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     resumo_planos__plano_id__resumo_get: {
         parameters: {
             query?: never;
@@ -6179,6 +6686,41 @@ export interface operations {
             cookie?: never;
         };
         requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlanoDetalhe"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    concluir_planos__plano_id__concluir_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                plano_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConcluirPlano"];
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {
@@ -6787,6 +7329,35 @@ export interface operations {
             };
         };
     };
+    excluir_acoes__acao_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                acao_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     reabrir_acoes__acao_id__reabrir_post: {
         parameters: {
             query?: never;
@@ -6969,6 +7540,68 @@ export interface operations {
                 "application/json": components["schemas"]["ResponderSolicitacao"];
             };
         };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcaoDetalhe"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    arquivar_acoes__acao_id__arquivar_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                acao_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcaoDetalhe"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    desarquivar_acoes__acao_id__desarquivar_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                acao_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             /** @description Successful Response */
             200: {
@@ -9356,6 +9989,141 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ResultadoTeste"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    opcoes_colaboradores_opcoes_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OpcoesConvite"];
+                };
+            };
+        };
+    };
+    listar_colaboradores_convites_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConviteItem"][];
+                };
+            };
+        };
+    };
+    convidar_colaboradores_convites_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConviteNovo"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConviteItem"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reenviar_colaboradores_convites__convite_id__reenviar_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                convite_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConviteItem"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    cancelar_colaboradores_convites__convite_id__cancelar_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                convite_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConviteItem"];
                 };
             };
             /** @description Validation Error */

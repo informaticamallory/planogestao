@@ -55,6 +55,7 @@ def _base(usuario: Usuario, hoje: date):
         # Fora das áreas autorizadas a ação não aparece (o Administrador ajusta o acesso).
         filtro_areas_autorizadas(usuario),
         PlanoDeAcao.arquivado_em.is_(None),
+        Acao.arquivado_em.is_(None),
         situacao.is_not(None),
     )
     return situacao, filtro

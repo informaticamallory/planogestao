@@ -323,7 +323,11 @@ export function UsuariosPage() {
                   </td>
                   <td>{u.ultimo_login_em ? formatarDataHora(u.ultimo_login_em) : "Nunca"}</td>
                   <td>
-                    <Badge tom={u.ativo ? "sucesso" : "neutro"}>{u.ativo ? "Ativo" : "Inativo"}</Badge>
+                    {u.convite_pendente ? (
+                      <Badge tom="aviso">Convite pendente</Badge>
+                    ) : (
+                      <Badge tom={u.ativo ? "sucesso" : "neutro"}>{u.ativo ? "Ativo" : "Inativo"}</Badge>
+                    )}
                   </td>
                   <td data-acoes>
                     <div className={styles.acoesLinha}>

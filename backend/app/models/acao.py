@@ -72,6 +72,13 @@ class Acao(TimestampMixin, Base):
     # Datas reais (as estimadas são prazo_inicio/prazo): 1ª vez em andamento e conclusão.
     iniciada_em: Mapped[datetime | None] = mapped_column(DateTime)
     concluida_em: Mapped[datetime | None] = mapped_column(DateTime)
+    # Arquivada individualmente: fora das listas operacionais e do cálculo do plano, somente leitura.
+    # Sub-itens arquivados junto recebem o MESMO instante (o desarquivamento devolve exatamente esses).
+    arquivado_em: Mapped[datetime | None] = mapped_column(DateTime, index=True)
+    arquivado_por_id: Mapped[int | None] = mapped_column(BigIntPK, ForeignKey("usuarios.id"))
+    # Exclusão lógica: some de todas as consultas (filtro global em core/exclusao_logica.py); o registro fica.
+    excluido_em: Mapped[datetime | None] = mapped_column(DateTime, index=True)
+    excluido_por_id: Mapped[int | None] = mapped_column(BigIntPK, ForeignKey("usuarios.id"))
 
     plano: Mapped[PlanoDeAcao] = relationship(back_populates="acoes")
     responsavel: Mapped[Usuario] = relationship(foreign_keys=[responsavel_id])

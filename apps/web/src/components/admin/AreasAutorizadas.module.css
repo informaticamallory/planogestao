@@ -1,4 +1,4 @@
-/* Seleção múltipla de áreas autorizadas: mesma aparência do Input/Select do kit. */
+/* Seleção múltipla de áreas: o botão usa a classe .controle do Input/Select (altura, borda, fonte, padding). */
 .raiz {
   position: relative;
   width: 100%;
@@ -6,103 +6,57 @@
 
 .campo {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
-  gap: 0.25rem;
-  width: 100%;
-  min-height: var(--altura-controle);
-  padding: 0.3125rem 2rem 0.3125rem 0.5rem;
-  border: var(--borda-media) solid var(--border);
-  border-radius: var(--r-md);
-  background: var(--surface);
-  color: var(--fg);
-  font-size: var(--text-base);
+  gap: 0.5rem;
+  /* Mesma altura exata dos selects (o botão somaria a altura da linha ao padding). */
+  height: var(--altura-controle);
+  padding-top: 0;
+  padding-bottom: 0;
+  padding-right: 2.25rem;
+  text-align: left;
   cursor: pointer;
   position: relative;
-  outline: none;
-  transition: border-color 0.14s, box-shadow 0.14s;
 }
 
-.campo:hover:not(.automatico) {
-  border-color: var(--border-strong);
-}
-
-.campo:focus-visible {
-  border-color: var(--primary);
-  box-shadow: 0 0 0 3px color-mix(in oklab, var(--primary) 14%, transparent);
-}
-
-.invalido {
-  border-color: var(--danger);
-}
-
-.automatico {
+.campo:disabled {
   cursor: default;
-  background: var(--bg-2);
-  padding-right: 0.5rem;
+}
+
+/* Resumo de uma linha (como o texto de um select): sem quebra, com reticências. */
+.resumo {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.placeholder .resumo {
+  color: var(--fg-subtle);
 }
 
 .seta {
   position: absolute;
-  right: 0.625rem;
+  right: 0.75rem;
   top: 50%;
+  width: 1rem;
+  height: 1rem;
   transform: translateY(-50%);
-  color: var(--fg-subtle);
+  color: var(--fg-muted);
   pointer-events: none;
 }
 
-.vazio {
-  padding-left: 0.25rem;
-  color: var(--fg-subtle);
-}
-
-.etiqueta {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-  max-width: 100%;
-  padding: 0.125rem 0.375rem 0.125rem 0.5rem;
-  border-radius: var(--r-pill);
-  background: color-mix(in oklab, var(--primary) 12%, transparent);
-  color: var(--fg);
-  font-size: var(--fonte-sm);
-  line-height: 1.4;
-  overflow-wrap: anywhere;
-}
-
-.automatico .etiqueta {
-  padding-right: 0.5rem;
-}
-
-.remover {
-  display: inline-grid;
-  place-items: center;
-  width: 1.125rem;
-  height: 1.125rem;
-  padding: 0;
-  border: 0;
-  border-radius: 50%;
-  background: transparent;
-  color: var(--fg-muted);
-  font-size: 0.95rem;
-  line-height: 1;
-  cursor: pointer;
-}
-
-.remover:hover,
-.remover:focus-visible {
-  background: color-mix(in oklab, var(--primary) 22%, transparent);
-  color: var(--fg);
-  outline: none;
-}
-
-/* Painel inline (não sai do modal): busca + lista com rolagem. */
+/* Dropdown sobreposto (não empurra o formulário): busca + caixas de seleção com rolagem. */
 .painel {
-  margin-top: 0.25rem;
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 0.25rem);
+  left: 0;
+  right: 0;
   border: var(--borda-media) solid var(--border);
   border-radius: var(--r-md);
   background: var(--surface);
-  box-shadow: var(--sombra-2, 0 6px 18px rgb(0 0 0 / 0.08));
+  box-shadow: var(--shadow-lg, 0 10px 28px rgb(0 0 0 / 0.14));
 }
 
 .busca {
@@ -114,14 +68,16 @@
   background: transparent;
   color: var(--fg);
   font: inherit;
+  font-size: var(--text-base);
   outline: none;
 }
 
 .lista {
-  max-height: 11rem;
+  max-height: 12rem;
   margin: 0;
   padding: 0.25rem 0;
   overflow-y: auto;
+  overscroll-behavior: contain;
   list-style: none;
 }
 
@@ -129,7 +85,10 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  min-height: 2.25rem;
   padding: 0.375rem 0.75rem;
+  color: var(--fg);
+  font-size: var(--text-base);
   cursor: pointer;
 }
 
@@ -137,8 +96,18 @@
   background: var(--bg-2);
 }
 
+.lista input[type="checkbox"] {
+  width: 1rem;
+  height: 1rem;
+  flex: none;
+  accent-color: var(--primary);
+}
+
 .todas {
   border-bottom: 1px solid var(--border);
+}
+
+.todas label {
   font-weight: 600;
 }
 
@@ -156,4 +125,15 @@
 .semResultado {
   padding: 0.5rem 0.75rem;
   color: var(--fg-subtle);
+}
+
+/* Celular: alvo de toque maior e lista um pouco mais baixa (o modal vira folha inferior). */
+@media (--mobile) {
+  .lista {
+    max-height: 40vh;
+  }
+
+  .lista label {
+    min-height: 2.75rem;
+  }
 }

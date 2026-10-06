@@ -80,6 +80,9 @@ def _consulta(usuario: Usuario, hoje: date, inicio: date, fim: date, f: Filtros)
             # mas nunca fora das áreas autorizadas.
             or_(filtro_planos_visiveis(usuario), and_(Acao.responsavel_id == usuario.id, filtro_areas_autorizadas(usuario))),
             Acao.prazo.between(inicio, fim),
+            Acao.arquivado_em.is_(None),
+            # Sub-item próprio sem acesso ao plano: o plano arquivado também o tira do calendário.
+            PlanoDeAcao.arquivado_em.is_(None),
             situacao_prazo_sql(Acao.status, Acao.prazo, hoje).is_not(None),
         )
     )

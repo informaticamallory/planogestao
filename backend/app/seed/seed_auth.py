@@ -24,7 +24,8 @@ PERFIS: dict[str, tuple[str, set[str]]] = {
     "Gestor": (
         "Cria e gerencia planos de ação",
         _BASE | {"planos:criar", "planos:editar", "acoes:ver_proprias", "acoes:aprovar_prazo",
-                 "equipes:ver", "equipes:gerenciar", "relatorios:ver", "gamificacao:ver", "cadastros:gerenciar"},
+                 "equipes:ver", "equipes:gerenciar", "relatorios:ver", "gamificacao:ver", "cadastros:gerenciar",
+                 "acoes:arquivar", "acoes:excluir", "planos:excluir", "colaboradores:convidar"},
     ),
     "Colaborador": (
         "Acompanha a área e aprova solicitações de prazo",

@@ -14,7 +14,7 @@ import enum
 from dataclasses import dataclass, field
 from datetime import date
 
-from sqlalchemy import Select, and_, select
+from sqlalchemy import Select, and_, or_, select
 from sqlalchemy.orm import Session
 
 from app.models import Acao, PlanoDeAcao, Usuario
@@ -81,10 +81,12 @@ class PainelItensService:
             .join(Usuario, Acao.responsavel_id == Usuario.id)
             .where(filtro_planos_visiveis(self.usuario, incluir_arquivados=True), Acao.status.not_in(STATUS_ACAO_DESCARTADOS))
         )
+        # Arquivado = o plano arquivado OU a própria ação arquivada (o status original é preservado).
+        arquivado = or_(PlanoDeAcao.arquivado_em.is_not(None), Acao.arquivado_em.is_not(None))
         if f.arquivados == FiltroArquivados.EXCLUIR:
-            stmt = stmt.where(PlanoDeAcao.arquivado_em.is_(None))
+            stmt = stmt.where(~arquivado)
         elif f.arquivados == FiltroArquivados.SOMENTE:
-            stmt = stmt.where(PlanoDeAcao.arquivado_em.is_not(None))
+            stmt = stmt.where(arquivado)
         for coluna, valor in (
             (Acao.plano_id, f.plano_id),
             (Acao.responsavel_id, f.responsavel_id),

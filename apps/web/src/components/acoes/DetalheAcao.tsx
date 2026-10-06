@@ -93,7 +93,7 @@ export function DetalheAcao({ acaoId, compacto = false }: DetalheAcaoProps) {
           {acao.descricao}
         </Titulo>
         <div className={styles.selos}>
-          <ActionStatusBadge status={acao.status} prazoTag={acao.prazo_tag} />
+          <ActionStatusBadge status={acao.status} prazoTag={acao.prazo_tag} arquivo={acao.plano.arquivado ? "plano" : acao.arquivada ? "acao" : null} />
           <PriorityBadge prioridade={acao.prioridade} />
         </div>
         <dl className={styles.metadados}>

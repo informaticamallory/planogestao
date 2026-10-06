@@ -196,7 +196,7 @@ def previa(corpo: TextoModelo, _: UsuarioAdmin):
         assunto, texto = modelos.validar_modelo(corpo.evento, corpo.assunto, corpo.corpo)
     except modelos.ModeloInvalido as exc:
         raise _invalido(exc) from None
-    r = modelos.renderizar(assunto, texto, modelos.dados_ficticios(corpo.evento))
+    r = modelos.renderizar(assunto, texto, modelos.dados_ficticios(corpo.evento), corpo.evento)
     return Previa(assunto=r.assunto, html=r.html, texto=r.texto)
 
 

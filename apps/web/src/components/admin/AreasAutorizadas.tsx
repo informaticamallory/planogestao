@@ -1,11 +1,12 @@
 import { useEffect, useId, useRef, useState } from "react";
 
+import controles from "../ui/Input.module.css";
 import styles from "./AreasAutorizadas.module.css";
 
 export interface AreaOpcao {
   id: number;
   nome: string;
-  ativo: boolean;
+  ativo?: boolean;
 }
 
 export interface SelecaoAreas {
@@ -21,18 +22,28 @@ interface Props {
   onChange: (valor: SelecaoAreas) => void;
   /** Administrador: todas as áreas sem seleção. */
   automatico?: boolean;
+  /** Esconde "Todas as áreas" (quem convida sem ter essa abrangência). */
+  semTodas?: boolean;
   invalido?: boolean;
-  idDescricao?: string;
+}
+
+/** Resumo de uma linha, como o texto de um select: nunca quebra (o excesso vira reticências). */
+export function resumoAreas(valor: SelecaoAreas, areas: AreaOpcao[]): string {
+  if (valor.todas) return "Todas as áreas";
+  if (valor.ids.length === 0) return "Selecione...";
+  if (valor.ids.length === 1) return areas.find((a) => a.id === valor.ids[0])?.nome ?? "1 área selecionada";
+  return `${valor.ids.length} áreas selecionadas`;
 }
 
 /**
- * Seleção múltipla compacta: etiquetas dentro do campo; ao abrir, busca e lista com rolagem
- * (inline, para não ser cortada pelo modal). Área inativa só aparece se já estava autorizada.
+ * Seleção múltipla com a aparência dos selects do kit (mesma altura, borda, fonte e espaçamento).
+ * Ao abrir: busca e caixas de seleção numa lista com rolagem. Área inativa só aparece se já estava autorizada.
  */
-export function AreasAutorizadas({ id, areas, valor, onChange, automatico, invalido, idDescricao }: Props) {
+export function AreasAutorizadas({ id, areas, valor, onChange, automatico, semTodas, invalido }: Props) {
   const [aberto, setAberto] = useState(false);
   const [busca, setBusca] = useState("");
   const raiz = useRef<HTMLDivElement>(null);
+  const botao = useRef<HTMLButtonElement>(null);
   const idLista = useId();
 
   useEffect(() => {
@@ -44,50 +55,54 @@ export function AreasAutorizadas({ id, areas, valor, onChange, automatico, inval
 
   if (automatico) {
     return (
-      <div id={id} className={`${styles.campo} ${styles.automatico}`} aria-describedby={idDescricao}>
-        <span className={styles.etiqueta}>Todas as áreas — automático</span>
-      </div>
+      <button type="button" id={id} className={`${controles.controle} ${styles.campo}`} disabled aria-label="Áreas autorizadas: todas as áreas, automático">
+        <span className={styles.resumo}>Todas as áreas — automático</span>
+      </button>
     );
   }
 
   const marcadas = new Set(valor.ids);
-  const visiveis = areas.filter((a) => a.ativo || marcadas.has(a.id));
+  const visiveis = areas.filter((a) => a.ativo !== false || marcadas.has(a.id));
   const termo = busca.trim().toLocaleLowerCase("pt-BR");
   const filtradas = termo ? visiveis.filter((a) => a.nome.toLocaleLowerCase("pt-BR").includes(termo)) : visiveis;
-  const nome = (areaId: number) => areas.find((a) => a.id === areaId)?.nome ?? `Área ${areaId}`;
   const alternar = (areaId: number) =>
     onChange({ todas: false, ids: marcadas.has(areaId) ? valor.ids.filter((x) => x !== areaId) : [...valor.ids, areaId] });
+  const resumo = resumoAreas(valor, areas);
+  const fechar = () => {
+    setAberto(false);
+    botao.current?.focus();
+  };
 
   return (
-    <div ref={raiz} className={styles.raiz} onKeyDown={(e) => e.key === "Escape" && aberto && (e.stopPropagation(), setAberto(false))}>
-      <div
+    <div
+      ref={raiz}
+      className={styles.raiz}
+      onKeyDown={(e) => {
+        if (e.key === "Escape" && aberto) {
+          // Fecha só a lista, não o modal.
+          e.stopPropagation();
+          e.preventDefault();
+          fechar();
+        }
+      }}
+    >
+      <button
+        ref={botao}
+        type="button"
         id={id}
-        role="button"
-        tabIndex={0}
+        aria-haspopup="listbox"
         aria-expanded={aberto}
-        aria-controls={idLista}
+        aria-controls={aberto ? idLista : undefined}
         aria-invalid={invalido || undefined}
-        aria-describedby={idDescricao}
-        className={`${styles.campo} ${invalido ? styles.invalido : ""}`}
+        className={`${controles.controle} ${styles.campo} ${valor.todas || valor.ids.length ? "" : styles.placeholder}`}
+        title={valor.ids.length > 1 && !valor.todas ? areas.filter((a) => marcadas.has(a.id)).map((a) => a.nome).join(", ") : undefined}
         onClick={() => setAberto((a) => !a)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " " || e.key === "ArrowDown") {
-            e.preventDefault();
-            setAberto(true);
-          }
-        }}
       >
-        {valor.todas ? (
-          <Etiqueta texto="Todas as áreas" onRemover={() => onChange({ todas: false, ids: valor.ids })} />
-        ) : valor.ids.length ? (
-          valor.ids.map((x) => <Etiqueta key={x} texto={nome(x)} onRemover={() => alternar(x)} />)
-        ) : (
-          <span className={styles.vazio}>Nenhuma área — selecione</span>
-        )}
-        <span className={styles.seta} aria-hidden="true">
-          ▾
-        </span>
-      </div>
+        <span className={styles.resumo}>{resumo}</span>
+        <svg className={styles.seta} viewBox="0 0 16 16" aria-hidden="true">
+          <path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </button>
 
       {aberto && (
         <div className={styles.painel}>
@@ -101,18 +116,24 @@ export function AreasAutorizadas({ id, areas, valor, onChange, automatico, inval
             onChange={(e) => setBusca(e.target.value)}
           />
           <ul id={idLista} role="listbox" aria-multiselectable="true" aria-label="Áreas autorizadas" className={styles.lista}>
-            <li role="option" aria-selected={valor.todas} className={styles.todas}>
-              <label>
-                <input type="checkbox" checked={valor.todas} onChange={(e) => onChange({ todas: e.target.checked, ids: valor.ids })} />
-                Todas as áreas <span className={styles.dica}>(inclui as futuras)</span>
-              </label>
-            </li>
+            {!semTodas && (
+              <li role="option" aria-selected={valor.todas} className={styles.todas}>
+                <label>
+                  <input type="checkbox" checked={valor.todas} onChange={(e) => onChange({ todas: e.target.checked, ids: valor.ids })} />
+                  <span>
+                    Todas as áreas <span className={styles.dica}>(inclui as futuras)</span>
+                  </span>
+                </label>
+              </li>
+            )}
             {filtradas.map((a) => (
               <li key={a.id} role="option" aria-selected={valor.todas || marcadas.has(a.id)} aria-disabled={valor.todas || undefined}>
                 <label className={valor.todas ? styles.desabilitado : undefined}>
                   <input type="checkbox" checked={valor.todas || marcadas.has(a.id)} disabled={valor.todas} onChange={() => alternar(a.id)} />
-                  {a.nome}
-                  {!a.ativo && <span className={styles.dica}> (inativa)</span>}
+                  <span>
+                    {a.nome}
+                    {a.ativo === false && <span className={styles.dica}> (inativa)</span>}
+                  </span>
                 </label>
               </li>
             ))}
@@ -121,25 +142,5 @@ export function AreasAutorizadas({ id, areas, valor, onChange, automatico, inval
         </div>
       )}
     </div>
-  );
-}
-
-function Etiqueta({ texto, onRemover }: { texto: string; onRemover: () => void }) {
-  return (
-    <span className={styles.etiqueta}>
-      {texto}
-      <button
-        type="button"
-        className={styles.remover}
-        aria-label={`Remover ${texto}`}
-        onClick={(e) => {
-          e.stopPropagation();
-          onRemover();
-        }}
-        onKeyDown={(e) => e.stopPropagation()}
-      >
-        ×
-      </button>
-    </span>
   );
 }

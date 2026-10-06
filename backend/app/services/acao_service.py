@@ -3,7 +3,7 @@
 Toda alteração passa por aqui e grava acao_historico na mesma transação.
 """
 
-from datetime import date
+from datetime import date, timedelta
 
 from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
@@ -45,6 +45,8 @@ from app.services.pontuacao import creditar_conclusao_acao, reverter_por_reabert
 from app.services.regras import acao_vencendo, categoria_acao, tag_prazo_acao
 
 PERMISSAO_APROVAR_PRAZO = "acoes:aprovar_prazo"
+PERMISSAO_ARQUIVAR = "acoes:arquivar"
+PERMISSAO_EXCLUIR = "acoes:excluir"
 
 # Execução: transições que o responsável (e o gestor) podem fazer via PUT.
 TRANSICOES_EXECUCAO: dict[StatusAcao, set[StatusAcao]] = {
@@ -137,11 +139,14 @@ class AcaoService:
 
     def _plano_aceita_alteracoes(self, acao: Acao) -> bool:
         # Plano concluído continua aceitando mudanças (ex.: reabrir uma ação); arquivado é somente leitura.
-        return acao.plano.arquivado_em is None
+        # Ação arquivada (ou abaixo de uma arquivada) também: desarquive antes de alterar.
+        return acao.plano.arquivado_em is None and acao.arquivado_em is None
 
     def _exigir_plano_ativo(self, acao: Acao) -> None:
         if acao.plano.arquivado_em is not None:
             raise RegraAcao("O plano desta ação está arquivado (somente leitura). Desarquive-o para alterar.")
+        if acao.arquivado_em is not None:
+            raise RegraAcao("Esta ação está arquivada (somente leitura). Desarquive-a para alterar.")
 
 
     def _pendente(self, acao: Acao) -> AcaoSolicitacaoAlteracao | None:
@@ -183,7 +188,91 @@ class AcaoService:
             editar_prazo=ativo and aberta and gestor,
             reabrir=ativo and gestor and acao.status == StatusAcao.CONCLUIDA and self._erro_reabrir(acao) is None,
             transicoes=self._transicoes(acao),
+            **self.operacoes(acao),
         )
+
+    # ---- arquivar / desarquivar / excluir -------------------------------------------------
+
+    def _pode(self, acao: Acao, codigo: str) -> bool:
+        """Permissão do perfil + papel no item (gestor do plano/item ou "Editar planos"); plano ativo."""
+        codigos = self.usuario.codigos_permissao
+        return (
+            codigo in codigos
+            and (self._eh_gestor(acao) or "planos:editar" in codigos)
+            and acao.plano.arquivado_em is None
+        )
+
+    def operacoes(self, acao: Acao) -> dict[str, bool]:
+        arquivada = acao.arquivado_em is not None
+        pai_arquivado = acao.acao_pai is not None and acao.acao_pai.arquivado_em is not None
+        return dict(
+            arquivar=not arquivada and self._pode(acao, PERMISSAO_ARQUIVAR),
+            desarquivar=arquivada and not pai_arquivado and self._pode(acao, PERMISSAO_ARQUIVAR),
+            excluir=self._pode(acao, PERMISSAO_EXCLUIR),
+        )
+
+    def arquivar(self, acao_id: int, arquivar: bool) -> AcaoDetalhe:
+        """Arquiva a ação e os sub-itens abaixo (mesmo instante). Status e prazos originais ficam; ela sai das
+        listas operacionais e do cálculo do plano. Arquivar não conclui o plano nem gera pontos."""
+        acao = self._obter(acao_id, bloquear=True)
+        if acao.plano.arquivado_em is not None:
+            raise RegraAcao("O plano está arquivado (somente leitura): desarquive o plano antes.")
+        if not self._pode(acao, PERMISSAO_ARQUIVAR):
+            raise SemPermissaoAcao
+        rotulo = "o sub-item" if acao.eh_subacao else "a ação"
+        if arquivar:
+            if acao.arquivado_em is not None:
+                raise RegraAcao("Este item já está arquivado.")
+            instante = utcnow().replace(microsecond=0)  # o DATETIME do MySQL arredonda a fração
+            # O instante identifica o que foi arquivado junto: nunca igual ao de um sub-item arquivado à parte.
+            anteriores = [d.arquivado_em for d in acao.descendentes() if d.arquivado_em is not None]
+            if anteriores and instante <= max(anteriores):
+                instante = max(anteriores) + timedelta(seconds=1)
+            for item in (acao, *acao.descendentes()):
+                if item.arquivado_em is None:
+                    item.arquivado_em, item.arquivado_por_id = instante, self.usuario.id
+                    detalhe = "Arquivada." if item is acao else f"Arquivado junto com {rotulo} {acao.numero_exibicao}."
+                    self._registrar(item, "arquivada", "não", "sim", detalhe=detalhe)
+        else:
+            if acao.arquivado_em is None:
+                raise RegraAcao("Este item não está arquivado.")
+            if acao.acao_pai is not None and acao.acao_pai.arquivado_em is not None:
+                raise RegraAcao("O item acima também está arquivado: desarquive-o antes.")
+            instante = acao.arquivado_em
+            # Volta o que foi arquivado junto; um sub-item arquivado antes, à parte, continua arquivado.
+            for item in (acao, *acao.descendentes()):
+                if item.arquivado_em == instante:
+                    item.arquivado_em = item.arquivado_por_id = None
+                    self._registrar(item, "arquivada", "sim", "não", detalhe="Desarquivada.")
+        recalcular_status(self.db, acao.plano, self.usuario.id, por_retirada=True)
+        self.db.commit()
+        self.db.refresh(acao)
+        return self._detalhe(acao)
+
+    def excluir(self, acao_id: int) -> None:
+        """Exclusão lógica da ação e de todos os sub-itens abaixo, numa transação. O histórico fica; os pontos
+        já lançados são revertidos se o período de apuração estiver aberto (mantidos se encerrado)."""
+        acao = self._obter(acao_id, bloquear=True)
+        if acao.plano.arquivado_em is not None:
+            raise RegraAcao("O plano está arquivado (somente leitura): desarquive o plano antes.")
+        if not self._pode(acao, PERMISSAO_EXCLUIR):
+            raise SemPermissaoAcao
+        plano = acao.plano
+        instante = utcnow()
+        itens = [acao, *acao.descendentes()]
+        for item in itens:
+            self._registrar(item, "excluida", "não", "sim",
+                            detalhe="Excluída." if item is acao else f"Excluído junto com {acao.numero_exibicao}.")
+            item.excluido_em, item.excluido_por_id = instante, self.usuario.id
+            reverter_por_reabertura(
+                self.db, ReferenciaNotificacao.ACAO, item.id, f"Ação {item.numero_exibicao} do plano {plano.codigo}",
+                self.usuario.id, None, situacao="excluído",
+            )
+        self.db.flush()
+        # A coleção plano.acoes já carregada ainda tem os excluídos: recarrega antes de recalcular o status.
+        self.db.expire(plano, ["acoes"])
+        recalcular_status(self.db, plano, self.usuario.id, por_retirada=True)
+        self.db.commit()
 
     @staticmethod
     def _erro_reabrir(acao: Acao) -> str | None:
@@ -221,7 +310,7 @@ class AcaoService:
             prazo_inicio=s.prazo_inicio,
             prazo=s.prazo,
             categoria=categoria_acao(s.status, s.prazo, self.hoje),
-            prazo_tag=tag_prazo_acao(s.status, s.prazo, self.hoje),
+            prazo_tag=None if (s.arquivado_em or s.plano.arquivado_em) else tag_prazo_acao(s.status, s.prazo, self.hoje),
             progresso=s.progresso,
             subacoes_diretas=len(s.subacoes),
             total_descendentes=len(s.descendentes()),
@@ -229,6 +318,7 @@ class AcaoService:
 
     def _detalhe(self, acao: Acao) -> AcaoDetalhe:
         plano = acao.plano
+        fora_de_operacao = plano.arquivado_em is not None or acao.arquivado_em is not None
         pendente = self._pendente(acao)
         plano_visivel = self._plano_visivel(acao)
         origem = acao.acao_pai
@@ -241,7 +331,10 @@ class AcaoService:
             numero=acao.numero_exibicao,
             nivel=acao.nivel,
             descricao=acao.descricao,
-            plano=PlanoDaAcao(id=plano.id, codigo=plano.codigo, nome=plano.nome, status=plano.status, data_fim_estimado=plano.data_fim_estimado),
+            plano=PlanoDaAcao(
+                id=plano.id, codigo=plano.codigo, nome=plano.nome, status=plano.status, data_fim_estimado=plano.data_fim_estimado,
+                arquivado=plano.arquivado_em is not None,
+            ),
             plano_visivel=plano_visivel,
             caminho=caminho,
             acao_origem=dependencias.ref(origem) if origem else None,
@@ -255,7 +348,7 @@ class AcaoService:
             prioridade=acao.prioridade,
             status=acao.status,
             categoria=categoria_acao(acao.status, acao.prazo, self.hoje),
-            vencendo=acao_vencendo(acao.status, acao.prazo, self.hoje),
+            vencendo=not fora_de_operacao and acao_vencendo(acao.status, acao.prazo, self.hoje),
             dias_para_prazo=(acao.prazo - self.hoje).days,
             progresso=acao.progresso,
             observacao=acao.observacao,
@@ -270,7 +363,10 @@ class AcaoService:
             depende_de=[dependencias.ref(p) for p in acao.depende_de],
             aguardando=[dependencias.ref(p) for p in dependencias.pendentes(acao)],
             revisar_prerequisito=dependencias.revisar_prerequisito(acao),
-            prazo_tag=tag_prazo_acao(acao.status, acao.prazo, self.hoje),
+            # Plano ou ação arquivados: sem situação operacional de prazo (o prazo original continua visível).
+            prazo_tag=None if fora_de_operacao else tag_prazo_acao(acao.status, acao.prazo, self.hoje),
+            arquivada=acao.arquivado_em is not None,
+            arquivada_em=como_utc(acao.arquivado_em) if acao.arquivado_em else None,
             # Subações diretas (cada uma com a contagem das suas); o responsável de cima acompanha as de baixo.
             subacoes=[self._subacao_item(s) for s in acao.subacoes],
             subacoes_pendentes=len(self._subacoes_pendentes(acao)),

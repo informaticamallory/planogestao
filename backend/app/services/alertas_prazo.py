@@ -102,6 +102,7 @@ def verificar_prazos(db: Session, hoje: date) -> ResultadoVerificacao:
             PlanoDeAcao.arquivado_em.is_(None),
             PlanoDeAcao.rascunho.is_(False),
             Acao.status.in_(STATUS_ACAO_ABERTOS),
+            Acao.arquivado_em.is_(None),
             Acao.prazo <= hoje + timedelta(days=dias_alerta_vencimento()),
         )
     ).all()

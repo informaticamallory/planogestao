@@ -32,6 +32,8 @@ export const MENU_PRINCIPAL: ItemMenu[] = [
 export const MENU_ADMINISTRACAO: GrupoMenu = {
   titulo: "Administração",
   itens: [
+    // Convite de primeiro acesso (Gestor e Administrador): perfil Colaborador, nas áreas de quem convida.
+    { titulo: "Colaboradores", caminho: "/colaboradores", permissao: "colaboradores:convidar", icone: "userCheck" },
     { titulo: "Usuários", caminho: "/admin/usuarios", permissao: "admin:usuarios", icone: "users" },
     { titulo: "Perfis", caminho: "/admin/perfis", permissao: "admin:perfis", icone: "shield" },
     // Cadastros: permissão atribuível (Administrador e Gestor por padrão), não exclusiva do Administrador.
@@ -63,3 +65,9 @@ export const ROTAS_SEM_MENU: ItemMenu[] = [
 ];
 
 export const TODOS_ITENS: ItemMenu[] = [...MENU_PRINCIPAL, ...MENU_ADMINISTRACAO.itens, ...ROTAS_SEM_MENU];
+
+/** Primeira página do menu que o perfil pode abrir (destino após o primeiro acesso). */
+export function paginaInicial(usuario: { permissoes: string[] }): string {
+  const item = [...MENU_PRINCIPAL, ...MENU_ADMINISTRACAO.itens].find((i) => usuario.permissoes.includes(i.permissao));
+  return item?.caminho ?? "/acesso-negado";
+}

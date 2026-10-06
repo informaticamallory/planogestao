@@ -87,3 +87,9 @@
   letter-spacing: var(--tracking-caps);
   color: var(--fg-subtle);
 }
+/* Primeiro acesso: escolha explícita quando outra conta está logada no navegador. */
+.escolhas {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2, 0.5rem);
+}

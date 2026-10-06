@@ -49,6 +49,10 @@ class DefModelo:
     variaveis: dict[str, str]
     assunto: str
     corpo: str
+    botao: str = "Acessar no sistema"
+    nota_botao: str = "O acesso exige login e respeita as suas permissões."
+    # Convite: o link é pessoal (contém o token), então nunca vai para cópia oculta.
+    com_cco: bool = True
 
 
 _RODAPE_DADOS = """Responsável: {{responsavel}}
@@ -95,6 +99,24 @@ CATALOGO: dict[str, DefModelo] = {
             "{{item_pai}}. Você recebe este aviso por ser o responsável pelo sub-item ou pelo item acima dele.\n\n"
             "Sub-item {{numero_item}}: {{descricao}}\n" + _RODAPE_DADOS,
         ),
+        DefModelo(
+            "convite_colaborador",
+            "Convite de primeiro acesso",
+            {
+                "destinatario": "Nome do colaborador convidado.",
+                "convidado_por": "Quem enviou o convite.",
+                "area": "Área de lotação do colaborador.",
+                "validade": "Até quando o link vale (dd/mm/aaaa hh:mm).",
+                "link_registro": "Link pessoal de primeiro acesso (o botão “Definir senha e acessar” já usa este link).",
+            },
+            "[Planos de Ação] Convite para acessar o sistema",
+            "Olá, {{destinatario}}.\n\n{{convidado_por}} convidou você para acessar o sistema de Planos de Ação "
+            "(área {{area}}).\n\nUse o botão abaixo para definir a sua senha. O link é pessoal, vale até {{validade}} e só "
+            "pode ser usado uma vez. Se você não esperava este convite, ignore esta mensagem.",
+            botao="Definir senha e acessar",
+            nota_botao="Nunca pedimos sua senha por e-mail.",
+            com_cco=False,
+        ),
     )
 }
 
@@ -120,6 +142,9 @@ def dados_ficticios(evento: str) -> dict[str, str]:
     d = {**DADOS_FICTICIOS, "link_registro": f"{get_settings().WEB_URL.rstrip('/')}/acoes/0"}
     if evento == "subitem_criado":
         d["numero_item"] = "2.1"
+    if evento == "convite_colaborador":
+        d.update(convidado_por="João Exemplo", validade="12/10/2026 14:00",
+                 link_registro=f"{get_settings().WEB_URL.rstrip('/')}/primeiro-acesso")
     if evento == "plano_criado":
         d["descricao"] = "Reduzir o refugo da linha de injeção para menos de 2%."
         d["link_registro"] = f"{get_settings().WEB_URL.rstrip('/')}/planos/0"
@@ -213,8 +238,12 @@ class Renderizado:
 _COR = "#ff6600"  # laranja da marca (Mallory DS)
 
 
-def renderizar(assunto: str, corpo: str, valores: dict[str, str]) -> Renderizado:
-    """Mesma renderização na prévia, no teste e no envio real. `valores` sem chave/vazio → "—"."""
+def renderizar(assunto: str, corpo: str, valores: dict[str, str], evento: str | None = None) -> Renderizado:
+    """Mesma renderização na prévia, no teste e no envio real. `valores` sem chave/vazio → "—".
+    `evento` define o texto do botão (ex.: "Definir senha e acessar" no convite)."""
+    d = CATALOGO.get(evento) if evento else None
+    rotulo_botao = d.botao if d else "Acessar no sistema"
+    nota_botao = d.nota_botao if d else "O acesso exige login e respeita as suas permissões."
     assunto_final = " ".join(_substituir(assunto, valores, html=False).split())[:255]
     texto_corpo = _substituir(corpo, valores, html=False)
     corpo_html = _substituir(corpo, valores, html=True)
@@ -226,8 +255,8 @@ def renderizar(assunto: str, corpo: str, valores: dict[str, str]) -> Renderizado
     link = valores.get("link_registro") or ""
     botao = (
         f'<p style="margin:22px 0 8px;text-align:center"><a href="{escape(link)}" style="display:inline-block;padding:12px 22px;'
-        f'border-radius:10px;background:{_COR};color:#ffffff;font-weight:700;font-size:14px;text-decoration:none">Acessar no sistema</a></p>'
-        '<p style="margin:0;text-align:center;font-size:12px;color:#8a817b">O acesso exige login e respeita as suas permissões.</p>'
+        f'border-radius:10px;background:{_COR};color:#ffffff;font-weight:700;font-size:14px;text-decoration:none">{escape(rotulo_botao)}</a></p>'
+        f'<p style="margin:0;text-align:center;font-size:12px;color:#8a817b">{escape(nota_botao)}</p>'
         if link
         else ""
     )
@@ -244,7 +273,7 @@ def renderizar(assunto: str, corpo: str, valores: dict[str, str]) -> Renderizado
 <tr><td style="padding:24px">{paragrafos}{botao}</td></tr>
 <tr><td style="padding:14px 24px;background:#faf7f5;font-size:11px;color:#8a817b">E-mail automático do sistema de Planos de Ação. Não responda a esta mensagem.</td></tr>
 </table></td></tr></table></body></html>"""
-    texto = texto_corpo.strip() + (f"\n\nAcessar no sistema: {link}\n(o acesso exige login e respeita as suas permissões)" if link else "")
+    texto = texto_corpo.strip() + (f"\n\n{rotulo_botao}: {link}\n({nota_botao})" if link else "")
     return Renderizado(assunto=assunto_final, html=html, texto=texto)
 
 

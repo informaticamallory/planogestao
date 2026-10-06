@@ -89,6 +89,12 @@ class AuthService:
         self.db.commit()
         return sessao
 
+    def iniciar_sessao(self, usuario: Usuario, user_agent: str | None) -> SessaoEmitida:
+        """Sessão para quem acabou de ativar a conta pelo convite (mesmo mecanismo do login). Faz o commit."""
+        sessao = self._emitir(usuario, user_agent)
+        self.db.commit()
+        return sessao
+
     def logout(self, refresh_token: str | None) -> None:
         if not refresh_token:
             return

@@ -100,7 +100,7 @@ class IndicadoresService:
             .join(PlanoDeAcao, Acao.plano_id == PlanoDeAcao.id)
             .join(Usuario, Acao.responsavel_id == Usuario.id)
             # Subações não entram nos indicadores (são desdobramentos da ação principal).
-            .where(self._filtro_planos(f), Acao.acao_pai_id.is_(None), *self._por_pessoas(Acao.responsavel_id, f))
+            .where(self._filtro_planos(f), Acao.acao_pai_id.is_(None), Acao.arquivado_em.is_(None), *self._por_pessoas(Acao.responsavel_id, f))
         ).all()
 
     def _itens(self, f: FiltrosIndicadores) -> list[dict]:
@@ -108,7 +108,7 @@ class IndicadoresService:
         Um registro por item (pelo id): nada é somado a partir dos descendentes. `nivel` 0 = ação principal."""
         linhas = self.db.execute(
             select(
-                Acao.id, Acao.acao_pai_id, Acao.status, Acao.prazo, Acao.responsavel_id,
+                Acao.id, Acao.acao_pai_id, Acao.status, Acao.prazo, Acao.responsavel_id, Acao.arquivado_em,
                 Usuario.nome.label("responsavel_nome"),
                 PlanoDeAcao.id.label("plano_id"), PlanoDeAcao.codigo, PlanoDeAcao.nome.label("plano_nome"),
             )
@@ -129,7 +129,8 @@ class IndicadoresService:
         return [
             {**r._asdict(), "nivel": nivel(r.id), "categoria": categoria_acao(r.status, r.prazo, self.hoje)}
             for r in linhas
-            if r.status not in STATUS_ACAO_DESCARTADOS and (pessoas is None or r.responsavel_id in pessoas)
+            # Arquivados ficam fora (mas continuam no mapa de pais, para a profundidade não mudar).
+            if r.status not in STATUS_ACAO_DESCARTADOS and r.arquivado_em is None and (pessoas is None or r.responsavel_id in pessoas)
         ]
 
     # ---- KPIs ------------------------------------------------------------------------------

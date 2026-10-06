@@ -6,6 +6,7 @@ import { criarAcoes } from "./recursos/acoes";
 import { criarAdministracao } from "./recursos/administracao";
 import { criarCalendario } from "./recursos/calendario";
 import { criarDashboard } from "./recursos/dashboard";
+import { criarColaboradores } from "./recursos/colaboradores";
 import { criarGamificacao } from "./recursos/gamificacao";
 import { criarIndicadores } from "./recursos/indicadores";
 import { criarItens } from "./recursos/itens";
@@ -37,7 +38,7 @@ export interface ApiClientConfig {
 }
 
 // Rotas que não devem disparar refresh automático em caso de 401.
-const ROTAS_SEM_RETRY = ["/auth/login", "/auth/refresh", "/auth/logout"];
+const ROTAS_SEM_RETRY = ["/auth/login", "/auth/refresh", "/auth/logout", "/auth/primeiro-acesso", "/auth/primeiro-acesso/verificar"];
 
 export function createApiClient(config: ApiClientConfig) {
   const baseUrl = config.baseUrl.replace(/\/$/, "");
@@ -114,6 +115,18 @@ export function createApiClient(config: ApiClientConfig) {
       });
     },
 
+    /** Situação do link de convite (o token vai no corpo, nunca na URL). */
+    async verificarConvite(token: string) {
+      return exigirDados(await http.POST("/auth/primeiro-acesso/verificar", { body: { token } }));
+    },
+
+    /** Define a senha pelo convite, ativa a conta e já inicia a sessão (como o login). */
+    async primeiroAcesso(token: string, senha: string, confirmacao: string): Promise<TokenResponse> {
+      const sessao = exigirDados(await http.POST("/auth/primeiro-acesso", { body: { token, senha, confirmacao } }));
+      await config.onSession(sessao);
+      return sessao;
+    },
+
     async me(): Promise<UsuarioLogado> {
       return exigirDados(await http.GET("/auth/me"));
     },
@@ -137,6 +150,7 @@ export function createApiClient(config: ApiClientConfig) {
     preferencias: criarPreferencias(http),
     admin: criarAdministracao(http),
     usuarios: criarUsuarios(http),
+    colaboradores: criarColaboradores(http),
     meuPerfil: criarMeuPerfil(http, config.onSession),
   };
 }

@@ -21,6 +21,13 @@ MENSAGEM_SEM_ACESSO_AREA = (
 )
 
 
+def acao_operacional(acao=Acao) -> ColumnElement[bool]:
+    """Ação que participa das listas operacionais (Minhas Ações, calendário, dashboard, indicadores, itens,
+    relatórios de ativos, lembretes): não arquivada individualmente. O plano arquivado sai pelo filtro de
+    planos (`filtro_planos_visiveis` sem `incluir_arquivados`). Excluídas já saem pelo filtro global."""
+    return acao.arquivado_em.is_(None)
+
+
 def filtro_areas_autorizadas(usuario: Usuario, coluna_area=PlanoDeAcao.area_id) -> ColumnElement[bool]:
     """Limite por área (para qualquer consulta que envolva planos, inclusive "minhas ações")."""
     areas = usuario.areas_de_acesso

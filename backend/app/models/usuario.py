@@ -37,6 +37,8 @@ class Usuario(TimestampMixin, Base):
     tamanho_fonte: Mapped[str] = mapped_column(String(16), server_default="padrao", nullable=False)
     # "Todas as áreas": inclui as cadastradas depois. Sem isso, valem só as de areas_autorizadas.
     todas_areas: Mapped[bool] = mapped_column(Boolean, server_default=false(), default=False, nullable=False)
+    # Convidado pela página Colaboradores e ainda sem senha: conta inativa até o primeiro acesso.
+    convite_pendente: Mapped[bool] = mapped_column(Boolean, server_default=false(), default=False, nullable=False)
 
     perfil: Mapped[Perfil] = relationship(lazy="joined")
     area: Mapped[Area | None] = relationship(lazy="joined")

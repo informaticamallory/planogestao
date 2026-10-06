@@ -61,3 +61,13 @@
     max-width: calc(100vw - 1rem);
   }
 }
+
+/* Ação destrutiva (ex.: Excluir plano): texto em vermelho. */
+.itemPerigo {
+  color: var(--danger);
+}
+
+.itemPerigo:hover:not(:disabled),
+.itemPerigo:focus-visible {
+  background: color-mix(in oklab, var(--danger) 10%, transparent);
+}

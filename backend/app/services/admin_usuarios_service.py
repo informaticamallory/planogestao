@@ -182,6 +182,18 @@ class UsuariosAdminService:
         perfil = self._validar(dados, usuario)
         self._proteger_administradores(usuario, perfil, dados.ativo)
 
+        if usuario.convite_pendente and dados.ativo and not usuario.ativo:
+            if not dados.senha:
+                raise RegraInvalida(
+                    "Esta conta aguarda o primeiro acesso pelo convite. Para ativá-la aqui, defina uma senha (o link do convite deixa de valer)."
+                )
+            # Ativada pelo Administrador: o convite pendente deixa de valer.
+            from app.models import Convite
+
+            for c in self.db.scalars(select(Convite).where(Convite.usuario_id == usuario.id, Convite.usado_em.is_(None),
+                                                           Convite.cancelado_em.is_(None), Convite.substituido_em.is_(None))):
+                c.cancelado_em = utcnow()
+            usuario.convite_pendente = False
         revogar = (usuario.ativo and not dados.ativo) or usuario.perfil_id != dados.perfil_id or bool(dados.senha)
         usuario.nome, usuario.email, usuario.perfil_id = dados.nome, dados.email, dados.perfil_id
         usuario.area_id, usuario.setor_id = dados.area_id, dados.setor_id

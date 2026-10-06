@@ -43,12 +43,12 @@ from app.services.armazenamento import Armazenamento
 from app.services.email_notificacoes import enfileirar_criacao_item, enfileirar_criacao_plano
 from app.services.eventos import Evento, TipoEvento, publicar
 from app.services.escopo import MENSAGEM_SEM_ACESSO_AREA, filtro_planos_visiveis
-from app.services.ciclo_plano import recalcular_status
+from app.services.ciclo_plano import apto_a_conclusao, concluir_manualmente, recalcular_status
 from app.services.historico import registrar_historico, registrar_historico_plano
 from app.services.indicadores import calcular_indicadores
-from app.services.permissoes_plano import pode_arquivar, tem_autoria_ou_edicao
+from app.services.permissoes_plano import pode_arquivar, pode_concluir, pode_excluir, tem_autoria_ou_edicao
 from app.services.plano_codigo import gerar_codigo_plano
-from app.services.pontuacao import creditar_conclusao_acao, creditar_conclusao_plano
+from app.services.pontuacao import creditar_conclusao_acao, creditar_conclusao_plano, reverter_por_reabertura
 from app.services.plano_service import PlanoNaoEncontrado, PlanoService
 from app.services.regras import categoria_acao, tag_prazo_acao
 
@@ -487,6 +487,37 @@ class PlanoEscritaService:
             plano.arquivado_em = None
             plano.arquivado_por_id = None
             self._historico_plano(plano, EventoPlano.DESARQUIVAMENTO)
+        self.db.commit()
+        return self.leitura.detalhe(plano.id)
+
+    def excluir(self, plano_id: int) -> None:
+        """Exclusão lógica do plano com TODAS as ações e sub-itens, numa transação: nada fica aparecendo
+        solto. Histórico, anexos e registros ficam no banco (auditoria). Pontos lançados: revertidos se o
+        período de apuração estiver aberto, mantidos se encerrado."""
+        plano = self._plano_visivel(plano_id)
+        if not pode_excluir(self.usuario, plano):
+            raise SemPermissao
+        instante = utcnow()
+        acoes = list(plano.acoes)
+        self._historico_plano(plano, EventoPlano.ALTERACAO, "excluido", "não", f"sim ({len(acoes)} ação(ões)/sub-item(ns) junto)")
+        for acao in acoes:
+            acao.excluido_em, acao.excluido_por_id = instante, self.usuario.id
+            reverter_por_reabertura(self.db, ReferenciaNotificacao.ACAO, acao.id,
+                                    f"Ação {acao.numero_exibicao} do plano {plano.codigo}", self.usuario.id, None, situacao="excluído")
+        plano.excluido_em, plano.excluido_por_id = instante, self.usuario.id
+        reverter_por_reabertura(self.db, ReferenciaNotificacao.PLANO, plano.id, f"Plano {plano.codigo}", self.usuario.id, None,
+                                situacao="excluído")
+        self.db.commit()
+
+    def concluir(self, plano_id: int, observacao: str | None) -> PlanoDetalhe:
+        """Confirma a conclusão de um plano apto (ações válidas concluídas após arquivamento/exclusão):
+        registra que o objetivo foi atingido e credita o gestor."""
+        plano = self._plano_visivel(plano_id)
+        if not pode_concluir(self.usuario, plano):
+            raise SemPermissao
+        if plano.rascunho or not apto_a_conclusao(plano):
+            raise RegraNegocio("O plano não está apto à conclusão: ainda há ações válidas em aberto (ou nenhuma ação válida).")
+        concluir_manualmente(self.db, plano, self.usuario.id, (observacao or "").strip() or None)
         self.db.commit()
         return self.leitura.detalhe(plano.id)
 

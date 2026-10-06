@@ -31,6 +31,7 @@ MODULOS: list[tuple[str, str]] = [
     ("notificacoes", "Notificações"),
     ("gamificacao", "Gamificação"),
     ("cadastros", "Cadastros (áreas, setores, tipos e origens)"),
+    ("colaboradores", "Colaboradores (convites de primeiro acesso)"),
     (MODULO_ADMINISTRACAO, "Administração"),
 ]
 
@@ -50,8 +51,13 @@ PERMISSOES: list[DefPermissao] = [
     DefPermissao("planos:ver_todos", "planos", "outra", "Visualizar planos das áreas autorizadas"),
     DefPermissao("planos:criar", "planos", "criar", "Criar planos de ação"),
     DefPermissao("planos:editar", "planos", "editar", "Editar e arquivar planos de qualquer autor"),
+    # Exclusão lógica (some das consultas; o histórico fica). Exige também poder editar o plano.
+    DefPermissao("planos:excluir", "planos", "excluir", "Excluir planos (com suas ações e sub-itens)"),
     DefPermissao("acoes:ver_proprias", "acoes", "visualizar", "Minhas Ações: ver e atualizar as próprias ações"),
     DefPermissao("acoes:aprovar_prazo", "acoes", "aprovar", "Responder solicitações de alteração de prazo"),
+    # Exigem também ser gestor do plano/item (responsável, criador, quem aprova prazos ou "Editar planos").
+    DefPermissao("acoes:arquivar", "acoes", "outra", "Arquivar e desarquivar ações e sub-itens"),
+    DefPermissao("acoes:excluir", "acoes", "excluir", "Excluir ações e sub-itens"),
     DefPermissao("equipes:ver", "equipes", "visualizar", "Visualizar equipes"),
     DefPermissao("equipes:gerenciar", "equipes", "editar", "Criar, editar e excluir equipes e seus membros"),
     DefPermissao("calendario:ver", "calendario", "visualizar", "Visualizar calendário"),
@@ -66,6 +72,7 @@ PERMISSOES: list[DefPermissao] = [
     DefPermissao("gamificacao:encerrar", "gamificacao", "aprovar", "Encerrar a apuração de um período"),
     DefPermissao("gamificacao:reabrir", "gamificacao", "outra", "Reabrir a apuração de um período encerrado"),
     # Atribuível (Administrador e Gestor por padrão): cadastros usados nos planos.
+    DefPermissao("colaboradores:convidar", "colaboradores", "criar", "Convidar colaboradores (perfil Colaborador, nas próprias áreas)"),
     DefPermissao("cadastros:gerenciar", "cadastros", "editar", "Gerenciar áreas, setores, tipos de plano e origens"),
     # Exclusivas do Administrador (usadas pelo front para exibir o menu).
     DefPermissao("admin:usuarios", MODULO_ADMINISTRACAO, "outra", "Gerenciar usuários"),

@@ -1,7 +1,7 @@
 import type { AcaoAtualizar, AcaoCriar, ResponderSolicitacao, SolicitarAlteracao } from "@planogestao/shared-types";
 
 import type { HttpClient } from "../client";
-import { exigirDados } from "../errors";
+import { exigirDados, exigirSucesso } from "../errors";
 
 export function criarAcoes(http: HttpClient) {
   const caminho = (acaoId: number) => ({ params: { path: { acao_id: acaoId } } });
@@ -16,6 +16,12 @@ export function criarAcoes(http: HttpClient) {
     historico: async (acaoId: number) => exigirDados(await http.GET("/acoes/{acao_id}/historico", caminho(acaoId))),
 
     aceitar: async (acaoId: number) => exigirDados(await http.POST("/acoes/{acao_id}/aceitar", caminho(acaoId))),
+
+    /** Arquiva a ação e os sub-itens abaixo (somem das listas operacionais; status e prazos preservados). */
+    arquivar: async (acaoId: number) => exigirDados(await http.POST("/acoes/{acao_id}/arquivar", caminho(acaoId))),
+    desarquivar: async (acaoId: number) => exigirDados(await http.POST("/acoes/{acao_id}/desarquivar", caminho(acaoId))),
+    /** Exclusão lógica da ação e de todos os sub-itens. */
+    excluir: async (acaoId: number) => exigirSucesso(await http.DELETE("/acoes/{acao_id}", caminho(acaoId))),
 
     /** Gestor volta uma ação concluída para em andamento; o status do plano é recalculado. */
     reabrir: async (acaoId: number, justificativa: string) =>

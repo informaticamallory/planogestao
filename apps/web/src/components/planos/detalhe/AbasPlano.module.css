@@ -271,7 +271,29 @@
 }
 
 .descricaoCartao {
+  flex: 1;
+  min-width: 0;
   font-size: var(--fonte-md);
+  color: inherit;
+  text-decoration: none;
+}
+
+.descricaoCartao:hover,
+.descricaoCartao:focus-visible {
+  color: var(--cor-primaria);
+  text-decoration: underline;
+}
+
+/* Título do cartão + menu de operações (Editar, Arquivar, Excluir). */
+.topoCartao {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--espaco-2);
+}
+
+.cartaoArquivado {
+  opacity: 0.75;
+  border-style: dashed;
 }
 
 .tagsCartao {

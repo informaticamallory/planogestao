@@ -8,6 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.agendador import iniciar_agendador
 from app.core.config import get_settings
 from app.routers import (
+    colaboradores,
     acoes,
     administracao,
     email_config,
@@ -84,6 +85,7 @@ app.include_router(itens.router)
 app.include_router(relatorios.router)
 app.include_router(preferencias.router)
 app.include_router(email_config.router)
+app.include_router(colaboradores.router)
 for _r in (administracao.perfis_router, administracao.areas_router, administracao.setores_router,
            administracao.tipos_router, administracao.origens_router, administracao.configuracoes_router,
            administracao.envios_email_router):

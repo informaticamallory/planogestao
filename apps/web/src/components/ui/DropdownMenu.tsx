@@ -76,9 +76,11 @@ export function DropdownMenu({ rotulo, ariaLabel, classeBotao, alinhamento = "di
   );
 }
 
-export function DropdownItem({ children, onClick, disabled }: { children: ReactNode; onClick: () => void; disabled?: boolean }) {
+export function DropdownItem({
+  children, onClick, disabled, perigo,
+}: { children: ReactNode; onClick: () => void; disabled?: boolean; perigo?: boolean }) {
   return (
-    <button type="button" className={styles.item} onClick={onClick} disabled={disabled}>
+    <button type="button" className={perigo ? `${styles.item} ${styles.itemPerigo}` : styles.item} onClick={onClick} disabled={disabled}>
       {children}
     </button>
   );

@@ -69,6 +69,7 @@ class UsuarioAdminItem(BaseModel):
     areas_autorizadas: list[Opcao] = Field(description="Áreas cujos planos o usuário acessa (separadas da lotação).")
     acesso_automatico: bool = Field(description="Administrador: todas as áreas, sem configuração.")
     sem_areas_autorizadas: bool = Field(description="Pendência: não é Administrador e não tem área autorizada.")
+    convite_pendente: bool = Field(default=False, description="Convidado (página Colaboradores) e ainda sem primeiro acesso.")
 
     @classmethod
     def de(cls, u: Usuario) -> "UsuarioAdminItem":
@@ -81,6 +82,7 @@ class UsuarioAdminItem(BaseModel):
             criado_em=como_utc(u.criado_em),
             todas_areas=u.todas_areas, areas_autorizadas=[Opcao(id=a.id, nome=a.nome) for a in u.areas_autorizadas],
             acesso_automatico=u.eh_administrador, sem_areas_autorizadas=u.areas_de_acesso == set(),
+            convite_pendente=u.convite_pendente,
         )
 
 

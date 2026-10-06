@@ -74,11 +74,11 @@ def auditar(db: Session, evento: EventoAuditoria, detalhe: str, *, autor_id: int
 
 
 def acao_pontua(acao: Acao) -> bool:
-    return acao.status == StatusAcao.CONCLUIDA and acao.concluida_em is not None and not acao.eh_subacao
+    return acao.status == StatusAcao.CONCLUIDA and acao.concluida_em is not None and not acao.eh_subacao and acao.excluido_em is None
 
 
 def plano_pontua(plano: PlanoDeAcao) -> bool:
-    return plano.status == StatusPlano.CONCLUIDO and plano.concluido_em is not None and not plano.rascunho
+    return plano.status == StatusPlano.CONCLUIDO and plano.concluido_em is not None and not plano.rascunho and plano.excluido_em is None
 
 
 def _gravar(db: Session, lancamento: GamificacaoLancamento) -> GamificacaoLancamento | None:
@@ -148,8 +148,9 @@ def reverter(db: Session, lancamento: GamificacaoLancamento, motivo: str, autor_
 
 
 def reverter_por_reabertura(db: Session, referencia: ReferenciaNotificacao, referencia_id: int, rotulo: str,
-                            autor_id: int | None, motivo: str | None = None) -> None:
-    """Item reaberto (ação reaberta ou plano que voltou a ter pendências)."""
+                            autor_id: int | None, motivo: str | None = None, situacao: str = "reaberto") -> None:
+    """Item reaberto (ação reaberta ou plano que voltou a ter pendências) ou excluído (situacao="excluído").
+    Arquivar NÃO passa por aqui: arquivamento não mexe em pontos."""
     lancamento = lancamento_valido(db, referencia, referencia_id)
     if lancamento is None:
         return
@@ -157,15 +158,15 @@ def reverter_por_reabertura(db: Session, referencia: ReferenciaNotificacao, refe
     if encerrado is not None:
         auditar(
             db, EventoAuditoria.MANTIDO,
-            f"{rotulo} reaberto. A pontuação ({lancamento.pontos} pts, lançamento #{lancamento.id}) pertence ao período "
+            f"{rotulo} {situacao}. A pontuação ({lancamento.pontos} pts, lançamento #{lancamento.id}) pertence ao período "
             f"encerrado “{encerrado.nome}” e foi mantida; uma nova conclusão não pontua outra vez.",
             autor_id=autor_id, justificativa=motivo, periodo_id=encerrado.id, lancamento=lancamento,
         )
         return
-    reverter(db, lancamento, f"Item reaberto{': ' + motivo if motivo else ''}", autor_id)
+    reverter(db, lancamento, f"Item {situacao}{': ' + motivo if motivo else ''}", autor_id)
     auditar(
         db, EventoAuditoria.REVERSAO,
-        f"{rotulo} reaberto: lançamento #{lancamento.id} ({lancamento.pontos} pts) revertido.",
+        f"{rotulo} {situacao}: lançamento #{lancamento.id} ({lancamento.pontos} pts) revertido.",
         autor_id=autor_id, justificativa=motivo, lancamento=lancamento,
     )
 

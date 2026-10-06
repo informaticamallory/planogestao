@@ -200,7 +200,8 @@ class PlanoRepository:
         return list(
             self.db.execute(
                 select(Acao.status, Acao.prazo, Acao.progresso, Acao.concluida_em).where(
-                    Acao.plano_id == plano_id, Acao.acao_pai_id.is_(None)
+                    # Arquivadas ficam fora do cálculo operacional (status e progresso do plano).
+                    Acao.plano_id == plano_id, Acao.acao_pai_id.is_(None), Acao.arquivado_em.is_(None)
                 )
             )
         )

@@ -35,8 +35,10 @@ function useInvalidarPlano(planoId: number) {
   const queryClient = useQueryClient();
   return () => {
     queryClient.invalidateQueries({ queryKey: ["plano", planoId] });
-    queryClient.invalidateQueries({ queryKey: ["planos"] });
-    queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+    // Arquivar/excluir/concluir mexem em todas as listas operacionais e nos totais.
+    for (const k of ["planos", "dashboard", "acao", "itens", "minhas-acoes", "calendario", "indicadores", "gamificacao"]) {
+      queryClient.invalidateQueries({ queryKey: [k] });
+    }
   };
 }
 
@@ -78,5 +80,32 @@ export function useBaixarAnexo(planoId: number) {
       const arquivo = await api.planos.baixarAnexo(planoId, anexoId);
       baixarArquivo(arquivo.blob, arquivo.nomeArquivo);
     },
+  });
+}
+
+/** Confirma a conclusão de um plano apto (objetivo atingido): só aí o gestor pontua. */
+export function useConcluirPlano(planoId: number) {
+  const invalidar = useInvalidarPlano(planoId);
+  return useMutation({ mutationFn: (observacao: string) => api.planos.concluir(planoId, observacao), onSuccess: invalidar });
+}
+
+/** Exclusão lógica do plano (com ações e sub-itens). */
+export function useExcluirPlano(planoId: number) {
+  const invalidar = useInvalidarPlano(planoId);
+  return useMutation({ mutationFn: () => api.planos.excluir(planoId), onSuccess: invalidar });
+}
+
+export type OperacaoAcao = "arquivar" | "desarquivar" | "excluir";
+
+/** Arquivar, desarquivar ou excluir uma ação (tabela, Kanban e detalhe). */
+export function useOperacaoAcao(planoId: number) {
+  const invalidar = useInvalidarPlano(planoId);
+  return useMutation({
+    mutationFn: async ({ acaoId, operacao }: { acaoId: number; operacao: OperacaoAcao }): Promise<void> => {
+      if (operacao === "arquivar") await api.acoes.arquivar(acaoId);
+      else if (operacao === "desarquivar") await api.acoes.desarquivar(acaoId);
+      else await api.acoes.excluir(acaoId);
+    },
+    onSuccess: invalidar,
   });
 }

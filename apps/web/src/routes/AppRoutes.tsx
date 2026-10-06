@@ -21,6 +21,8 @@ import { EmConstrucaoPage } from "../pages/EmConstrucaoPage";
 import { EquipeDetalhePage } from "../pages/equipes/EquipeDetalhePage";
 import { EquipeFormPage } from "../pages/equipes/EquipeFormPage";
 import { EquipesPage } from "../pages/equipes/EquipesPage";
+import { ColaboradoresPage } from "../pages/admin/ColaboradoresPage";
+import { PrimeiroAcessoPage } from "../pages/PrimeiroAcessoPage";
 import { AuditoriaPontuacaoPage } from "../pages/gamificacao/AuditoriaPontuacaoPage";
 import { GamificacaoPage } from "../pages/gamificacao/GamificacaoPage";
 import { PeriodosApuracaoPage } from "../pages/gamificacao/PeriodosApuracaoPage";
@@ -78,6 +80,7 @@ const PAGINAS: Record<string, ReactNode> = {
   "/equipes/:id/editar": <EquipeFormPage />,
   // Administração: usuários, perfis e configurações exigem admin:* (só o Administrador); áreas, setores, tipos e
   // origens exigem cadastros:gerenciar (Administrador e Gestor). A API responde 403 aos demais.
+  "/colaboradores": <ColaboradoresPage />,
   "/admin/usuarios": <UsuariosPage />,
   "/admin/perfis": <PerfisPage />,
   "/admin/areas": <AreasPage />,
@@ -92,6 +95,8 @@ export function AppRoutes() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
+      {/* Público: o link do convite (token no fragmento #t=) define a senha e já entra. */}
+      <Route path="/primeiro-acesso" element={<PrimeiroAcessoPage />} />
       {VitrineUiKitPage && (
         <Route
           path="/dev/ui-kit"

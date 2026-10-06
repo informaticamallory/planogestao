@@ -39,14 +39,21 @@ export function PrazoTag({ tag }: { tag: TagPrazo | null | undefined }) {
  * A condição do fluxo (aguardando aceite, bloqueada) vem num selo neutro à parte. Canceladas e
  * recusadas ficam fora dos 3 status: só o selo da condição, sem tag de prazo.
  */
-export function ActionStatusBadge({ status, prazoTag }: { status: StatusAcao; prazoTag?: TagPrazo | null }) {
+export function ActionStatusBadge({
+  status, prazoTag, arquivo,
+}: { status: StatusAcao; prazoTag?: TagPrazo | null; arquivo?: "plano" | "acao" | null }) {
   const execucao = statusExecucaoAcao(status);
   const condicao = CONDICAO_ACAO[status];
   return (
     <BadgeGroup>
       {execucao && <Badge corToken={TOKEN_STATUS_EXECUCAO[execucao]}>{ROTULO_STATUS_EXECUCAO[execucao]}</Badge>}
       {condicao && <Badge corToken={execucao ? undefined : `--cor-status-${status}`}>{condicao}</Badge>}
-      {execucao && execucao !== "concluido" && <PrazoTag tag={prazoTag} />}
+      {/* Arquivado: no lugar da situação de prazo (status original preservado ao lado). */}
+      {arquivo ? (
+        <Badge>{arquivo === "plano" ? "Plano arquivado" : "Arquivada"}</Badge>
+      ) : (
+        execucao && execucao !== "concluido" && <PrazoTag tag={prazoTag} />
+      )}
     </BadgeGroup>
   );
 }

@@ -106,3 +106,25 @@ def responder_solicitacao(
     with _erros():
         return _service(db, usuario).responder_solicitacao(acao_id, solicitacao_id, dados)
 
+
+
+@router.post("/{acao_id}/arquivar", response_model=AcaoDetalhe)
+def arquivar(acao_id: int, usuario: UsuarioLeitura, db: Session = Depends(get_db)):
+    """Arquiva a ação e os sub-itens abaixo (acoes:arquivar + gestor do item). Sai das listas operacionais e
+    do cálculo do plano, com status e prazos originais preservados. Não conclui o plano nem gera pontos."""
+    with _erros():
+        return _service(db, usuario).arquivar(acao_id, True)
+
+
+@router.post("/{acao_id}/desarquivar", response_model=AcaoDetalhe)
+def desarquivar(acao_id: int, usuario: UsuarioLeitura, db: Session = Depends(get_db)):
+    """Desarquiva a ação e os sub-itens arquivados junto com ela (os arquivados à parte continuam arquivados)."""
+    with _erros():
+        return _service(db, usuario).arquivar(acao_id, False)
+
+
+@router.delete("/{acao_id}", status_code=status.HTTP_204_NO_CONTENT)
+def excluir(acao_id: int, usuario: UsuarioLeitura, db: Session = Depends(get_db)) -> None:
+    """Exclusão lógica da ação e de todos os sub-itens (acoes:excluir + gestor do item). O histórico fica."""
+    with _erros():
+        _service(db, usuario).excluir(acao_id)

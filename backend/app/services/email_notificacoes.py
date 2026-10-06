@@ -42,6 +42,17 @@ class EventoEmail:
     PLANO_CRIADO = "plano_criado"
     ACAO_CRIADA = "acao_criada"
     SUBITEM_CRIADO = "subitem_criado"
+    CONVITE = "convite_colaborador"
+
+
+# O link de primeiro acesso leva o token: sai do corpo guardado assim que o envio termina (ou não vai mais).
+_LINK_CONVITE = re.compile(r"(/primeiro-acesso#t=)[A-Za-z0-9_\-]+")
+
+
+def apagar_link_sensivel(envio: EnvioEmail) -> None:
+    if envio.evento == EventoEmail.CONVITE:
+        envio.corpo_html = _LINK_CONVITE.sub(r"\1[link omitido]", envio.corpo_html or "")
+        envio.corpo_texto = _LINK_CONVITE.sub(r"\1[link omitido]", envio.corpo_texto or "")
 
 
 _EMAIL_VALIDO = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
@@ -132,7 +143,7 @@ def _enfileirar(db: Session, evento: str, ref_tipo: str, ref_id: int, destinatar
         if db.scalar(select(EnvioEmail.id).where(EnvioEmail.chave == chave)) is not None:
             continue  # já registrado (ex.: repetição da mesma operação)
         situacao, erro = _situacao(usuario, modelo)
-        msg = renderizar(modelo.assunto, modelo.corpo, {**valores, "destinatario": usuario.nome})
+        msg = renderizar(modelo.assunto, modelo.corpo, {**valores, "destinatario": usuario.nome}, evento)
         leva_cco = bool(cco) and situacao == SituacaoEnvio.PENDENTE
         envio = EnvioEmail(
             chave=chave, evento=evento, referencia_tipo=ref_tipo, referencia_id=ref_id, usuario_id=usuario.id,
@@ -174,6 +185,39 @@ def enfileirar_criacao_item(db: Session, acao: Acao, autor: Usuario) -> list[Env
     pessoas = {u.id: u for u in (acao.responsavel, pai.responsavel if pai is not None else None) if u is not None}
     evento = EventoEmail.SUBITEM_CRIADO if pai is not None else EventoEmail.ACAO_CRIADA
     return _enfileirar(db, evento, "acao", acao.id, list(pessoas.values()), variaveis_item(acao, autor))
+
+
+def enfileirar_convite(db: Session, convite, usuario: Usuario, autor: Usuario, link: str, validade: str) -> EnvioEmail:
+    """Convite de primeiro acesso: pela fila, como os demais, mas para conta ainda inativa e SEM CCO
+    (o link é pessoal). Cada convite (reenvio = convite novo) tem a sua linha, então tentar de novo nunca
+    duplica a conta."""
+    s = get_settings()
+    modelo = modelo_efetivo(db, EventoEmail.CONVITE)
+    endereco = (usuario.email or "").strip()
+    if not s.EMAIL_HABILITADO:
+        situacao, erro = SituacaoEnvio.DESABILITADO, "Envio de e-mail desligado (EMAIL_HABILITADO=false)."
+    elif not modelo.ativo:
+        situacao, erro = SituacaoEnvio.MODELO_INATIVO, "Modelo de convite desativado em Configurações de e-mail."
+    elif not _EMAIL_VALIDO.match(endereco):
+        situacao, erro = SituacaoEnvio.SEM_ENDERECO, "E-mail inválido."
+    else:
+        situacao, erro = SituacaoEnvio.PENDENTE, None
+    valores = {"destinatario": usuario.nome, "convidado_por": autor.nome, "area": usuario.area.nome if usuario.area else None,
+               "validade": validade, "link_registro": link}
+    msg = renderizar(modelo.assunto, modelo.corpo, valores, EventoEmail.CONVITE)
+    envio = EnvioEmail(
+        chave=f"{EventoEmail.CONVITE}:convite:{convite.id}:{usuario.id}", evento=EventoEmail.CONVITE, referencia_tipo="convite",
+        referencia_id=convite.id, usuario_id=usuario.id, destinatario=endereco or None, cco=None,
+        assunto=msg.assunto, corpo_html=msg.html, corpo_texto=msg.texto, situacao=situacao, ultimo_erro=erro,
+        proxima_tentativa_em=utcnow().replace(microsecond=0) if situacao == SituacaoEnvio.PENDENTE else None,
+    )
+    if situacao != SituacaoEnvio.PENDENTE:
+        apagar_link_sensivel(envio)  # não vai sair: o link não fica guardado
+    db.add(envio)
+    db.flush()
+    if situacao == SituacaoEnvio.PENDENTE:
+        db.info.setdefault(_CHAVE_SESSAO, []).append(envio.id)
+    return envio
 
 
 @event.listens_for(Session, "after_commit")
@@ -316,6 +360,7 @@ def processar_pendentes(
             if envio.tentativas >= s.EMAIL_MAX_TENTATIVAS:
                 envio.situacao = SituacaoEnvio.FALHOU
                 envio.proxima_tentativa_em = None
+                apagar_link_sensivel(envio)
                 r.esgotados += 1
             else:
                 envio.situacao = SituacaoEnvio.PENDENTE
@@ -328,6 +373,7 @@ def processar_pendentes(
             envio.enviado_em = agora()
             envio.ultimo_erro = None
             envio.proxima_tentativa_em = None
+            apagar_link_sensivel(envio)
             r.enviados += 1
         envio.processando_desde = None
         db.commit()
@@ -344,7 +390,7 @@ def enviar_teste(db: Session, evento: str, destinatario: str, assunto: str, corp
 
     from app.services.email_modelos import dados_ficticios
 
-    msg = renderizar(assunto, corpo, dados_ficticios(evento))
+    msg = renderizar(assunto, corpo, dados_ficticios(evento), evento)
     envio = EnvioEmail(
         chave=f"teste:{uuid4().hex}", evento=f"teste_{evento}", referencia_tipo="teste", referencia_id=0, usuario_id=admin.id,
         destinatario=destinatario, cco=None, assunto=msg.assunto, corpo_html=msg.html, corpo_texto=msg.texto,

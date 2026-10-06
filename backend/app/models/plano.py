@@ -96,6 +96,9 @@ class PlanoDeAcao(TimestampMixin, Base):
     # Arquivamento é reversível e substitui a exclusão (o histórico precisa ser preservado).
     arquivado_em: Mapped[datetime | None] = mapped_column(DateTime, index=True)
     arquivado_por_id: Mapped[int | None] = mapped_column(BigIntPK, ForeignKey("usuarios.id"))
+    # Exclusão lógica (permissão planos:excluir): plano, ações e sub-itens somem juntos; o registro fica.
+    excluido_em: Mapped[datetime | None] = mapped_column(DateTime, index=True)
+    excluido_por_id: Mapped[int | None] = mapped_column(BigIntPK, ForeignKey("usuarios.id"))
 
     tipo: Mapped[TipoPlano] = relationship()
     origem: Mapped[OrigemPlano] = relationship()

@@ -4,6 +4,7 @@ from urllib.parse import quote
 
 from fastapi import APIRouter, Body, Depends, File, HTTPException, Query, Response, UploadFile, status
 from fastapi.responses import FileResponse
+from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
@@ -211,6 +212,25 @@ def arquivar(plano_id: int, usuario: UsuarioLeitura, db: Session = Depends(get_d
 def desarquivar(plano_id: int, usuario: UsuarioLeitura, db: Session = Depends(get_db)):
     with _erros_de_servico():
         return _escrita(db, usuario).arquivar(plano_id, False)
+
+
+class ConcluirPlano(BaseModel):
+    observacao: str | None = Field(default=None, max_length=180, description="Opcional: como o objetivo foi atingido.")
+
+
+@router.post("/{plano_id}/concluir", response_model=PlanoDetalhe)
+def concluir(plano_id: int, dados: ConcluirPlano, usuario: UsuarioLeitura, db: Session = Depends(get_db)):
+    """Confirma a conclusão de um plano apto (objetivo atingido). Só aí o gestor pontua."""
+    with _erros_de_servico():
+        return _escrita(db, usuario).concluir(plano_id, dados.observacao)
+
+
+@router.delete("/{plano_id}", status_code=status.HTTP_204_NO_CONTENT)
+def excluir(plano_id: int, usuario: UsuarioLeitura, db: Session = Depends(get_db)) -> None:
+    """Exclusão lógica (planos:excluir + poder editar o plano): o plano, as ações e os sub-itens saem de todas as
+    consultas, na mesma transação. Histórico e registros ficam para auditoria (autor e data gravados)."""
+    with _erros_de_servico():
+        _escrita(db, usuario).excluir(plano_id)
 
 
 # ---- criação, ações e anexos -----------------------------------------------------------

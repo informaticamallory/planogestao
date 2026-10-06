@@ -24,6 +24,8 @@ from app.models.plano import OrigemPlano, PlanoAnexo, PlanoDeAcao, PlanoHistoric
 from app.models.preferencia import PreferenciaLayout
 from app.models.refresh_token import RefreshToken
 from app.models.usuario import Usuario, usuario_area_autorizada
+from app.models.convite import Convite, ConviteEvento, EventoConvite  # noqa: E402
+from app.models import exclusao_logica  # noqa: F401,E402  (registra o filtro global de excluídos)
 
 __all__ = [
     "Acao",
@@ -35,6 +37,9 @@ __all__ = [
     "Configuracao",
     "DeviceToken",
     "ConfigEmail",
+    "Convite",
+    "ConviteEvento",
+    "EventoConvite",
     "EnvioEmail",
     "HistoricoConfigEmail",
     "ModeloEmail",

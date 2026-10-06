@@ -50,7 +50,7 @@ class DashboardRepository:
                 select(Acao.status, Acao.prazo, Acao.concluida_em)
                 .join(PlanoDeAcao, Acao.plano_id == PlanoDeAcao.id)
                 # Subações não entram nos números do painel.
-                .where(self.visivel, Acao.criado_em >= inicio, Acao.criado_em < fim, Acao.acao_pai_id.is_(None))
+                .where(self.visivel, Acao.criado_em >= inicio, Acao.criado_em < fim, Acao.acao_pai_id.is_(None), Acao.arquivado_em.is_(None))
             )
         )
 
@@ -66,6 +66,7 @@ class DashboardRepository:
                     Acao.criado_em < fim,
                     Acao.acao_pai_id.is_not(None),
                     Acao.status.not_in(STATUS_ACAO_DESCARTADOS),
+                    Acao.arquivado_em.is_(None),
                 )
             )
         )
@@ -92,6 +93,7 @@ class DashboardRepository:
                     self.visivel,
                     Acao.prazo.between(dia_ini, dia_fim),
                     Acao.status.not_in(STATUS_ACAO_DESCARTADOS),
+                    Acao.arquivado_em.is_(None),
                     Acao.acao_pai_id.is_(None),
                 )
             )
@@ -166,7 +168,10 @@ class DashboardRepository:
                     PlanoDeAcao.nome.label("plano_nome"),
                 )
                 .join(PlanoDeAcao, Acao.plano_id == PlanoDeAcao.id)
-                .where(Acao.responsavel_id == usuario_id, Acao.status.in_(STATUS_ACAO_ABERTOS), areas if areas is not None else true())
+                .where(
+                    Acao.responsavel_id == usuario_id, Acao.status.in_(STATUS_ACAO_ABERTOS), Acao.arquivado_em.is_(None),
+                    PlanoDeAcao.arquivado_em.is_(None), areas if areas is not None else true(),
+                )
                 .order_by(Acao.prazo.asc(), Acao.id.asc())
                 .limit(limite)
             )

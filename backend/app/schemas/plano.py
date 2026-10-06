@@ -293,6 +293,8 @@ class PermissoesPlano(BaseModel):
     arquivar: bool
     adicionar_acoes: bool
     enviar_anexos: bool
+    excluir: bool = Field(default=False, description="planos:excluir + poder editar o plano.")
+    concluir: bool = Field(default=False, description="Confirmar a conclusão de um plano apto (objetivo atingido).")
 
 
 class PlanoDetalhe(PlanoResumo):
@@ -304,6 +306,9 @@ class PlanoDetalhe(PlanoResumo):
     observacoes: str | None
     atualizado_em: datetime
     permissoes: PermissoesPlano
+    apto_conclusao: bool = Field(
+        default=False, description="Ações válidas todas concluídas, mas o plano espera a confirmação (houve arquivamento/exclusão)."
+    )
 
 
 class PlanoAtualizado(BaseModel):
@@ -346,6 +351,20 @@ class AcaoDoPlano(AcaoResumo):
     aguardando: list[RefAcao] = Field(
         description="Pré-requisitos ainda não concluídos (para subações, os da ação principal)."
     )
+    arquivada: bool = Field(default=False, description="Arquivada individualmente: fora das listas e do cálculo do plano.")
+    operacoes: "OperacoesAcao"
+
+
+class OperacoesAcao(BaseModel):
+    """Botões da linha/cartão da ação (o backend revalida em cada endpoint)."""
+
+    editar: bool
+    arquivar: bool
+    desarquivar: bool
+    excluir: bool
+
+
+AcaoDoPlano.model_rebuild()
 
 
 class EventoTimeline(BaseModel):

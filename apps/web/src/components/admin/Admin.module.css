@@ -101,6 +101,8 @@
 .form {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
+  /* Topo alinhado: a ajuda embaixo de um campo não desloca o campo vizinho. */
+  align-items: start;
   gap: var(--espaco-3);
   color: var(--cor-texto);
 }
