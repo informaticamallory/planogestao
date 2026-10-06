@@ -106,7 +106,7 @@ export function RelatorioAcoes() {
                 <th>Ação</th>
                 <th>Depende de</th>
                 <th>Responsável</th>
-                <th>Área / Setor</th>
+                <th>Área / Função/Cargo</th>
                 <th>Início estimado</th>
                 <th>Prazo de conclusão</th>
                 <th>Prioridade</th>

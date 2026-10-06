@@ -134,7 +134,7 @@ function RelatorioPlanos() {
             <ChipsUnico rotulo="Criados no período" vazio="Qualquer data" valor={txt(r.periodo) as TipoPeriodo | undefined} opcoes={PERIODOS} onEscolher={(v) => alterar({ periodo: v })} />
             {r.periodo === "personalizado" && <Datas r={r} alterar={alterar} de="data_inicio" ate="data_fim" />}
             <Escolha rotulo="Área" todos="Todas" valor={num(r.area_id)} opcoes={opcoes.data?.areas ?? []} onEscolher={(v) => alterar({ area_id: v, setor_id: undefined })} />
-            <Escolha rotulo="Setor" todos="Todos" valor={num(r.setor_id)} opcoes={setores} onEscolher={(v) => alterar({ setor_id: v })} />
+            <Escolha rotulo="Função/Cargo" todos="Todas" valor={num(r.setor_id)} opcoes={setores} onEscolher={(v) => alterar({ setor_id: v })} />
             <Escolha rotulo="Responsável" todos="Todos" valor={num(r.responsavel_id)} opcoes={opcoes.data?.responsaveis ?? []} onEscolher={(v) => alterar({ responsavel_id: v })} />
             <Escolha rotulo="Tipo" todos="Todos" valor={num(r.tipo_id)} opcoes={opcoes.data?.tipos ?? []} onEscolher={(v) => alterar({ tipo_id: v })} />
             <Escolha rotulo="Origem" todos="Todas" valor={num(r.origem_id)} opcoes={opcoes.data?.origens ?? []} onEscolher={(v) => alterar({ origem_id: v })} />
@@ -177,7 +177,7 @@ function RelatorioPlanos() {
               {p.nome}
             </Text>
             <Campo rotulo="Responsável" valor={p.responsavel.nome} />
-            <Campo rotulo="Área / Setor" valor={p.setor ? `${p.area.nome} / ${p.setor.nome}` : p.area.nome} />
+            <Campo rotulo="Área / Função/Cargo" valor={p.setor ? `${p.area.nome} / ${p.setor.nome}` : p.area.nome} />
             <Campo rotulo="Tipo · Origem" valor={`${p.tipo.nome} · ${p.origem.nome}`} />
             <Campo rotulo="Início → fim estimado" valor={`${formatarData(p.data_inicio_estimado)} → ${formatarData(p.data_fim_estimado)}`} />
             <Campo rotulo="Prioridade" valor={NOME_PRIORIDADE[p.prioridade]} />

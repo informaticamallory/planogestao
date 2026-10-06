@@ -143,9 +143,9 @@ export function ColaboradoresPage() {
               ))}
             </Select>
           </Field>
-          <Field id="c-setor" rotulo="Setor">
+          <Field id="c-setor" rotulo="Função/Cargo">
             <Select id="c-setor" value={form.setor_id} disabled={!form.area_id} onChange={(e) => mudar("setor_id", e.target.value)}>
-              <option value="">{form.area_id ? "Sem setor" : "Escolha a área antes"}</option>
+              <option value="">{form.area_id ? "Sem função/cargo" : "Escolha a área antes"}</option>
               {setores.map((s) => (
                 <option key={s.id} value={s.id}>
                   {s.nome}

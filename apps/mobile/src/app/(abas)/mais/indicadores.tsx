@@ -118,7 +118,7 @@ export default function IndicadoresScreen() {
           : ROTULO_PERIODO[filtros.periodo],
     },
     ...(filtros.area_id ? [{ chave: "area_id" as const, texto: `Área: ${nome(opcoes.data?.areas, filtros.area_id)}` }] : []),
-    ...(filtros.setor_id ? [{ chave: "setor_id" as const, texto: `Setor: ${nome(opcoes.data?.setores, filtros.setor_id)}` }] : []),
+    ...(filtros.setor_id ? [{ chave: "setor_id" as const, texto: `Função/Cargo: ${nome(opcoes.data?.setores, filtros.setor_id)}` }] : []),
     ...(filtros.responsavel_id ? [{ chave: "responsavel_id" as const, texto: `Resp.: ${nome(opcoes.data?.responsaveis, filtros.responsavel_id)}` }] : []),
   ];
   const removerChip = (chave: string) =>
@@ -287,7 +287,7 @@ export default function IndicadoresScreen() {
         />
 
         <CartaoGrafico
-          titulo="Planos por setor"
+          titulo="Planos por função/cargo"
           carregando={porSetor.isLoading}
           erro={!porSetor.data && porSetor.error}
           onTentar={() => void porSetor.refetch()}
@@ -296,7 +296,7 @@ export default function IndicadoresScreen() {
           grafico={() => <BarrasEmpilhadas series={SERIES_PLANOS} dados={porSetor.data ?? []} />}
           lista={() => (
             <Tabela
-              colunas={["Setor", "Total", "N. inic.", "Andam.", "Concl.", "Em atraso"]}
+              colunas={["Função/Cargo", "Total", "N. inic.", "Andam.", "Concl.", "Em atraso"]}
               linhas={(porSetor.data ?? []).map((s) => [s.nome, s.total, s.nao_iniciados, s.em_andamento, s.concluidos, s.em_atraso])}
             />
           )}

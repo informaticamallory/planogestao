@@ -102,7 +102,7 @@ export function DetalheAcao({ acaoId, compacto = false }: DetalheAcaoProps) {
             <dd>{acao.responsavel.nome}</dd>
           </div>
           <div>
-            <dt>Área / Setor</dt>
+            <dt>Área / Função/Cargo</dt>
             <dd>
               {acao.area.nome}
               {acao.setor && ` / ${acao.setor.nome}`}

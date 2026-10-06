@@ -44,7 +44,7 @@ export default function FormCadastro() {
   const enviar = () => {
     // Mesmas validações do web (CadastroSimples); o resto (duplicidade, em uso) vem da API.
     if (nome.trim().length < 2) return setErroLocal({ nome: "Informe um nome com pelo menos 2 caracteres." });
-    if (tipo === "setores" && !area) return setErroLocal({ area_id: "Selecione a área do setor." });
+    if (tipo === "setores" && !area) return setErroLocal({ area_id: "Selecione a área da função/cargo." });
     salvar.mutate(
       { nome: nome.trim(), ativo, ...(tipo === "setores" ? { area_id: area } : {}) },
       {
@@ -111,7 +111,7 @@ export default function FormCadastro() {
             }}
           />
           {(erroLocal.area_id ?? daApi.campos.area_id) && <Aviso tipo="erro" texto={(erroLocal.area_id ?? daApi.campos.area_id)!} />}
-          <Aviso tipo="info" texto="Um setor em uso não pode mudar de área." />
+          <Aviso tipo="info" texto="Uma função/cargo em uso não pode mudar de área." />
         </View>
       )}
       <Interruptor rotulo="Ativo" ajuda="Inativos não aparecem nas opções de novos cadastros." valor={ativo} onAlterar={setAtivo} />

@@ -521,13 +521,13 @@ class AcaoService:
             raise RegraAcao("Área inválida ou inativa.")
         setor = self.db.get(Setor, setor_id) if setor_id is not None else None
         if setor_id is not None and (setor is None or not setor.ativo):
-            raise RegraAcao("Setor inválido ou inativo.")
+            raise RegraAcao("Função/cargo inválida ou inativa.")
         if setor is not None and setor.area_id != area.id:
-            raise RegraAcao("O setor informado não pertence à área selecionada.")
+            raise RegraAcao("A função/cargo informada não pertence à área selecionada.")
         return area, setor
 
     def _atualizar_planejamento(self, acao: Acao, dados: AcaoAtualizar, perm: PermissoesAcao, avisos: list[str]) -> None:
-        """Prazo inicial estimado, área/setor e pré-requisitos. Só gestores; cada mudança vai para o histórico."""
+        """Prazo inicial estimado, área/função-cargo e pré-requisitos. Só gestores; cada mudança vai para o histórico."""
         enviados = dados.model_fields_set
 
         def exigir_gestor() -> None:

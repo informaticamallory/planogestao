@@ -21,7 +21,7 @@ interface Props {
   campoStatus?: ReactNode;
 }
 
-// Área e setor ficam em cada ação (etapa "Ações e Responsável"); a do plano vem da 1ª ação.
+// Área e função/cargo ficam em cada ação (etapa "Ações e Responsável"); a do plano vem da 1ª ação.
 export function EtapaIdentificacao({ form, alterar, erros, opcoes, codigo, campoStatus }: Props) {
   // Origem depende do tipo: só as compatíveis (Administração › Tipos de Plano).
   const origens = useOrigensDoTipo(form.tipo_id ? Number(form.tipo_id) : null);

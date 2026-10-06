@@ -1,5 +1,5 @@
 /**
- * Estrutura da ação: pré-requisitos ("Depende da conclusão de"), planejamento (área, setor,
+ * Estrutura da ação: pré-requisitos ("Depende da conclusão de"), planejamento (área, função/cargo,
  * prazo inicial estimado) e subações. As regras valem no backend; aqui só se mostra e se envia.
  */
 import type { AcaoDetalhe, AcaoDoPlano, AcaoAtualizar, RefAcao } from "@planogestao/shared-types";
@@ -220,7 +220,7 @@ export function BlocoPlanejamento({ acao }: { acao: AcaoDetalhe }) {
       {!editando ? (
         <>
           <dl className={styles.listaDatas}>
-            <dt>Área / Setor</dt>
+            <dt>Área / Função/Cargo</dt>
             <dd>
               {acao.area.nome}
               {acao.setor && ` / ${acao.setor.nome}`}
@@ -269,9 +269,9 @@ export function BlocoPlanejamento({ acao }: { acao: AcaoDetalhe }) {
               ))}
             </Select>
           </Field>
-          <Field id="plan-setor" rotulo="Setor">
+          <Field id="plan-setor" rotulo="Função/Cargo">
             <Select id="plan-setor" value={r.setor_id} onChange={(e) => setR({ ...r, setor_id: e.target.value })}>
-              <option value="">Nenhum</option>
+              <option value="">Nenhuma</option>
               {setores.map((o) => (
                 <option key={o.id} value={o.id}>
                   {o.nome}
@@ -336,7 +336,7 @@ export function BlocoPlanejamento({ acao }: { acao: AcaoDetalhe }) {
 
 /**
  * "Adicionar subação": o MESMO formulário das ações (cartões que contraem, mesmos campos e validações),
- * num painel lateral. O vínculo com o pai é automático; área/setor vêm sugeridos do pai (editáveis).
+ * num painel lateral. O vínculo com o pai é automático; área/função-cargo vêm sugeridos do pai (editáveis).
  */
 function DrawerNovasSubacoes({ acao, onFechar }: { acao: AcaoDetalhe; onFechar: () => void }) {
   const doPlano = useAcoesDoPlano(acao.plano.id, acao.plano_visivel).data ?? [];

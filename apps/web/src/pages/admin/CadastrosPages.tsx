@@ -1,24 +1,21 @@
-import type { AreaItem, OrigemItem, SetorItem, TipoPlanoItem } from "@planogestao/shared-types";
-import { useSearchParams } from "react-router-dom";
+import type { AreaItem, OrigemItem, TipoPlanoItem } from "@planogestao/shared-types";
 
 import styles from "../../components/admin/Admin.module.css";
 import { CadastroSimples } from "../../components/admin/CadastroSimples";
-import { Field } from "../../components/ui/Field";
 import { Checkbox } from "../../components/ui/Input";
-import { Select } from "../../components/ui/Select";
-import { useAreasAdmin, useOrigensAdmin, useSetoresAdmin, useTiposPlanoAdmin } from "../../hooks/useAdministracao";
+import { useAreasAdmin, useOrigensAdmin, useTiposPlanoAdmin } from "../../hooks/useAdministracao";
 import { api } from "../../services/api";
 
 export function AreasPage() {
   return (
     <CadastroSimples<AreaItem>
       titulo="Áreas"
-      descricao="Áreas da fábrica. Definem a visibilidade dos planos e agrupam setores e usuários."
+      descricao="Áreas da fábrica. Definem a visibilidade dos planos e agrupam funções/cargos e usuários."
       rotulo="área"
       feminino
       consulta={useAreasAdmin()}
       colunas={[
-        { titulo: "Setores", numerica: true, render: (a) => a.setores },
+        { titulo: "Funções/Cargos", numerica: true, render: (a) => a.setores },
         { titulo: "Usuários", numerica: true, render: (a) => a.usuarios },
         { titulo: "Planos", numerica: true, render: (a) => a.planos },
       ]}
@@ -28,61 +25,8 @@ export function AreasPage() {
   );
 }
 
-export function SetoresPage() {
-  const [params, setParams] = useSearchParams();
-  const areas = useAreasAdmin();
-  const filtroArea = Number(params.get("area_id")) || undefined;
-
-  return (
-    <CadastroSimples<SetorItem>
-      titulo="Setores"
-      descricao="Setores de cada área (onde o colaborador trabalha). Equipes de trabalho são cadastradas no módulo Equipes."
-      rotulo="setor"
-      consulta={useSetoresAdmin()}
-      filtrar={(s) => !filtroArea || s.area_id === filtroArea}
-      barra={
-        <label className={styles.filtro}>
-          Área
-          <Select compacto value={filtroArea ?? ""} onChange={(e) => setParams(e.target.value ? { area_id: e.target.value } : {}, { replace: true })}>
-            <option value="">Todas</option>
-            {areas.data?.map((a) => (
-              <option key={a.id} value={a.id}>
-                {a.nome}
-              </option>
-            ))}
-          </Select>
-        </label>
-      }
-      colunas={[
-        { titulo: "Área", render: (s) => s.area },
-        { titulo: "Usuários", numerica: true, render: (s) => s.usuarios },
-        { titulo: "Planos", numerica: true, render: (s) => s.planos },
-      ]}
-      extraInicial={(s) => ({ area_id: String(s?.area_id ?? filtroArea ?? "") })}
-      validarExtra={(f) => (f.extra.area_id ? null : "Selecione a área do setor.")}
-      camposExtras={(f, mudar) => (
-        <Field id="cad-area" rotulo="Área" obrigatorio className={styles.largo} ajuda="Um setor em uso não pode mudar de área.">
-          <Select id="cad-area" value={f.extra.area_id ?? ""} onChange={(e) => mudar("area_id", e.target.value)}>
-            <option value="">Selecione…</option>
-            {areas.data
-              ?.filter((a) => a.ativo || String(a.id) === f.extra.area_id)
-              .map((a) => (
-                <option key={a.id} value={a.id}>
-                  {a.nome}
-                  {!a.ativo && " (inativa)"}
-                </option>
-              ))}
-          </Select>
-        </Field>
-      )}
-      salvar={(id, f) => {
-        const corpo = { nome: f.nome, ativo: f.ativo, area_id: Number(f.extra.area_id) };
-        return id ? api.admin.setores.atualizar(id, corpo) : api.admin.setores.criar(corpo);
-      }}
-      excluir={api.admin.setores.excluir}
-    />
-  );
-}
+// Funções e Cargos (antiga página Setores): mesma rota e mesmo cadastro, listagem agrupada por área.
+export { FuncoesCargosPage as SetoresPage } from "./FuncoesCargosPage";
 
 // As origens marcadas ficam no campo extra como ids separados por vírgula.
 const idsDe = (texto: string | undefined) => (texto ? texto.split(",").filter(Boolean).map(Number) : []);

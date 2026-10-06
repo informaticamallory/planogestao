@@ -71,12 +71,12 @@ export function FolhaFiltros({
         valor={r.area_id}
         opcoes={opcoes?.areas ?? []}
         onEscolher={(area) => {
-          // Setor de outra área deixaria o conjunto vazio sem motivo aparente (mesma regra do web).
+          // Função/cargo de outra área deixaria o conjunto vazio sem motivo aparente (mesma regra do web).
           const setorValido = opcoes?.setores.some((s) => s.id === r.setor_id && s.area_id === area);
           mudar({ area_id: area, setor_id: area && !setorValido ? undefined : r.setor_id });
         }}
       />
-      <Escolha rotulo="Setor" todos="Todos" valor={r.setor_id} opcoes={setores} onEscolher={(v) => mudar({ setor_id: v })} />
+      <Escolha rotulo="Função/Cargo" todos="Todas" valor={r.setor_id} opcoes={setores} onEscolher={(v) => mudar({ setor_id: v })} />
       <Escolha rotulo="Responsável pelo plano" todos="Todos" valor={r.responsavel_id} opcoes={opcoes?.responsaveis ?? []} onEscolher={(v) => mudar({ responsavel_id: v })} />
 
       <View style={estilos.botoes}>

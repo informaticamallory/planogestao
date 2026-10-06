@@ -331,7 +331,7 @@ export const FONTES_INDICADORES: Fontes = {
       };
     },
   },
-  planos_por_setor: porDimensao("setor", "Setor"),
+  planos_por_setor: porDimensao("setor", "Função/Cargo"),
   planos_por_area: porDimensao("area", "Área"),
   planos_por_responsavel: porDimensao("responsavel", "Responsável"),
   planos_por_prioridade: porDimensao("prioridade", "Prioridade"),

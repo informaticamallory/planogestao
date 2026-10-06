@@ -211,7 +211,7 @@ class IndicadoresService:
             if dimensao == "area":
                 chave = (p.area_id, p.area_nome)
             elif dimensao == "setor":
-                chave = (p.setor_id, p.setor_nome or "Sem setor")
+                chave = (p.setor_id, p.setor_nome or "Sem função/cargo")
             elif dimensao == "responsavel":
                 chave = (p.responsavel_id, p.responsavel_nome)
             else:

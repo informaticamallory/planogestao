@@ -116,9 +116,9 @@ class PlanoEscritaService:
     def _validar_area_setor(self, area_id: int, setor_id: int | None, rotulo: str) -> None:
         self._exigir_ativo(Area, area_id, f"Área {rotulo}")
         if setor_id is not None:
-            setor = self._exigir_ativo(Setor, setor_id, f"Setor {rotulo}")
+            setor = self._exigir_ativo(Setor, setor_id, f"Função/Cargo {rotulo}")
             if setor.area_id != area_id:
-                raise RegraNegocio(f"O setor {rotulo} não pertence à área selecionada.")
+                raise RegraNegocio(f"A função/cargo {rotulo} não pertence à área selecionada.")
 
     def _validar_acoes(
         self, acoes: list[AcaoCriar], data_fim_estimado: date, plano_id: int | None = None, pai: Acao | None = None

@@ -1,4 +1,4 @@
-"""Cadastros de apoio: áreas, setores, tipos de plano, origens e a compatibilidade Tipo ↔ Origem.
+"""Cadastros de apoio: áreas, funções/cargos (tabela `setores`), tipos de plano, origens e Tipo ↔ Origem.
 
 Exclusão só quando o registro não está em uso; se estiver, 409 e a orientação é inativar
 (o histórico dos planos precisa continuar apontando para ele). Inativo some das opções de novos cadastros.
@@ -8,7 +8,7 @@ from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.models import Area, OrigemPlano, PlanoDeAcao, Setor, TipoPlano, Usuario
+from app.models import Acao, Area, OrigemPlano, PlanoDeAcao, Setor, TipoPlano, Usuario
 from app.services.erros import Conflito, NaoEncontrado, RegraInvalida
 
 
@@ -46,7 +46,7 @@ class CadastrosService:
     def _usos_area(self, area_id: int) -> dict[str, int]:
         return {
             "usuário(s)": _contar(self.db, Usuario.area_id, area_id),
-            "setor(es)": _contar(self.db, Setor.area_id, area_id),
+            "função(ões)/cargo(s)": _contar(self.db, Setor.area_id, area_id),
             "plano(s)": _contar(self.db, PlanoDeAcao.area_id, area_id),
         }
 
@@ -55,7 +55,8 @@ class CadastrosService:
 
     def _area(self, a: Area) -> dict:
         usos = self._usos_area(a.id)
-        return dict(id=a.id, nome=a.nome, ativo=a.ativo, usuarios=usos["usuário(s)"], setores=usos["setor(es)"], planos=usos["plano(s)"])
+        return dict(id=a.id, nome=a.nome, ativo=a.ativo, usuarios=usos["usuário(s)"], setores=usos["função(ões)/cargo(s)"],
+                    planos=usos["plano(s)"])
 
     def salvar_area(self, nome: str, ativo: bool, area_id: int | None = None) -> dict:
         area = self._obter(Area, area_id, "Área") if area_id else Area()
@@ -67,12 +68,14 @@ class CadastrosService:
     def excluir_area(self, area_id: int) -> None:
         self._excluir(self._obter(Area, area_id, "Área"), self._usos_area(area_id), "Área")
 
-    # ---- setores -----------------------------------------------------------------------------
+    # ---- funções/cargos (tabela `setores`, mesmos IDs e vínculos) --------------------------------
 
     def _usos_setor(self, setor_id: int) -> dict[str, int]:
         return {
             "usuário(s)": _contar(self.db, Usuario.setor_id, setor_id),
             "plano(s)": _contar(self.db, PlanoDeAcao.setor_id, setor_id),
+            # Ações também apontam para a função/cargo: em uso, não pode ser excluída.
+            "ação(ões)": _contar(self.db, Acao.setor_id, setor_id),
         }
 
     def _setor(self, s: Setor) -> dict:
@@ -88,20 +91,47 @@ class CadastrosService:
 
     def salvar_setor(self, nome: str, area_id: int, ativo: bool, setor_id: int | None = None) -> dict:
         area = self._obter(Area, area_id, "Área")
-        setor = self._obter(Setor, setor_id, "Setor") if setor_id else Setor()
+        setor = self._obter(Setor, setor_id, "Função/cargo") if setor_id else Setor()
         if setor_id and setor.area_id != area_id and any(self._usos_setor(setor_id).values()):
-            # Mover um setor em uso deixaria usuários/planos com área e setor inconsistentes.
-            raise RegraInvalida("Setor em uso não pode mudar de área. Crie um novo setor na outra área.")
+            # Mover uma função/cargo em uso deixaria usuários/planos com área e função/cargo inconsistentes.
+            raise RegraInvalida("Função/cargo em uso não pode mudar de área. Cadastre uma nova função/cargo na outra área.")
         if not setor_id and not area.ativo:
-            raise RegraInvalida("Não é possível criar setor em área inativa.")
+            raise RegraInvalida("Não é possível cadastrar função/cargo em área inativa.")
+        nome = nome.strip()
+        # Mesmo nome na mesma área, sem diferenciar maiúsculas/minúsculas e espaços nas pontas (em outra área, pode).
+        chave = nome.casefold()
+        repetido = next(
+            (s for s in self.db.scalars(select(Setor).where(Setor.area_id == area_id, Setor.id != (setor_id or 0)))
+             if s.nome.strip().casefold() == chave),
+            None,
+        )
+        if repetido is not None:
+            raise Conflito(f"Já existe a função/cargo “{repetido.nome}” na área {area.nome}.")
         setor.nome, setor.area_id, setor.ativo = nome, area_id, ativo
         self.db.add(setor)
-        self._commit(f"Já existe o setor “{nome}” nesta área.")
+        self._commit(f"Já existe a função/cargo “{nome}” nesta área.")
         self.db.refresh(setor)
         return self._setor(setor)
 
     def excluir_setor(self, setor_id: int) -> None:
-        self._excluir(self._obter(Setor, setor_id, "Setor"), self._usos_setor(setor_id), "Setor")
+        self._excluir(self._obter(Setor, setor_id, "Função/cargo"), self._usos_setor(setor_id), "Função/cargo")
+
+    def funcoes_por_area(self) -> list[dict]:
+        """Uma linha por área (inclusive sem funções/cargos), com totais SEM repetir usuário ou plano."""
+        areas = list(self.db.scalars(select(Area).order_by(Area.nome)))
+        n_funcoes = dict(self.db.execute(select(Setor.area_id, func.count(Setor.id)).group_by(Setor.area_id)).all())
+        usuarios = dict(self.db.execute(
+            select(Setor.area_id, func.count(func.distinct(Usuario.id))).join(Usuario, Usuario.setor_id == Setor.id).group_by(Setor.area_id)
+        ).all())
+        planos = dict(self.db.execute(
+            select(Setor.area_id, func.count(func.distinct(PlanoDeAcao.id)))
+            .join(PlanoDeAcao, PlanoDeAcao.setor_id == Setor.id).group_by(Setor.area_id)
+        ).all())
+        return [
+            dict(id=a.id, nome=a.nome, ativo=a.ativo, funcoes=n_funcoes.get(a.id, 0), usuarios=usuarios.get(a.id, 0),
+                 planos=planos.get(a.id, 0))
+            for a in areas
+        ]
 
     # ---- tipos de plano ----------------------------------------------------------------------
 

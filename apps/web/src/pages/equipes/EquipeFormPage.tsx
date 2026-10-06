@@ -26,7 +26,7 @@ type Erros = Partial<Record<"nome" | "area_id" | "supervisor", string>>;
 
 const vazio: Form = { nome: "", area_id: "", setor_id: "", supervisor: null, descricao: "", ativo: true };
 
-/** Mesmas regras do backend (EquipeSalvar); ele revalida e decide o resto (duplicidade, setor da área). */
+/** Mesmas regras do backend (EquipeSalvar); ele revalida e decide o resto (duplicidade, função/cargo da área). */
 function validar(f: Form): Erros {
   const e: Erros = {};
   if (f.nome.trim().split(/\s+/).join(" ").length < 2) e.nome = "Informe um nome com pelo menos 2 caracteres.";
@@ -119,9 +119,9 @@ export function EquipeFormPage() {
               ))}
             </Select>
           </Field>
-          <Field id="eq-setor" rotulo="Setor (opcional)">
+          <Field id="eq-setor" rotulo="Função/Cargo (opcional)">
             <Select id="eq-setor" value={form.setor_id} disabled={!form.area_id} onChange={(e) => mudar("setor_id", e.target.value)}>
-              <option value="">{form.area_id ? "Sem setor" : "Escolha a área antes"}</option>
+              <option value="">{form.area_id ? "Sem função/cargo" : "Escolha a área antes"}</option>
               {setores.map((s) => (
                 <option key={s.id} value={s.id}>
                   {s.nome}

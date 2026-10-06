@@ -23,19 +23,19 @@ export const CADASTROS: Record<
     titulo: "Áreas",
     rotulo: "área",
     feminino: true,
-    descricao: "Áreas da fábrica. Definem a visibilidade dos planos e agrupam setores e usuários.",
+    descricao: "Áreas da fábrica. Definem a visibilidade dos planos e agrupam funções/cargos e usuários.",
     detalhe: (i) => {
       const a = i as AreaItem;
-      return `${a.setores} setor(es) · ${a.usuarios} usuário(s) · ${a.planos} plano(s)`;
+      return `${a.setores} função(ões)/cargo(s) · ${a.usuarios} usuário(s) · ${a.planos} plano(s)`;
     },
     salvar: (id, c) => (id ? api.admin.areas.atualizar(id, { nome: c.nome, ativo: c.ativo }) : api.admin.areas.criar({ nome: c.nome, ativo: c.ativo })),
     excluir: api.admin.areas.excluir,
   },
   setores: {
-    titulo: "Setores",
-    rotulo: "setor",
-    feminino: false,
-    descricao: "Setores de cada área (onde o colaborador trabalha). Equipes de trabalho são cadastradas no módulo Equipes.",
+    titulo: "Funções e Cargos",
+    rotulo: "função/cargo",
+    feminino: true,
+    descricao: "Funções e cargos de cada área (onde o colaborador trabalha). Equipes de trabalho são cadastradas no módulo Equipes.",
     detalhe: (i) => {
       const s = i as SetorItem;
       return `${s.area} · ${s.usuarios} usuário(s) · ${s.planos} plano(s)`;

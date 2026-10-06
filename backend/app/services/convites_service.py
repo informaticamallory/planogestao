@@ -126,7 +126,7 @@ class ConvitesService:
         if setor_id is not None:
             setor = self.db.get(Setor, setor_id)
             if setor is None or not setor.ativo or setor.area_id != area.id:
-                raise RegraInvalida("O setor informado não pertence à área de lotação.")
+                raise RegraInvalida("A função/cargo informada não pertence à área de lotação (ou está inativa).")
         if todas and permitidas is not None:
             raise RegraInvalida("Você não pode conceder “Todas as áreas”: essa abrangência não é sua.")
         ids = sorted(set(areas_ids))

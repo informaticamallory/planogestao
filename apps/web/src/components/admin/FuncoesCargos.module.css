@@ -1,0 +1,125 @@
+/* Funções e Cargos: linha da área expansível + painel com as funções/cargos (mesmo padrão da tabela do kit). */
+.linhaArea {
+  cursor: pointer;
+}
+
+.linhaArea:hover {
+  background: var(--cor-fundo);
+}
+
+.expandir {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--espaco-2);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.expandir:focus-visible {
+  outline: 2px solid var(--cor-primaria);
+  outline-offset: 2px;
+  border-radius: var(--raio-1);
+}
+
+.nomeArea {
+  font-weight: 600;
+}
+
+.linhaPainel > td {
+  padding: 0 !important;
+  background: var(--cor-superficie-2);
+}
+
+.painel {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--espaco-3);
+  padding: var(--espaco-3) var(--espaco-4) var(--espaco-4) calc(var(--espaco-4) + 1.5rem);
+}
+
+.lista {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto auto auto;
+  align-items: center;
+  gap: var(--espaco-3);
+  padding: var(--espaco-2) 0;
+  border-bottom: var(--borda-fina) solid var(--cor-borda);
+  white-space: normal;
+}
+
+.item:last-child {
+  border-bottom: 0;
+}
+
+.item[data-inativo] .nomeFuncao {
+  color: var(--cor-texto-suave);
+}
+
+.nomeFuncao {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.contagem {
+  font-size: var(--fonte-sm);
+  color: var(--cor-texto-suave);
+  white-space: nowrap;
+}
+
+.vazio {
+  margin: 0;
+  color: var(--cor-texto-suave);
+}
+
+.metaCelular {
+  display: none;
+}
+
+/* Celular: sem rolagem lateral. As colunas numéricas somem (totais embaixo do nome da área) e cada
+   função/cargo vira um bloco: nome; contagens e situação; botões. */
+@media (--mobile) {
+  .colNum {
+    display: none;
+  }
+
+  .metaCelular {
+    display: block;
+    margin-top: var(--espaco-1);
+    font-size: var(--fonte-xs);
+    color: var(--cor-texto-suave);
+  }
+
+  .painel {
+    padding: var(--espaco-3);
+  }
+
+  .item {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--espaco-1) var(--espaco-3);
+  }
+
+  .nomeFuncao {
+    flex: 1 0 100%;
+    font-weight: 600;
+  }
+
+  .item > :last-child {
+    flex: 1 0 100%;
+    justify-content: flex-start;
+  }
+}

@@ -142,9 +142,9 @@ export function DrawerFiltrosPlanos({ aberto, filtros, onFechar, onAplicar }: Dr
           </Select>
         </Field>
 
-        <Field id="filtro-setor" rotulo="Setor">
+        <Field id="filtro-setor" rotulo="Função/Cargo">
           <Select id="filtro-setor" value={r.setor_id ?? ""} onChange={(e) => mudar("setor_id", idOuNulo(e.target.value))}>
-            <option value="">Todos</option>
+            <option value="">Todas</option>
             {setores.map((o) => (
               <option key={o.id} value={o.id}>
                 {o.nome}

@@ -86,7 +86,7 @@ export function EquipeDetalhePage() {
               {e.setor && (
                 <>
                   {" "}
-                  · setor <strong>{e.setor.nome}</strong>
+                  · função/cargo <strong>{e.setor.nome}</strong>
                 </>
               )}
             </span>
@@ -244,7 +244,7 @@ function AbaMembros({
             <tr>
               <th scope="col">Membro</th>
               <th scope="col">Papel</th>
-              <th scope="col">Área / setor</th>
+              <th scope="col">Área / Função/Cargo</th>
               <th scope="col">Na equipe desde</th>
               {podeGerenciar && (
                 <th scope="col" data-acoes>

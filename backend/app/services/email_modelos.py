@@ -34,7 +34,7 @@ _VARIAVEIS_COMUNS = {
     "titulo_pa": "Nome do Plano de Ação.",
     "responsavel": "Responsável pelo registro criado.",
     "area": "Área do registro.",
-    "setor": f"Setor do registro ({VAZIO} quando não houver).",
+    "setor": f"Função/cargo do registro ({VAZIO} quando não houver).",
     "prazo_inicial": "Prazo inicial estimado (dd/mm/aaaa).",
     "prazo_conclusao": "Prazo de conclusão (dd/mm/aaaa).",
     "criado_por": "Quem cadastrou o registro.",
@@ -57,7 +57,7 @@ class DefModelo:
 
 _RODAPE_DADOS = """Responsável: {{responsavel}}
 Área: {{area}}
-Setor: {{setor}}
+Função/Cargo: {{setor}}
 Prazo inicial estimado: {{prazo_inicial}}
 Prazo de conclusão: {{prazo_conclusao}}
 Criado por: {{criado_por}}"""

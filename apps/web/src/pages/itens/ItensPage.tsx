@@ -57,7 +57,7 @@ export function ItensPage() {
                 <th scope="col">Nº</th>
                 <th scope="col">Item</th>
                 <th scope="col">Responsável</th>
-                <th scope="col">Área / Setor</th>
+                <th scope="col">Área / Função/Cargo</th>
                 <th scope="col">Início estimado</th>
                 <th scope="col">Prazo de conclusão</th>
                 <th scope="col">Status</th>

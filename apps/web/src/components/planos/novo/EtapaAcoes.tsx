@@ -41,7 +41,7 @@ const periodo = (a: AcaoForm) =>
 
 /**
  * Lista editável de ações (wizard e "Adicionar ações" num plano existente).
- * Cada ação é um cartão que contrai: o cabeçalho resume número, descrição, área/setor, responsável,
+ * Cada ação é um cartão que contrai: o cabeçalho resume número, descrição, área/função-cargo, responsável,
  * prazos e status. Ao adicionar uma ação, as outras contraem e a nova abre. Contrair não apaga nada
  * (o estado fica no formulário); cartões com erro ficam abertos para o erro aparecer.
  */
@@ -202,7 +202,7 @@ export function EtapaAcoes({ acoes, onAlterar, fimEstimado, prioridadePadrao, er
                   <Select
                     {...fieldAria(id("area"), erro("area_id"))}
                     value={acao.area_id}
-                    // Trocar de área invalida o setor escolhido.
+                    // Trocar de área invalida a função/cargo escolhida.
                     onChange={(e) => mudarAcao(acao.chave, { area_id: e.target.value, setor_id: "" })}
                   >
                     <option value="">Selecione…</option>
@@ -214,14 +214,14 @@ export function EtapaAcoes({ acoes, onAlterar, fimEstimado, prioridadePadrao, er
                   </Select>
                 </Field>
 
-                <Field id={id("setor")} rotulo="Setor" ajuda={acao.area_id ? undefined : "Escolha a área primeiro."}>
+                <Field id={id("setor")} rotulo="Função/Cargo" ajuda={acao.area_id ? undefined : "Escolha a área primeiro."}>
                   <Select
                     id={id("setor")}
                     value={acao.setor_id}
                     disabled={!acao.area_id}
                     onChange={(e) => mudarAcao(acao.chave, { setor_id: e.target.value })}
                   >
-                    <option value="">Nenhum</option>
+                    <option value="">Nenhuma</option>
                     {setores.map((o) => (
                       <option key={o.id} value={o.id}>
                         {o.nome}

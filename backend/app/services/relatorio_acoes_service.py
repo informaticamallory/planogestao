@@ -154,7 +154,7 @@ class RelatorioAcoesService:
             Coluna("Depende de", lambda a: a.depende_de, 12),
             Coluna("Responsável", lambda a: a.responsavel, 18),
             Coluna("Área", lambda a: a.area, 16),
-            Coluna("Setor", lambda a: a.setor, 16),
+            Coluna("Função/Cargo", lambda a: a.setor, 16),
             Coluna("Início estimado", lambda a: a.prazo_inicio, 11, "data"),
             Coluna("Prazo de conclusão", lambda a: a.prazo, 11, "data"),
             Coluna("Início real", lambda a: a.iniciada_em, 16, "data_hora"),

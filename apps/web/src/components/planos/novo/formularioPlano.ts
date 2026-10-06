@@ -62,7 +62,7 @@ export function hojeIso(): string {
   return paraIsoData(new Date());
 }
 
-/** Nova ação; herda área/setor da ação anterior (costuma ser a mesma equipe). */
+/** Nova ação; herda área/função-cargo da ação anterior (costuma ser a mesma equipe). */
 export function novaAcao(prioridade: Prioridade | "", anterior?: AcaoForm): AcaoForm {
   return {
     chave: crypto.randomUUID(),
@@ -118,7 +118,7 @@ export function validarEtapa1(f: PlanoForm): Erros {
   if (f.nome.trim().length < 3) e.nome = "Informe o nome do plano (mínimo 3 caracteres).";
   if (!f.tipo_id) e.tipo_id = "Selecione o tipo.";
   if (!f.origem_id) e.origem_id = "Selecione a origem.";
-  // Área/setor são escolhidos em cada ação (etapa "Ações e Responsável").
+  // Área/função-cargo são escolhidos em cada ação (etapa "Ações e Responsável").
   if (!f.responsavel) e.responsavel = "Selecione o responsável.";
   if (!f.prioridade) e.prioridade = "Selecione a prioridade.";
   if (!f.data_inicio_estimado) e.data_inicio_estimado = "Informe o início estimado.";

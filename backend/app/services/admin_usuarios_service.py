@@ -79,9 +79,9 @@ class UsuariosAdminService:
         if dados.setor_id is not None:
             setor = self.db.get(Setor, dados.setor_id)
             if setor is None or (not setor.ativo and (usuario is None or usuario.setor_id != setor.id)):
-                raise RegraInvalida("Setor inválido ou inativo.")
+                raise RegraInvalida("Função/cargo inválida ou inativa.")
             if setor.area_id != dados.area_id:
-                raise RegraInvalida("O setor informado não pertence à área selecionada.")
+                raise RegraInvalida("A função/cargo informada não pertence à área selecionada.")
         if dados.areas_autorizadas is not None:
             ids = set(dados.areas_autorizadas)
             atuais = {a.id for a in usuario.areas_autorizadas} if usuario else set()

@@ -8,7 +8,7 @@ const ITENS: { titulo: string; descricao: string; icone: NomeIcone; rota: Href }
   { titulo: "Usuários", descricao: "Cadastro, perfil, área e acesso.", icone: "users", rota: "/mais/admin/usuarios" },
   { titulo: "Perfis", descricao: "Permissões por módulo e ação.", icone: "shield", rota: "/mais/admin/perfis" },
   { titulo: "Áreas", descricao: "Áreas da fábrica.", icone: "listChecks", rota: { pathname: "/mais/admin/cadastros/[tipo]", params: { tipo: "areas" } } },
-  { titulo: "Setores", descricao: "Setores de cada área.", icone: "users", rota: { pathname: "/mais/admin/cadastros/[tipo]", params: { tipo: "setores" } } },
+  { titulo: "Funções e Cargos", descricao: "Funções e cargos de cada área.", icone: "users", rota: { pathname: "/mais/admin/cadastros/[tipo]", params: { tipo: "setores" } } },
   { titulo: "Tipos de Plano", descricao: "Classificação dos planos de ação.", icone: "fileText", rota: { pathname: "/mais/admin/cadastros/[tipo]", params: { tipo: "tipos" } } },
   { titulo: "Configurações", descricao: "Parâmetros globais do sistema.", icone: "clock", rota: "/mais/admin/configuracoes" },
 ];

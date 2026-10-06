@@ -115,7 +115,7 @@ CATALOGO: dict[Tela, dict[str, DefDado]] = {
             _grafico("acoes_por_status", "Ações por status", _CATEGORIAS),
             _grafico("cumprimento_prazo", "Cumprimento de prazo", _CATEGORIAS),
             _grafico("evolucao_mensal", "Evolução dos planos (mensal)", _SERIE_TEMPORAL, (6, 8)),
-            _grafico("planos_por_setor", "Planos por setor", _EMPILHADO, (6, 8)),
+            _grafico("planos_por_setor", "Planos por função/cargo", _EMPILHADO, (6, 8)),
             _grafico("planos_por_area", "Planos por área", _EMPILHADO, (6, 8)),
             _grafico("planos_por_responsavel", "Planos por responsável", _EMPILHADO, (6, 8)),
             _grafico("planos_por_prioridade", "Planos por prioridade", _EMPILHADO, (6, 8)),

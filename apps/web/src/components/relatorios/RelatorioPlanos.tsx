@@ -88,8 +88,8 @@ export function RelatorioPlanos() {
                 opcoes={(opcoes.data?.areas ?? []).map((a) => ({ valor: a.id, rotulo: a.nome }))}
               />
               <CampoSelect
-                rotulo="Setor"
-                vazio="Todos"
+                rotulo="Função/Cargo"
+                vazio="Todas"
                 valor={r.setor_id as number | undefined}
                 onAlterar={(v) => alterar({ setor_id: idOuUndefined(v) })}
                 opcoes={setores.map((s) => ({ valor: s.id, rotulo: s.nome }))}
@@ -163,7 +163,7 @@ export function RelatorioPlanos() {
                 <th>Status</th>
                 <th>Prazo</th>
                 <th>Prioridade</th>
-                <th>Área / Setor</th>
+                <th>Área / Função/Cargo</th>
                 <th>Tipo</th>
                 <th>Origem</th>
                 <th>Responsável</th>

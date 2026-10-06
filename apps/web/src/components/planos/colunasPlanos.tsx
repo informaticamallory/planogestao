@@ -51,7 +51,7 @@ export const COLUNAS_PLANOS: ColunaPlano[] = [
   },
   { id: "responsavel", titulo: "Responsável", ordenacao: "responsavel", visivelPorPadrao: true, render: (p) => p.responsavel.nome },
   { id: "area", titulo: "Área", ordenacao: "area", visivelPorPadrao: true, render: (p) => p.area.nome },
-  { id: "setor", titulo: "Setor", visivelPorPadrao: false, render: (p) => p.setor?.nome ?? "—" },
+  { id: "setor", titulo: "Função/Cargo", visivelPorPadrao: false, render: (p) => p.setor?.nome ?? "—" },
   { id: "tipo", titulo: "Tipo", visivelPorPadrao: false, render: (p) => p.tipo.nome },
   { id: "origem", titulo: "Origem", visivelPorPadrao: false, render: (p) => p.origem.nome },
   {

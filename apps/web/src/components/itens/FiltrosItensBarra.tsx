@@ -22,7 +22,7 @@ interface Props {
 
 /**
  * Filtros da listagem de itens (ações e sub-itens), espelhados na URL.
- * Área/setor/responsável/status/prazo são do ITEM; o período usa a data escolhida em "Data do período".
+ * Área/função-cargo/responsável/status/prazo são do ITEM; o período usa a data escolhida em "Data do período".
  */
 export function FiltrosItensBarra({ filtros: f, onAlterar, onLimpar, comNivel = false }: Props) {
   const opcoes = useOpcoesPlanos().data;
@@ -54,8 +54,8 @@ export function FiltrosItensBarra({ filtros: f, onAlterar, onLimpar, comNivel = 
           opcoes={(opcoes?.areas ?? []).map((a) => ({ valor: a.id, rotulo: a.nome }))}
         />
         <CampoSelect
-          rotulo="Setor (do item)"
-          vazio="Todos"
+          rotulo="Função/Cargo (do item)"
+          vazio="Todas"
           valor={f.setor_id ?? undefined}
           onAlterar={(v) => onAlterar({ setor_id: idOuUndefined(v) })}
           opcoes={setores.map((s) => ({ valor: s.id, rotulo: s.nome }))}

@@ -46,7 +46,7 @@ const CORES: { id: CorDestaque | null; rotulo: string; amostra: string }[] = [
 
 /**
  * A conta do próprio usuário: dados pessoais, aparência e senha.
- * Perfil de acesso, área e setor não aparecem aqui de propósito: são definidos só pela Administração.
+ * Perfil de acesso, área e função/cargo não aparecem aqui de propósito: são definidos só pela Administração.
  */
 export function MeuPerfilPage() {
   const usuario = useAuthStore((s) => s.usuario);

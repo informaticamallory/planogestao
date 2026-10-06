@@ -123,7 +123,7 @@ class PlanoService:
             Coluna("Arquivado", lambda p: "Sim" if p.arquivado else "Não", 9),
             Coluna("Prioridade", lambda p: ROTULO_PRIORIDADE[p.prioridade.value], 10),
             Coluna("Área", lambda p: p.area.nome, 14),
-            Coluna("Setor", lambda p: p.setor.nome if p.setor else None, 16),
+            Coluna("Função/Cargo", lambda p: p.setor.nome if p.setor else None, 16),
             Coluna("Tipo", lambda p: p.tipo.nome, 12),
             Coluna("Origem", lambda p: p.origem.nome, 18),
             Coluna("Responsável", lambda p: p.responsavel.nome, 18),
@@ -156,7 +156,7 @@ class PlanoService:
         for rotulo, model, valor in (
             ("responsável", Usuario, f.responsavel_id),
             ("área", Area, f.area_id),
-            ("setor", Setor, f.setor_id),
+            ("função/cargo", Setor, f.setor_id),
             ("tipo", TipoPlano, f.tipo_id),
             ("origem", OrigemPlano, f.origem_id),
             ("equipe", Equipe, f.equipe_id),

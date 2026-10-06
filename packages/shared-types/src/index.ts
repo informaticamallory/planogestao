@@ -99,6 +99,7 @@ export type RegraPontuacao = Schemas["RegraPontuacao"];
 export type OpcoesGamificacao = Schemas["OpcoesGamificacao"];
 export type PremioSaida = Schemas["PremioSaida"];
 export type PendenciasAreas = Schemas["PendenciasAreas"];
+export type AreaComFuncoes = Schemas["AreaComFuncoes"];
 export type ConviteItem = Schemas["ConviteItem"];
 export type OpcoesConvite = Schemas["OpcoesConvite"];
 export type ConviteVerificado = Schemas["ConviteVerificado"];

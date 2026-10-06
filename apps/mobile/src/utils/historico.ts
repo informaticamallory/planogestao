@@ -10,7 +10,7 @@ const CAMPOS_ACAO: Record<string, string> = {
   prazo: "o prazo de conclusão",
   prazo_inicio: "o prazo inicial estimado",
   area: "a área",
-  setor: "o setor",
+  setor: "a função/cargo",
   depende_de: "os pré-requisitos",
   responsavel_id: "o responsável",
   observacao: "a observação",

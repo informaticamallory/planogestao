@@ -73,7 +73,7 @@ export function IndicadoresPage() {
         <div>
           <h1 className={styles.titulo}>Indicadores</h1>
           <p className={styles.subtitulo}>
-            PAs ativos criados no período (arquivados ficam de fora), filtrados pela área, setor e responsável do plano. Ações
+            PAs ativos criados no período (arquivados ficam de fora), filtrados pela área, função/cargo e responsável do plano. Ações
             principais e sub-itens de todos os níveis contam uma vez cada; recusados e cancelados ficam de fora.
             {gerais.isFetching && !gerais.isLoading && " Atualizando…"}
           </p>
@@ -108,7 +108,7 @@ export function IndicadoresPage() {
               compacto
               value={filtros.area_id ?? ""}
               onChange={(e) => {
-                // Setor de outra área deixaria o conjunto vazio sem motivo aparente.
+                // Função/cargo de outra área deixaria o conjunto vazio sem motivo aparente.
                 const area = Number(e.target.value) || undefined;
                 const setorValido = opcoes.data?.setores.some((s) => s.id === filtros.setor_id && s.area_id === area);
                 atualizar({ area_id: e.target.value || null, setor_id: area && !setorValido ? null : params.get("setor_id") });
@@ -123,9 +123,9 @@ export function IndicadoresPage() {
             </Select>
           </label>
           <label className={styles.campo}>
-            <span className={styles.rotulo}>Setor</span>
+            <span className={styles.rotulo}>Função/Cargo</span>
             <Select compacto value={filtros.setor_id ?? ""} onChange={(e) => atualizar({ setor_id: e.target.value || null })}>
-              <option value="">Todos</option>
+              <option value="">Todas</option>
               {setores.map((s) => (
                 <option key={s.id} value={s.id}>
                   {s.nome}

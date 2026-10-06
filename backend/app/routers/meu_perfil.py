@@ -54,7 +54,7 @@ class UsuarioSelfUpdate(BaseModel):
             if proibidos:
                 raise ValueError(
                     f"Campo(s) não permitido(s) no próprio perfil: {', '.join(proibidos)}. "
-                    "Perfil de acesso, área, setor e e-mail são alterados só pela Administração."
+                    "Perfil de acesso, área, função/cargo e e-mail são alterados só pela Administração."
                 )
         return dados
 

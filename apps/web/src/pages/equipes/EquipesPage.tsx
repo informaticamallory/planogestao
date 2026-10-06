@@ -133,7 +133,7 @@ export function EquipesPage() {
             <thead>
               <tr>
                 <th scope="col">Equipe</th>
-                <th scope="col">Área / setor</th>
+                <th scope="col">Área / Função/Cargo</th>
                 <th scope="col">Supervisor</th>
                 <th scope="col" data-numerico>
                   Membros

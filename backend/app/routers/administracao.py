@@ -155,6 +155,17 @@ class SetorItem(BaseModel):
     planos: int
 
 
+class AreaComFuncoes(BaseModel):
+    """Linha da página Funções e Cargos: totais da área sem contar o mesmo usuário/plano duas vezes."""
+
+    id: int
+    nome: str
+    ativo: bool
+    funcoes: int
+    usuarios: int
+    planos: int
+
+
 class ReferenciaCadastro(BaseModel):
     id: int
     nome: str
@@ -211,6 +222,12 @@ setores_router = APIRouter(prefix="/setores", tags=["administracao"])
 @setores_router.get("", response_model=list[SetorItem])
 def listar_setores(_: UsuarioCadastros, area_id: int | None = None, db: Session = Depends(get_db)):
     return CadastrosService(db).listar_setores(area_id)
+
+
+@setores_router.get("/por-area", response_model=list[AreaComFuncoes])
+def funcoes_por_area(_: UsuarioCadastros, db: Session = Depends(get_db)):
+    """Funções e Cargos agrupados: uma linha por área cadastrada, com a quantidade de funções/cargos."""
+    return CadastrosService(db).funcoes_por_area()
 
 
 @setores_router.post("", response_model=SetorItem, status_code=status.HTTP_201_CREATED)

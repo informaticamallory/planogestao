@@ -2138,6 +2138,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/setores/por-area": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Funcoes Por Area
+         * @description Funções e Cargos agrupados: uma linha por área cadastrada, com a quantidade de funções/cargos.
+         */
+        get: operations["funcoes_por_area_setores_por_area_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/setores/{setor_id}": {
         parameters: {
             query?: never;
@@ -2733,6 +2753,24 @@ export interface components {
              * Format: date-time
              */
             criado_em: string;
+        };
+        /**
+         * AreaComFuncoes
+         * @description Linha da página Funções e Cargos: totais da área sem contar o mesmo usuário/plano duas vezes.
+         */
+        AreaComFuncoes: {
+            /** Id */
+            id: number;
+            /** Nome */
+            nome: string;
+            /** Ativo */
+            ativo: boolean;
+            /** Funcoes */
+            funcoes: number;
+            /** Usuarios */
+            usuarios: number;
+            /** Planos */
+            planos: number;
         };
         /** AreaConvite */
         AreaConvite: {
@@ -10482,6 +10520,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    funcoes_por_area_setores_por_area_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AreaComFuncoes"][];
                 };
             };
         };

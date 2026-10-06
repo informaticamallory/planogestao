@@ -166,7 +166,7 @@ export function AbaAcoes({ plano, filtroCategoria, onFiltrar }: Props) {
               <tr>
                 <th scope="col">Nº</th>
                 <th scope="col">Ação</th>
-                <th scope="col">Área / Setor</th>
+                <th scope="col">Área / Função/Cargo</th>
                 <th scope="col">Responsável</th>
                 <th scope="col">Início estimado</th>
                 <th scope="col">Prazo de conclusão</th>
@@ -345,7 +345,7 @@ function SeloAguardando({ acao }: { acao: AcaoDoPlano }) {
 }
 
 function DrawerNovasAcoes({ plano, acoesExistentes, onFechar }: { plano: PlanoDetalhe; acoesExistentes: AcaoDoPlano[]; onFechar: () => void }) {
-  // A 1ª nova ação parte da área/setor do plano.
+  // A 1ª nova ação parte da área/função-cargo do plano.
   const [acoes, setAcoes] = useState<AcaoForm[]>(() => [
     { ...novaAcao(plano.prioridade), area_id: String(plano.area.id), setor_id: plano.setor ? String(plano.setor.id) : "" },
   ]);

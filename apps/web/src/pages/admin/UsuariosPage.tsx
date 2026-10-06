@@ -43,7 +43,7 @@ function validar(f: Form, criando: boolean): Erros {
   if (f.nome.trim().split(/\s+/).join(" ").length < 3) e.nome = "Informe o nome completo.";
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(f.email.trim())) e.email = "E-mail inválido.";
   if (!f.perfil_id) e.perfil_id = "Selecione o perfil.";
-  if (f.setor_id && !f.area_id) e.setor_id = "Selecione a área do setor.";
+  if (f.setor_id && !f.area_id) e.setor_id = "Selecione a área da função/cargo.";
   if (criando && !f.senha) e.senha = "Informe a senha inicial.";
   if (f.senha && (f.senha.length < 8 || !/[A-Za-z]/.test(f.senha) || !/\d/.test(f.senha)))
     e.senha = "Mínimo de 8 caracteres, com letras e números.";
@@ -286,7 +286,7 @@ export function UsuariosPage() {
               <tr>
                 <th scope="col">Nome</th>
                 <th scope="col">Perfil</th>
-                <th scope="col">Área / setor</th>
+                <th scope="col">Área / Função/Cargo</th>
                 <th scope="col">Último acesso</th>
                 <th scope="col">Situação</th>
                 <th scope="col" data-acoes>
@@ -419,12 +419,14 @@ export function UsuariosPage() {
                 ))}
             </Select>
           </Field>
-          <Field id="u-setor" rotulo="Setor" erro={erros.setor_id}>
+          <Field id="u-setor" rotulo="Função/Cargo" erro={erros.setor_id} ajuda="Não altera o perfil de acesso nem as áreas autorizadas.">
             <Select {...fieldAria("u-setor", erros.setor_id)} value={form.setor_id} disabled={!form.area_id} onChange={(e) => mudar("setor_id", e.target.value)}>
-              <option value="">{form.area_id ? "Sem setor" : "Escolha a área antes"}</option>
+              <option value="">{form.area_id ? "Sem função/cargo" : "Escolha a área antes"}</option>
+              {/* Só as ativas da área; uma inativa já vinculada continua visível (e identificada) na edição. */}
               {setoresDaArea.map((s) => (
                 <option key={s.id} value={s.id}>
                   {s.nome}
+                  {!s.ativo && " (inativa)"}
                 </option>
               ))}
             </Select>

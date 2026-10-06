@@ -125,7 +125,7 @@ export function GamificacaoPage() {
               compacto
               value={filtros.area_id ?? ""}
               onChange={(e) => {
-                // Setor/equipe de outra área deixaria o ranking vazio sem motivo aparente.
+                // Função/cargo ou equipe de outra área deixaria o ranking vazio sem motivo aparente.
                 const area = Number(e.target.value) || undefined;
                 const setorValido = opcoes.data?.setores.some((s) => s.id === filtros.setor_id && s.area_id === area);
                 const equipeValida = opcoes.data?.equipes.some((q) => q.id === filtros.equipe_id && q.area_id === area);
@@ -145,9 +145,9 @@ export function GamificacaoPage() {
             </Select>
           </label>
           <label className={styles.campo}>
-            <span className={styles.rotulo}>Setor</span>
+            <span className={styles.rotulo}>Função/Cargo</span>
             <Select compacto value={filtros.setor_id ?? ""} onChange={(e) => atualizar({ setor_id: e.target.value || null })}>
-              <option value="">Todos</option>
+              <option value="">Todas</option>
               {setores.map((s) => (
                 <option key={s.id} value={s.id}>
                   {s.nome}

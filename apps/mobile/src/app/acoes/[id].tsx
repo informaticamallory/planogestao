@@ -151,7 +151,7 @@ export default function DetalheAcaoScreen() {
         <View style={estilos.metadados}>
           <Meta rotulo="Responsável" valor={acao.responsavel.nome} />
           <Meta rotulo="Área" valor={acao.area.nome} />
-          {acao.setor && <Meta rotulo="Setor" valor={acao.setor.nome} />}
+          {acao.setor && <Meta rotulo="Função/Cargo" valor={acao.setor.nome} />}
           <Meta rotulo="Início estimado" valor={acao.prazo_inicio ? formatarData(acao.prazo_inicio) : "—"} />
           <Meta rotulo="Prazo de conclusão" valor={descreverPrazo(acao)} />
           <Meta rotulo="Início real" valor={acao.iniciada_em ? formatarDataHora(acao.iniciada_em) : "—"} />

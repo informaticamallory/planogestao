@@ -44,7 +44,7 @@ function validar(f: Form, criando: boolean): Erros {
   if (f.nome.trim().split(/\s+/).join(" ").length < 3) e.nome = "Informe o nome completo.";
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(f.email.trim())) e.email = "E-mail inválido.";
   if (!f.perfil_id) e.perfil_id = "Selecione o perfil.";
-  if (f.setor_id && !f.area_id) e.setor_id = "Selecione a área do setor.";
+  if (f.setor_id && !f.area_id) e.setor_id = "Selecione a área da função/cargo.";
   if (f.avatar_url.trim() && !/^(https?:\/\/|\/usuarios\/fotos\/)/.test(f.avatar_url.trim())) e.avatar_url = "Use um endereço http(s).";
   if (criando && !f.senha) e.senha = "Informe a senha inicial.";
   if (f.senha && (f.senha.length < 8 || !/[A-Za-z]/.test(f.senha) || !/\d/.test(f.senha))) e.senha = "Mínimo de 8 caracteres, com letras e números.";
@@ -166,7 +166,7 @@ export default function FormUsuario() {
       <Escolha rotulo="Área" todos="Sem área" valor={form.area_id} opcoes={areasOpcoes} onEscolher={(v) => mudar("area_id", v)} />
       {form.area_id ? (
         <View style={{ gap: 4 }}>
-          <Escolha rotulo="Setor" todos="Sem setor" valor={form.setor_id} opcoes={setoresDaArea} onEscolher={(v) => mudar("setor_id", v)} />
+          <Escolha rotulo="Função/Cargo" todos="Sem função/cargo" valor={form.setor_id} opcoes={setoresDaArea} onEscolher={(v) => mudar("setor_id", v)} />
           {erroDe("setor_id") && <Aviso tipo="erro" texto={erroDe("setor_id")!} />}
         </View>
       ) : null}

@@ -12,7 +12,7 @@ export interface FiltroPlanos {
   periodo?: TipoPeriodo;
 }
 
-/** Áreas, setores e responsáveis (GET /opcoes/planos), para os filtros. Muda pouco: cache de 5 min. */
+/** Áreas, funções/cargos e responsáveis (GET /opcoes/planos), para os filtros. Muda pouco: cache de 5 min. */
 export const useOpcoesPlanos = () =>
   useQuery({ queryKey: ["opcoes", "planos"], queryFn: () => api.planos.opcoes(), staleTime: 5 * 60_000 });
 

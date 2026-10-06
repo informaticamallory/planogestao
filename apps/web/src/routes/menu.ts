@@ -38,7 +38,7 @@ export const MENU_ADMINISTRACAO: GrupoMenu = {
     { titulo: "Perfis", caminho: "/admin/perfis", permissao: "admin:perfis", icone: "shield" },
     // Cadastros: permissão atribuível (Administrador e Gestor por padrão), não exclusiva do Administrador.
     { titulo: "Áreas", caminho: "/admin/areas", permissao: "cadastros:gerenciar", icone: "building" },
-    { titulo: "Setores", caminho: "/admin/setores", permissao: "cadastros:gerenciar", icone: "layout" },
+    { titulo: "Funções e Cargos", caminho: "/admin/setores", permissao: "cadastros:gerenciar", icone: "layout" },
     { titulo: "Tipos de Plano", caminho: "/admin/tipos-plano", permissao: "cadastros:gerenciar", icone: "folder" },
     { titulo: "Origens", caminho: "/admin/origens", permissao: "cadastros:gerenciar", icone: "flag" },
     { titulo: "Configurações", caminho: "/admin/configuracoes", permissao: "admin:configuracoes", icone: "settings" },

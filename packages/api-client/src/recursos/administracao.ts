@@ -54,6 +54,8 @@ export function criarAdministracao(http: HttpClient) {
     },
     setores: {
       listar: async (areaId?: number) => exigirDados(await http.GET("/setores", { params: { query: { area_id: areaId } } })),
+      /** Funções e Cargos: uma linha por área, com totais sem repetir usuário/plano. */
+      porArea: async () => exigirDados(await http.GET("/setores/por-area")),
       criar: async (body: SetorSalvar) => exigirDados(await http.POST("/setores", { body })),
       atualizar: async (setorId: number, body: SetorSalvar) =>
         exigirDados(await http.PUT("/setores/{setor_id}", { ...id("setor_id", setorId), body })),

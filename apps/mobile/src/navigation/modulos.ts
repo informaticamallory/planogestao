@@ -14,7 +14,7 @@ export interface ModuloMais {
 
 export const MODULOS_MAIS: ModuloMais[] = [
   { id: "planos", titulo: "Planos de Ação", descricao: "Listagem, detalhe e acompanhamento dos planos.", icone: "listChecks", permissao: "planos:ver" },
-  { id: "equipes", titulo: "Equipes", descricao: "Colaboradores por área e setor.", icone: "users", permissao: "equipes:ver" },
+  { id: "equipes", titulo: "Equipes", descricao: "Colaboradores por área e função/cargo.", icone: "users", permissao: "equipes:ver" },
   { id: "gamificacao", titulo: "Gamificação & Eficiência", descricao: "Pódio, pontuação e ranking do período.", icone: "trophy", permissao: "gamificacao:ver" },
   { id: "indicadores", titulo: "Indicadores", descricao: "Gráficos de planos e ações por período.", icone: "barChart", permissao: "indicadores:ver" },
   { id: "relatorios", titulo: "Relatórios", descricao: "Relatórios de planos e ações com exportação.", icone: "fileText", permissao: "relatorios:ver" },

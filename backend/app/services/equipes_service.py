@@ -112,7 +112,7 @@ class EquipesService:
         if d.setor_id is not None:
             setor = self.db.get(Setor, d.setor_id)
             if setor is None or setor.area_id != d.area_id:
-                raise RegraInvalida("O setor escolhido não pertence à área da equipe.")
+                raise RegraInvalida("A função/cargo escolhida não pertence à área da equipe.")
         supervisor = self.db.get(Usuario, d.supervisor_id)
         if supervisor is None or not supervisor.ativo:
             raise RegraInvalida("Escolha um supervisor ativo.")
