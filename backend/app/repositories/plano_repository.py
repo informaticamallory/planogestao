@@ -8,7 +8,7 @@ from app.models import (
     Acao,
     AcaoHistorico,
     Area,
-    EquipeMembro,
+    Equipe,
     OrigemPlano,
     PlanoAnexo,
     PlanoDeAcao,
@@ -38,7 +38,7 @@ class FiltrosPlanos:
     setor_id: int | None = None
     tipo_id: int | None = None
     origem_id: int | None = None
-    # Planos cujo responsável é membro da equipe.
+    # Plano vinculado à equipe.
     equipe_id: int | None = None
     periodo: Periodo | None = None
     meus: bool = False
@@ -135,8 +135,8 @@ class PlanoRepository:
                 condicoes.append(coluna == valor)
 
         if f.equipe_id is not None:
-            membros = select(EquipeMembro.usuario_id).where(EquipeMembro.equipe_id == f.equipe_id)
-            condicoes.append(PlanoDeAcao.responsavel_id.in_(membros))
+            # O plano ao qual a equipe está vinculada (não os planos de cada participante).
+            condicoes.append(PlanoDeAcao.id.in_(select(Equipe.plano_id).where(Equipe.id == f.equipe_id)))
 
         if f.meus:
             condicoes.append(PlanoDeAcao.responsavel_id == usuario_id)

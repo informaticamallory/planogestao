@@ -295,6 +295,7 @@ class PermissoesPlano(BaseModel):
     enviar_anexos: bool
     excluir: bool = Field(default=False, description="planos:excluir + poder editar o plano.")
     concluir: bool = Field(default=False, description="Confirmar a conclusão de um plano apto (objetivo atingido).")
+    gerenciar_equipes: bool = Field(default=False, description="Criar e alterar as equipes deste plano.")
 
 
 class PlanoDetalhe(PlanoResumo):

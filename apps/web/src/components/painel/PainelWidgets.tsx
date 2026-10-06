@@ -64,7 +64,7 @@ export function PainelWidgets({
   onColunas,
 }: {
   painel: Painel;
-  /** Dados disponíveis nesta tela; widgets de dados sem fonte (ex.: não fornecidos na aba da equipe) não aparecem. */
+  /** Dados disponíveis nesta tela; widgets de dados sem fonte não aparecem. */
   fontes: Fontes;
   somenteLeitura?: boolean;
   /** Informa quantas colunas o grid está usando (a página habilita "Personalizar" só com 12). */

@@ -359,9 +359,10 @@ class PlanoEscritaService:
     # ---- plano existente -------------------------------------------------------------
 
     def _plano_visivel(self, plano_id: int) -> PlanoDeAcao:
+        # Escrita: a participação em equipe não conta (ela só dá leitura do plano).
         plano = self.db.scalar(
             select(PlanoDeAcao).where(
-                PlanoDeAcao.id == plano_id, filtro_planos_visiveis(self.usuario, incluir_arquivados=True)
+                PlanoDeAcao.id == plano_id, filtro_planos_visiveis(self.usuario, incluir_arquivados=True, via_equipe=False)
             )
         )
         if plano is None:
@@ -477,7 +478,7 @@ class PlanoEscritaService:
 
     def arquivar(self, plano_id: int, arquivar: bool) -> PlanoDetalhe:
         plano = self._plano_visivel(plano_id)
-        if not pode_arquivar(self.usuario):
+        if not pode_arquivar(self.usuario, plano):
             raise SemPermissao
         if arquivar and plano.arquivado_em is None:
             plano.arquivado_em = utcnow()

@@ -7,7 +7,7 @@ import { api } from "../services/api";
 const opcoes = { placeholderData: keepPreviousData };
 const k = (recurso: string, f: FiltrosIndicadores, ...extra: unknown[]) => ["indicadores", recurso, f, ...extra] as const;
 
-// `ativo = false`: não consulta (ex.: a aba da equipe usa o endpoint agregado no lugar).
+// `ativo = false`: não consulta.
 export const useIndicadoresGerais = (f: FiltrosIndicadores, ativo = true) =>
   useQuery({ queryKey: k("gerais", f), queryFn: () => api.indicadores.gerais(f), enabled: ativo, ...opcoes });
 

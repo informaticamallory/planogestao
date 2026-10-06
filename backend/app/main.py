@@ -29,7 +29,7 @@ from app.routers import (
     usuarios,
 )
 from app.services.canais import configurar_canais
-from app.services.erros import Conflito, NaoEncontrado, RegraInvalida
+from app.services.erros import Conflito, NaoEncontrado, Proibido, RegraInvalida
 
 settings = get_settings()
 configurar_canais()
@@ -93,7 +93,7 @@ for _r in (administracao.perfis_router, administracao.areas_router, administraca
 
 
 # Erros de domínio dos cadastros -> HTTP (mesmo formato {"detail": ...} do FastAPI).
-_STATUS_ERRO = {NaoEncontrado: status.HTTP_404_NOT_FOUND, Conflito: status.HTTP_409_CONFLICT,
+_STATUS_ERRO = {NaoEncontrado: status.HTTP_404_NOT_FOUND, Proibido: status.HTTP_403_FORBIDDEN, Conflito: status.HTTP_409_CONFLICT,
                RegraInvalida: status.HTTP_422_UNPROCESSABLE_ENTITY}
 
 

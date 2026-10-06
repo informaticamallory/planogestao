@@ -7,7 +7,7 @@ from app.models.configuracao import Configuracao
 from app.models.dispositivo import DeviceToken
 from app.models.email_config import ConfigEmail, HistoricoConfigEmail, ModeloEmail
 from app.models.envio_email import EnvioEmail, SituacaoEnvio
-from app.models.equipe import Equipe, EquipeMembro
+from app.models.equipe import Equipe, EquipeHistorico, EquipeMembro
 from app.models.estrutura import Area, Setor
 from app.models.gamificacao import (
     CategoriaPontuacao,
@@ -45,6 +45,7 @@ __all__ = [
     "ModeloEmail",
     "SituacaoEnvio",
     "Equipe",
+    "EquipeHistorico",
     "EquipeMembro",
     "CategoriaPontuacao",
     "GamificacaoAuditoria",

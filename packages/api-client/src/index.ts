@@ -11,5 +11,5 @@ export type { ConsultaRelatorioAcoes, ConsultaRelatorioPlanos } from "./recursos
 export type { ConsultaNotificacoes } from "./recursos/notificacoes";
 export type { FiltrosAuditoria, FiltrosGamificacao } from "./recursos/gamificacao";
 export type { NovoConvite } from "./recursos/colaboradores";
-export type { ConsultaEquipes, PeriodoEquipe } from "./recursos/equipes";
+export type { ConsultaEquipes } from "./recursos/equipes";
 export type { ConsultaUsuariosAdmin } from "./recursos/administracao";

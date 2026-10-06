@@ -17,7 +17,7 @@ export interface FiltrosGamificacao {
   area_id?: number;
   /** Setor do colaborador. */
   setor_id?: number;
-  /** Equipe cadastrada (módulo Equipes): só os membros dela. */
+  /** Equipe visível ao usuário: só os participantes dela, com a pontuação geral de cada um. */
   equipe_id?: number;
 }
 

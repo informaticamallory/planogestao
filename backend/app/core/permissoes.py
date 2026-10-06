@@ -58,8 +58,10 @@ PERMISSOES: list[DefPermissao] = [
     # Exigem também ser gestor do plano/item (responsável, criador, quem aprova prazos ou "Editar planos").
     DefPermissao("acoes:arquivar", "acoes", "outra", "Arquivar e desarquivar ações e sub-itens"),
     DefPermissao("acoes:excluir", "acoes", "excluir", "Excluir ações e sub-itens"),
-    DefPermissao("equipes:ver", "equipes", "visualizar", "Visualizar equipes"),
-    DefPermissao("equipes:gerenciar", "equipes", "editar", "Criar, editar e excluir equipes e seus membros"),
+    # Equipes são de um plano. Ver: as equipes das quais participa (com acesso ao plano) ou que gerencia.
+    # Gerenciar: equipes dos planos que o usuário gerencia (responsável, autor ou "Editar planos"), nas áreas autorizadas.
+    DefPermissao("equipes:ver", "equipes", "visualizar", "Visualizar equipes (das quais participa ou que gerencia)"),
+    DefPermissao("equipes:gerenciar", "equipes", "editar", "Criar, editar e excluir equipes dos planos que gerencia"),
     DefPermissao("calendario:ver", "calendario", "visualizar", "Visualizar calendário"),
     DefPermissao("indicadores:ver", "indicadores", "visualizar", "Visualizar indicadores"),
     DefPermissao("relatorios:ver", "relatorios", "visualizar", "Visualizar e exportar relatórios"),

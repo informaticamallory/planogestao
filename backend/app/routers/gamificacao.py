@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.deps import get_current_user, require_permission
-from app.core.tempo import como_utc
+from app.core.tempo import como_utc, hoje_local
 from app.models import Usuario
 from app.models.enums import ReferenciaNotificacao
 from app.models.gamificacao import CategoriaPontuacao, GamificacaoPeriodo, SituacaoPeriodo
@@ -18,6 +18,7 @@ from app.routers.relatorios import _arquivo
 from app.services.exportacao import Aba, Coluna, gerar_arquivo
 from app.services.gamificacao_apuracao import ApuracaoService, linha_relatorio
 from app.services.gamificacao_service import FiltrosGamificacao, GamificacaoService, PeriodoNaoEncontrado
+from app.services.equipes_service import EquipesService
 
 router = APIRouter(prefix="/gamificacao", tags=["gamificacao"])
 
@@ -46,8 +47,14 @@ def filtros_query(
     periodo_id: int | None = Query(default=None, description="Período de apuração. Sem ele: o que contém hoje."),
     area_id: int | None = Query(default=None, description="Área do colaborador."),
     setor_id: int | None = Query(default=None, description="Setor do colaborador."),
-    equipe_id: int | None = Query(default=None, description="Equipe cadastrada: só os membros dela."),
+    equipe_id: int | None = Query(
+        default=None, description="Equipe visível ao usuário: só os participantes dela, com a pontuação geral de cada um."
+    ),
+    usuario: Usuario = Depends(get_current_user),
+    db: Session = Depends(get_db),
 ) -> FiltrosGamificacao:
+    if equipe_id is not None and equipe_id not in EquipesService(db, usuario, hoje_local()).ids_visiveis():
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Equipe não encontrada.")
     return FiltrosGamificacao(periodo_id=periodo_id, area_id=area_id, setor_id=setor_id, equipe_id=equipe_id)
 
 
@@ -393,8 +400,12 @@ def regras(_: UsuarioGamificacao, db: Session = Depends(get_db)):
 
 
 @router.get("/opcoes", response_model=OpcoesGamificacao)
-def opcoes(_: UsuarioGamificacao, db: Session = Depends(get_db)):
-    return GamificacaoService(db).opcoes()
+def opcoes(usuario: UsuarioGamificacao, db: Session = Depends(get_db)):
+    dados = GamificacaoService(db).opcoes()
+    # Equipes: só as que o usuário pode ver (participa ou gerencia), como na página Equipes.
+    visiveis = EquipesService(db, usuario, hoje_local()).ids_visiveis(somente_ativas=True)
+    dados["equipes"] = [e for e in dados["equipes"] if e["id"] in visiveis]
+    return dados
 
 
 # ---- períodos e prêmios ----------------------------------------------------------------------

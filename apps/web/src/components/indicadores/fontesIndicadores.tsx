@@ -1,12 +1,9 @@
 /**
  * Dados do painel dos Indicadores, por tipo_dado (catálogo do backend: /preferencias/indicadores).
  * Mesmos endpoints da Fase 9; cada fonte só converte a resposta para uma forma de widget.
- *
- * A aba Indicadores da equipe reaproveita o mesmo painel com o endpoint agregado
- * (/equipes/{id}/indicadores): o contexto informa `agregado` e as consultas individuais não rodam.
  */
 import type { FiltrosIndicadores } from "@planogestao/api-client";
-import type { IndicadoresEquipe } from "@planogestao/shared-types";
+import type { IndicadoresGerais } from "@planogestao/shared-types";
 import type { UseQueryResult } from "@tanstack/react-query";
 import { createContext, useContext } from "react";
 
@@ -27,31 +24,16 @@ import { formatarMesAno } from "../../utils/datas";
 import { ROTULO_STATUS_EXECUCAO, TOKEN_PRAZO, TOKEN_STATUS_EXECUCAO, type StatusExecucao } from "../../utils/rotulos";
 import type { ConteudoWidget, FonteWidget, Fontes, ResultadoFonte, SerieDef } from "../painel/tipos";
 
-interface Agregado {
-  data: IndicadoresEquipe | undefined;
-  isLoading: boolean;
-  isFetching: boolean;
-  error: unknown;
-}
-
 export interface ContextoIndicadores {
   filtros: FiltrosIndicadores;
-  agregado?: Agregado;
-  mensagemSemPendencias?: string;
 }
 
 export const ContextoFonteIndicadores = createContext<ContextoIndicadores>({ filtros: { periodo: "ano" } });
 
-type Parte = Exclude<keyof IndicadoresEquipe, "membros">;
-
-/** A consulta da página ou a parte correspondente do endpoint agregado da equipe. */
-function useConsulta<T>(usar: (f: FiltrosIndicadores, ativo: boolean) => UseQueryResult<T>, parte: Parte | null) {
+/** A consulta do widget, com os filtros da página. */
+function useConsulta<T>(usar: (f: FiltrosIndicadores, ativo: boolean) => UseQueryResult<T>) {
   const ctx = useContext(ContextoFonteIndicadores);
-  const q = usar(ctx.filtros, !ctx.agregado);
-  if (ctx.agregado && parte) {
-    const a = ctx.agregado;
-    return { data: a.data?.[parte] as T | undefined, isLoading: a.isLoading, isFetching: a.isFetching, error: a.error };
-  }
+  const q = usar(ctx.filtros, true);
   return { data: q.data, isLoading: q.isLoading, isFetching: q.isFetching, error: q.error };
 }
 
@@ -63,12 +45,12 @@ const estado = (q: { isLoading: boolean; isFetching: boolean; error: unknown }) 
 const pct = (v: number | null | undefined) => (v === null || v === undefined ? "—" : `${v.toLocaleString("pt-BR")}%`);
 const dias = (v: number | null | undefined) => (v === null || v === undefined ? "—" : `${v.toLocaleString("pt-BR")} dias`);
 
-type Gerais = IndicadoresEquipe["gerais"];
+type Gerais = IndicadoresGerais;
 
 function kpi(montar: (g: Gerais) => Extract<ConteudoWidget, { forma: "numero" }>): FonteWidget {
   return {
     useDado: () => {
-      const q = useConsulta(useIndicadoresGerais, "gerais");
+      const q = useConsulta(useIndicadoresGerais);
       return { ...estado(q), conteudo: q.data && montar(q.data) };
     },
   };
@@ -107,7 +89,7 @@ const ROTULO_PRIORIDADE: Record<string, string> = { critica: "Crítica", alta: "
 function porDimensao(dimensao: "setor" | "area" | "responsavel" | "prioridade", rotulo: string): FonteWidget {
   return {
     useDado: () => {
-      const q = useConsulta((f, ativo) => usePlanosPor(dimensao, f, ativo), null);
+      const q = useConsulta((f, ativo) => usePlanosPor(dimensao, f, ativo));
       return {
         ...estado(q),
         vazio: q.data?.length === 0,
@@ -163,7 +145,7 @@ const COMUNS: Fontes = {
 
   planos_por_status: {
     useDado: () => {
-      const q = useConsulta(usePlanosPorStatus, "planos_por_status");
+      const q = useConsulta(usePlanosPorStatus);
       const total = q.data?.reduce((s, x) => s + x.total, 0);
       return {
         ...estado(q),
@@ -180,7 +162,7 @@ const COMUNS: Fontes = {
 
   planos_por_prazo: {
     useDado: () => {
-      const q = useConsulta(usePlanosPorPrazo, "planos_por_prazo");
+      const q = useConsulta(usePlanosPorPrazo);
       const total = q.data?.reduce((s, x) => s + x.total, 0);
       return {
         ...estado(q),
@@ -198,7 +180,7 @@ const COMUNS: Fontes = {
 
   acoes_por_status: {
     useDado: () => {
-      const q = useConsulta(useAcoesPorStatus, "acoes_por_status");
+      const q = useConsulta(useAcoesPorStatus);
       return {
         ...estado(q),
         vazio: q.data?.every((s) => s.total === 0),
@@ -214,7 +196,7 @@ const COMUNS: Fontes = {
 
   cumprimento_prazo: {
     useDado: () => {
-      const q = useConsulta(useCumprimentoPrazo, "cumprimento_prazo");
+      const q = useConsulta(useCumprimentoPrazo);
       const d = q.data;
       return {
         ...estado(q),
@@ -236,7 +218,7 @@ const COMUNS: Fontes = {
 
   evolucao_mensal: {
     useDado: () => {
-      const q = useConsulta(useEvolucaoMensal, "evolucao_mensal");
+      const q = useConsulta(useEvolucaoMensal);
       return {
         ...estado(q),
         vazio: q.data?.length === 0,
@@ -258,12 +240,11 @@ const COMUNS: Fontes = {
 
   responsaveis_pendencias: {
     useDado: (): ResultadoFonte => {
-      const ctx = useContext(ContextoFonteIndicadores);
-      const q = useConsulta(useResponsaveisComPendencias, "responsaveis_com_pendencias");
+      const q = useConsulta(useResponsaveisComPendencias);
       return {
         ...estado(q),
         vazio: q.data?.length === 0,
-        mensagemVazio: ctx.mensagemSemPendencias ?? "Nenhuma ação em aberto nos planos filtrados.",
+        mensagemVazio: "Nenhuma ação em aberto nos planos filtrados.",
         conteudo: q.data && {
           forma: "empilhado",
           rotuloGrupo: "Responsável",
@@ -295,7 +276,7 @@ export const FONTES_INDICADORES: Fontes = {
   ...COMUNS,
   itens_por_nivel: {
     useDado: () => {
-      const q = useConsulta(useItensPorNivel, null);
+      const q = useConsulta(useItensPorNivel);
       return {
         ...estado(q),
         vazio: q.data?.length === 0,
@@ -306,7 +287,7 @@ export const FONTES_INDICADORES: Fontes = {
   },
   subitens_por_responsavel: {
     useDado: () => {
-      const q = useConsulta(useSubitensPorResponsavel, null);
+      const q = useConsulta(useSubitensPorResponsavel);
       return {
         ...estado(q),
         vazio: q.data?.length === 0,
@@ -317,7 +298,7 @@ export const FONTES_INDICADORES: Fontes = {
   },
   itens_por_plano: {
     useDado: () => {
-      const q = useConsulta(useItensPorPlano, null);
+      const q = useConsulta(useItensPorPlano);
       return {
         ...estado(q),
         vazio: q.data?.length === 0,
@@ -337,5 +318,3 @@ export const FONTES_INDICADORES: Fontes = {
   planos_por_prioridade: porDimensao("prioridade", "Prioridade"),
 };
 
-/** Aba da equipe: o endpoint agregado não traz os agrupamentos por dimensão. */
-export const FONTES_INDICADORES_EQUIPE: Fontes = COMUNS;

@@ -1300,6 +1300,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/equipes/opcoes/planos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Opcoes Planos
+         * @description Planos ativos cujas equipes o usuário gerencia (responsável, autor ou "Editar planos", nas áreas autorizadas).
+         */
+        get: operations["opcoes_planos_equipes_opcoes_planos_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/equipes/opcoes/participantes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Opcoes Participantes
+         * @description Contas ativas, sem convite pendente, com "Visualizar planos" e a área do plano entre as autorizadas.
+         */
+        get: operations["opcoes_participantes_equipes_opcoes_participantes_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/equipes/{equipe_id}": {
         parameters: {
             query?: never;
@@ -1312,35 +1352,17 @@ export interface paths {
         /** Atualizar */
         put: operations["atualizar_equipes__equipe_id__put"];
         post?: never;
-        /** Excluir */
+        /**
+         * Excluir
+         * @description Exclusão lógica. Plano, ações, responsáveis e usuários não mudam.
+         */
         delete: operations["excluir_equipes__equipe_id__delete"];
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/equipes/{equipe_id}/membros": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Membros */
-        get: operations["membros_equipes__equipe_id__membros_get"];
-        put?: never;
-        /**
-         * Adicionar Membros
-         * @description Adiciona um ou vários usuários (todos com o mesmo papel). Quem já é membro é ignorado.
-         */
-        post: operations["adicionar_membros_equipes__equipe_id__membros_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/equipes/{equipe_id}/membros/{usuario_id}": {
+    "/equipes/{equipe_id}/situacao": {
         parameters: {
             query?: never;
             header?: never;
@@ -1348,17 +1370,33 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        /** Atualizar Membro */
-        put: operations["atualizar_membro_equipes__equipe_id__membros__usuario_id__put"];
+        put?: never;
         post?: never;
-        /** Remover Membro */
-        delete: operations["remover_membro_equipes__equipe_id__membros__usuario_id__delete"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Alterar Situacao */
+        patch: operations["alterar_situacao_equipes__equipe_id__situacao_patch"];
+        trace?: never;
+    };
+    "/equipes/{equipe_id}/historico": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Historico */
+        get: operations["historico_equipes__equipe_id__historico_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/equipes/{equipe_id}/indicadores": {
+    "/equipes/{equipe_id}/desempenho": {
         parameters: {
             query?: never;
             header?: never;
@@ -1366,10 +1404,10 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Indicadores
-         * @description Mesmos cálculos dos Indicadores (Fase 9), com o recorte: planos e ações cujo responsável é membro.
+         * Desempenho
+         * @description Só as ações principais do plano vinculado atribuídas aos participantes (critério no campo `criterio`).
          */
-        get: operations["indicadores_equipes__equipe_id__indicadores_get"];
+        get: operations["desempenho_equipes__equipe_id__desempenho_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2730,13 +2768,6 @@ export interface components {
             /** Avisos */
             avisos: string[];
         };
-        /** AdicionarMembros */
-        AdicionarMembros: {
-            /** Usuario Ids */
-            usuario_ids: number[];
-            /** Papel Na Equipe */
-            papel_na_equipe?: string | null;
-        };
         /** AnexoResumo */
         AnexoResumo: {
             /** Id */
@@ -2824,11 +2855,6 @@ export interface components {
             acao_descricao: string;
             plano: components["schemas"]["ReferenciaPlano"];
         };
-        /** AtualizarMembro */
-        AtualizarMembro: {
-            /** Papel Na Equipe */
-            papel_na_equipe?: string | null;
-        };
         /** BloqueioSaida */
         BloqueioSaida: {
             /** Tipo */
@@ -2891,6 +2917,21 @@ export interface components {
          * @enum {string}
          */
         CampoData: "criacao" | "prazo";
+        /** CandidatoEquipe */
+        CandidatoEquipe: {
+            /** Id */
+            id: number;
+            /** Nome */
+            nome: string;
+            /** Email */
+            email: string;
+            /** Avatar Url */
+            avatar_url: string | null;
+            /** Area */
+            area: string | null;
+            /** Funcao Cargo */
+            funcao_cargo: string | null;
+        };
         /** CatalogoPermissoes */
         CatalogoPermissoes: {
             /** Modulos */
@@ -3161,6 +3202,47 @@ export interface components {
              */
             origem_ids: number[];
         };
+        /** DesempenhoEquipe */
+        DesempenhoEquipe: {
+            /** Disponivel */
+            disponivel: boolean;
+            /**
+             * Criterio
+             * @description O que entra no cálculo (exibido na tela).
+             */
+            criterio: string;
+            /** Plano Arquivado */
+            plano_arquivado: boolean;
+            /**
+             * Acoes Do Plano
+             * @description Ações principais válidas do plano (todas, de qualquer responsável).
+             */
+            acoes_do_plano: number;
+            geral: components["schemas"]["ResumoDesempenho"];
+            /** Participantes */
+            participantes: components["schemas"]["DesempenhoParticipante"][];
+        };
+        /** DesempenhoParticipante */
+        DesempenhoParticipante: {
+            /** Total */
+            total: number;
+            /** Concluidas */
+            concluidas: number;
+            /** Concluidas No Prazo */
+            concluidas_no_prazo: number;
+            /** Concluidas Com Atraso */
+            concluidas_com_atraso: number;
+            /** Em Aberto */
+            em_aberto: number;
+            /** Em Atraso */
+            em_atraso: number;
+            /** Percentual No Prazo */
+            percentual_no_prazo: number | null;
+            /** Usuario Id */
+            usuario_id: number;
+            /** Nome */
+            nome: string;
+        };
         /** DiaCalendario */
         DiaCalendario: {
             /**
@@ -3236,44 +3318,130 @@ export interface components {
             /** Proxima Tentativa Em */
             proxima_tentativa_em: string | null;
         };
+        /** EquipeDetalhe */
+        EquipeDetalhe: {
+            /** Id */
+            id: number;
+            /** Nome */
+            nome: string;
+            /** Descricao */
+            descricao: string | null;
+            /** Ativo */
+            ativo: boolean;
+            /** @description Nulo: equipe antiga, sem plano vinculado. */
+            plano: components["schemas"]["PlanoDaEquipe"] | null;
+            /** @description Área do plano (ou do cadastro antigo, se não houver plano). */
+            area: components["schemas"]["Opcao"];
+            coordenador: components["schemas"]["Opcao"];
+            /** Total Participantes */
+            total_participantes: number;
+            /**
+             * Pode Gerenciar
+             * @description Editar, ativar/inativar e excluir (o backend revalida).
+             */
+            pode_gerenciar: boolean;
+            /**
+             * Somente Leitura
+             * @description Motivo de não aceitar alterações (ex.: plano arquivado).
+             */
+            somente_leitura: string | null;
+            criado_por: components["schemas"]["Opcao"] | null;
+            /**
+             * Criado Em
+             * Format: date-time
+             */
+            criado_em: string;
+            /**
+             * Atualizado Em
+             * Format: date-time
+             */
+            atualizado_em: string;
+            /** Participantes */
+            participantes: components["schemas"]["ParticipanteEquipe"][];
+        };
         /** EquipeItem */
         EquipeItem: {
             /** Id */
             id: number;
             /** Nome */
             nome: string;
-            area: components["schemas"]["Opcao"];
-            setor: components["schemas"]["Opcao"] | null;
-            supervisor: components["schemas"]["Opcao"];
             /** Descricao */
             descricao: string | null;
             /** Ativo */
             ativo: boolean;
-            /** Membros */
-            membros: number;
+            /** @description Nulo: equipe antiga, sem plano vinculado. */
+            plano: components["schemas"]["PlanoDaEquipe"] | null;
+            /** @description Área do plano (ou do cadastro antigo, se não houver plano). */
+            area: components["schemas"]["Opcao"];
+            coordenador: components["schemas"]["Opcao"];
+            /** Total Participantes */
+            total_participantes: number;
             /**
-             * Desempenho
-             * @description % de ações no prazo das ações dos membros, no período.
+             * Pode Gerenciar
+             * @description Editar, ativar/inativar e excluir (o backend revalida).
              */
-            desempenho: number | null;
+            pode_gerenciar: boolean;
+            /**
+             * Somente Leitura
+             * @description Motivo de não aceitar alterações (ex.: plano arquivado).
+             */
+            somente_leitura: string | null;
+            criado_por: components["schemas"]["Opcao"] | null;
+            /**
+             * Criado Em
+             * Format: date-time
+             */
+            criado_em: string;
+            /**
+             * Atualizado Em
+             * Format: date-time
+             */
+            atualizado_em: string;
         };
         /** EquipeSalvar */
         EquipeSalvar: {
             /** Nome */
             nome: string;
-            /** Area Id */
-            area_id: number;
-            /** Setor Id */
-            setor_id?: number | null;
-            /** Supervisor Id */
-            supervisor_id: number;
-            /** Descricao */
+            /**
+             * Plano Id
+             * @description Obrigatório na criação. Na edição, só equipes sem plano podem receber um.
+             */
+            plano_id?: number | null;
+            /**
+             * Descricao
+             * @description Descrição / objetivo da equipe.
+             */
             descricao?: string | null;
+            /**
+             * Participantes
+             * @description IDs dos usuários (sem repetição).
+             */
+            participantes?: number[];
+            /**
+             * Coordenador Id
+             * @description Um dos participantes. Papel interno: não altera o perfil de acesso.
+             */
+            coordenador_id: number;
             /**
              * Ativo
              * @default true
              */
             ativo: boolean;
+        };
+        /** EventoEquipe */
+        EventoEquipe: {
+            /** Id */
+            id: number;
+            /** Evento */
+            evento: string;
+            /** Descricao */
+            descricao: string;
+            autor: components["schemas"]["Opcao"] | null;
+            /**
+             * Criado Em
+             * Format: date-time
+             */
+            criado_em: string;
         };
         /**
          * EventoHistorico
@@ -3425,23 +3593,6 @@ export interface components {
             prazo: string | null;
             /** Problema */
             problema: string;
-        };
-        /** IndicadoresEquipe */
-        IndicadoresEquipe: {
-            /** Membros */
-            membros: number;
-            gerais: components["schemas"]["IndicadoresGerais"];
-            /** Planos Por Status */
-            planos_por_status: components["schemas"]["ContagemStatus"][];
-            /** Planos Por Prazo */
-            planos_por_prazo: components["schemas"]["ContagemStatus"][];
-            /** Acoes Por Status */
-            acoes_por_status: components["schemas"]["ContagemStatus"][];
-            cumprimento_prazo: components["schemas"]["CumprimentoPrazo"];
-            /** Evolucao Mensal */
-            evolucao_mensal: components["schemas"]["PontoMensal"][];
-            /** Responsaveis Com Pendencias */
-            responsaveis_com_pendencias: components["schemas"]["ResponsavelPendencias"][];
         };
         /** IndicadoresGerais */
         IndicadoresGerais: {
@@ -3804,32 +3955,6 @@ export interface components {
             /** Senha */
             senha: string;
         };
-        /** MembroEquipe */
-        MembroEquipe: {
-            /** Usuario Id */
-            usuario_id: number;
-            /** Nome */
-            nome: string;
-            /** Email */
-            email: string;
-            /** Avatar Url */
-            avatar_url: string | null;
-            /** Perfil */
-            perfil: string;
-            /** Area */
-            area: string | null;
-            /** Setor */
-            setor: string | null;
-            /** Ativo */
-            ativo: boolean;
-            /** Papel Na Equipe */
-            papel_na_equipe: string | null;
-            /**
-             * Data Entrada
-             * Format: date
-             */
-            data_entrada: string;
-        };
         /** MinhaAcao */
         MinhaAcao: {
             /** Id */
@@ -4173,6 +4298,36 @@ export interface components {
             /** Page Size */
             page_size: number;
         };
+        /** ParticipanteEquipe */
+        ParticipanteEquipe: {
+            /** Usuario Id */
+            usuario_id: number;
+            /** Nome */
+            nome: string;
+            /** Email */
+            email: string;
+            /** Avatar Url */
+            avatar_url: string | null;
+            /** Perfil */
+            perfil: string;
+            /** Area */
+            area: string | null;
+            /** Funcao Cargo */
+            funcao_cargo: string | null;
+            /** Ativo */
+            ativo: boolean;
+            /** Convite Pendente */
+            convite_pendente: boolean;
+            /** Coordenador */
+            coordenador: boolean;
+            /** Papel Na Equipe */
+            papel_na_equipe: string | null;
+            /**
+             * Data Entrada
+             * Format: date
+             */
+            data_entrada: string;
+        };
         /** PendenciaAtribuicao */
         PendenciaAtribuicao: {
             usuario: components["schemas"]["PendenciaUsuario"];
@@ -4398,6 +4553,12 @@ export interface components {
              * @default false
              */
             concluir: boolean;
+            /**
+             * Gerenciar Equipes
+             * @description Criar e alterar as equipes deste plano.
+             * @default false
+             */
+            gerenciar_equipes: boolean;
         };
         /** PlanoAtualizado */
         PlanoAtualizado: {
@@ -4538,6 +4699,17 @@ export interface components {
              */
             arquivado: boolean;
         };
+        /** PlanoDaEquipe */
+        PlanoDaEquipe: {
+            /** Id */
+            id: number;
+            /** Codigo */
+            codigo: string;
+            /** Nome */
+            nome: string;
+            /** Arquivado */
+            arquivado: boolean;
+        };
         /** PlanoDetalhe */
         PlanoDetalhe: {
             /** Id */
@@ -4672,6 +4844,16 @@ export interface components {
             concluido_em: string | null;
             /** Arquivado */
             arquivado: boolean;
+        };
+        /** PlanoOpcaoEquipe */
+        PlanoOpcaoEquipe: {
+            /** Id */
+            id: number;
+            /** Codigo */
+            codigo: string;
+            /** Nome */
+            nome: string;
+            area: components["schemas"]["Opcao"];
         };
         /** PlanoRecente */
         PlanoRecente: {
@@ -5166,16 +5348,6 @@ export interface components {
             /** Atualizadas */
             atualizadas: number;
         };
-        /** ResultadoMembros */
-        ResultadoMembros: {
-            /** Adicionados */
-            adicionados: number[];
-            /**
-             * Ja Membros
-             * @description Já estavam na equipe (ignorados).
-             */
-            ja_membros: number[];
-        };
         /** ResultadoRecalculo */
         ResultadoRecalculo: {
             /** Criados */
@@ -5301,6 +5473,23 @@ export interface components {
              */
             situacao_prazo: components["schemas"]["PrazoDoGrupo"][];
         };
+        /** ResumoDesempenho */
+        ResumoDesempenho: {
+            /** Total */
+            total: number;
+            /** Concluidas */
+            concluidas: number;
+            /** Concluidas No Prazo */
+            concluidas_no_prazo: number;
+            /** Concluidas Com Atraso */
+            concluidas_com_atraso: number;
+            /** Em Aberto */
+            em_aberto: number;
+            /** Em Atraso */
+            em_atraso: number;
+            /** Percentual No Prazo */
+            percentual_no_prazo: number | null;
+        };
         /** ResumoGamificacao */
         ResumoGamificacao: {
             /** Periodo Id */
@@ -5412,6 +5601,11 @@ export interface components {
             ativo: boolean;
             /** Area Id */
             area_id: number;
+        };
+        /** SituacaoEquipe */
+        SituacaoEquipe: {
+            /** Ativo */
+            ativo: boolean;
         };
         /**
          * SituacaoPrazo
@@ -6353,7 +6547,7 @@ export interface operations {
                 setor_id?: number | null;
                 tipo_id?: number | null;
                 origem_id?: number | null;
-                /** @description Planos cujo responsável é membro da equipe. */
+                /** @description O plano vinculado à equipe. */
                 equipe_id?: number | null;
                 meus?: boolean;
                 /** @description Exibição: excluir = ativos (padrão), somente = arquivados, incluir = todos. */
@@ -7873,7 +8067,7 @@ export interface operations {
                 area_id?: number | null;
                 /** @description Setor do colaborador. */
                 setor_id?: number | null;
-                /** @description Equipe cadastrada: só os membros dela. */
+                /** @description Equipe visível ao usuário: só os participantes dela, com a pontuação geral de cada um. */
                 equipe_id?: number | null;
             };
             header?: never;
@@ -7914,7 +8108,7 @@ export interface operations {
                 area_id?: number | null;
                 /** @description Setor do colaborador. */
                 setor_id?: number | null;
-                /** @description Equipe cadastrada: só os membros dela. */
+                /** @description Equipe visível ao usuário: só os participantes dela, com a pontuação geral de cada um. */
                 equipe_id?: number | null;
             };
             header?: never;
@@ -7953,7 +8147,7 @@ export interface operations {
                 area_id?: number | null;
                 /** @description Setor do colaborador. */
                 setor_id?: number | null;
-                /** @description Equipe cadastrada: só os membros dela. */
+                /** @description Equipe visível ao usuário: só os participantes dela, com a pontuação geral de cada um. */
                 equipe_id?: number | null;
             };
             header?: never;
@@ -8533,15 +8727,16 @@ export interface operations {
     listar_equipes_get: {
         parameters: {
             query?: {
-                /** @description Busca no nome da equipe e do supervisor. */
+                /** @description Busca no nome da equipe. */
                 q?: string;
+                /** @description Busca no código ou no nome do plano. */
+                plano?: string;
+                plano_id?: number | null;
+                /** @description Área do plano. */
                 area_id?: number | null;
-                ativo?: boolean | null;
+                situacao?: ("ativas" | "inativas" | "sem_plano") | null;
                 page?: number;
                 page_size?: number;
-                periodo?: components["schemas"]["TipoPeriodo"];
-                data_inicio?: string | null;
-                data_fim?: string | null;
             };
             header?: never;
             path?: never;
@@ -8588,7 +8783,75 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["EquipeItem"];
+                    "application/json": components["schemas"]["EquipeDetalhe"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    opcoes_planos_equipes_opcoes_planos_get: {
+        parameters: {
+            query?: {
+                /** @description Código ou nome do plano. */
+                q?: string;
+                plano_id?: number | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlanoOpcaoEquipe"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    opcoes_participantes_equipes_opcoes_participantes_get: {
+        parameters: {
+            query?: {
+                plano_id?: number | null;
+                /** @description Equipe sem plano vinculado (usa a área dela). */
+                equipe_id?: number | null;
+                /** @description Nome ou e-mail. */
+                q?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CandidatoEquipe"][];
                 };
             };
             /** @description Validation Error */
@@ -8604,11 +8867,7 @@ export interface operations {
     };
     detalhe_equipes__equipe_id__get: {
         parameters: {
-            query?: {
-                periodo?: components["schemas"]["TipoPeriodo"];
-                data_inicio?: string | null;
-                data_fim?: string | null;
-            };
+            query?: never;
             header?: never;
             path: {
                 equipe_id: number;
@@ -8623,7 +8882,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["EquipeItem"];
+                    "application/json": components["schemas"]["EquipeDetalhe"];
                 };
             };
             /** @description Validation Error */
@@ -8658,7 +8917,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["EquipeItem"];
+                    "application/json": components["schemas"]["EquipeDetalhe"];
                 };
             };
             /** @description Validation Error */
@@ -8701,38 +8960,7 @@ export interface operations {
             };
         };
     };
-    membros_equipes__equipe_id__membros_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                equipe_id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["MembroEquipe"][];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    adicionar_membros_equipes__equipe_id__membros_post: {
+    alterar_situacao_equipes__equipe_id__situacao_patch: {
         parameters: {
             query?: never;
             header?: never;
@@ -8743,7 +8971,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["AdicionarMembros"];
+                "application/json": components["schemas"]["SituacaoEquipe"];
             };
         };
         responses: {
@@ -8753,7 +8981,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ResultadoMembros"];
+                    "application/json": components["schemas"]["EquipeItem"];
                 };
             };
             /** @description Validation Error */
@@ -8767,81 +8995,9 @@ export interface operations {
             };
         };
     };
-    atualizar_membro_equipes__equipe_id__membros__usuario_id__put: {
+    historico_equipes__equipe_id__historico_get: {
         parameters: {
             query?: never;
-            header?: never;
-            path: {
-                equipe_id: number;
-                usuario_id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["AtualizarMembro"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["MembroEquipe"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    remover_membro_equipes__equipe_id__membros__usuario_id__delete: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                equipe_id: number;
-                usuario_id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    indicadores_equipes__equipe_id__indicadores_get: {
-        parameters: {
-            query?: {
-                /** @description Máximo de responsáveis com pendências. */
-                limite?: number;
-                periodo?: components["schemas"]["TipoPeriodo"];
-                data_inicio?: string | null;
-                data_fim?: string | null;
-            };
             header?: never;
             path: {
                 equipe_id: number;
@@ -8856,7 +9012,38 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["IndicadoresEquipe"];
+                    "application/json": components["schemas"]["EventoEquipe"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    desempenho_equipes__equipe_id__desempenho_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                equipe_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DesempenhoEquipe"];
                 };
             };
             /** @description Validation Error */
@@ -9613,7 +9800,7 @@ export interface operations {
                 setor_id?: number | null;
                 tipo_id?: number | null;
                 origem_id?: number | null;
-                /** @description Planos cujo responsável é membro da equipe. */
+                /** @description O plano vinculado à equipe. */
                 equipe_id?: number | null;
                 meus?: boolean;
                 /** @description Exibição: excluir = ativos (padrão), somente = arquivados, incluir = todos. */
@@ -9667,7 +9854,7 @@ export interface operations {
                 setor_id?: number | null;
                 tipo_id?: number | null;
                 origem_id?: number | null;
-                /** @description Planos cujo responsável é membro da equipe. */
+                /** @description O plano vinculado à equipe. */
                 equipe_id?: number | null;
                 meus?: boolean;
                 /** @description Exibição: excluir = ativos (padrão), somente = arquivados, incluir = todos. */

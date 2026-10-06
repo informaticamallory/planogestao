@@ -28,7 +28,7 @@ from app.services.escopo import filtro_planos_visiveis
 from app.services.exportacao import ArquivoGerado, Coluna
 from app.services.indicadores import IndicadoresAcoes, calcular_indicadores
 from app.services.ciclo_plano import apto_a_conclusao
-from app.services.permissoes_plano import pode_arquivar, pode_concluir, pode_editar, pode_excluir
+from app.services.permissoes_plano import acesso_direto, pode_arquivar, pode_concluir, pode_editar, pode_excluir, pode_gerenciar_equipes
 from app.services.regras import (
     CategoriaAcao,
     acao_vencendo,
@@ -264,11 +264,12 @@ class PlanoService:
             atualizado_em=como_utc(plano.atualizado_em),
             permissoes=PermissoesPlano(
                 editar=editavel,
-                arquivar=pode_arquivar(self.usuario),
+                arquivar=pode_arquivar(self.usuario, plano),
                 adicionar_acoes=editavel,
                 enviar_anexos=editavel,
                 excluir=pode_excluir(self.usuario, plano),
                 concluir=apto and pode_concluir(self.usuario, plano),
+                gerenciar_equipes=pode_gerenciar_equipes(self.usuario, plano),
             ),
             apto_conclusao=apto,
         )
@@ -280,10 +281,12 @@ class PlanoService:
         plano = self._obter(plano_id)
         papeis = AcaoService(self.db, self.usuario, self.hoje)
         plano_arquivado = plano.arquivado_em is not None
+        # "Editar planos" não vale para quem vê o plano só por participar de uma equipe.
+        edita_por_perfil = "planos:editar" in self.usuario.codigos_permissao and acesso_direto(self.usuario, plano)
 
         def operacoes(a) -> OperacoesAcao:
             fora = plano_arquivado or a.arquivado_em is not None
-            pode_abrir = papeis._eh_gestor(a) or papeis._eh_responsavel(a) or "planos:editar" in self.usuario.codigos_permissao
+            pode_abrir = papeis._eh_gestor(a) or papeis._eh_responsavel(a) or edita_por_perfil
             return OperacoesAcao(editar=not fora and pode_abrir, **papeis.operacoes(a))
 
         return [

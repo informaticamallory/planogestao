@@ -5,6 +5,10 @@ class NaoEncontrado(Exception):
     """404"""
 
 
+class Proibido(Exception):
+    """403: o perfil ou o papel do usuário não permite a operação."""
+
+
 class Conflito(Exception):
     """409: duplicidade ou registro em uso."""
 

@@ -37,6 +37,7 @@ from app.schemas.comum import Opcao
 from app.schemas.plano import AcaoCriar, AcoesAdicionadas
 from app.services import dependencias
 from app.services.escopo import filtro_planos_visiveis
+from app.services.permissoes_plano import acesso_direto
 from app.services.historico import registrar_historico
 from app.services.alertas_prazo import verificar_acao
 from app.services.ciclo_plano import recalcular_status
@@ -80,6 +81,7 @@ class AcaoService:
         self.db = db
         self.usuario = usuario
         self.hoje = hoje
+        self._cache_acesso_direto: dict[int, bool] = {}
 
     # ---- acesso e papéis ------------------------------------------------------------
 
@@ -113,9 +115,15 @@ class AcaoService:
         return (
             plano.responsavel_id == self.usuario.id
             or plano.criado_por_id == self.usuario.id
-            or PERMISSAO_APROVAR_PRAZO in self.usuario.codigos_permissao
+            or (PERMISSAO_APROVAR_PRAZO in self.usuario.codigos_permissao and self._acesso_direto(plano))
             or any(a.responsavel_id == self.usuario.id for a in acao.ancestrais)
         )
+
+    def _acesso_direto(self, plano: PlanoDeAcao) -> bool:
+        """Vê o plano sem contar equipes (a participação em equipe só dá leitura). Cache por plano."""
+        if plano.id not in self._cache_acesso_direto:
+            self._cache_acesso_direto[plano.id] = acesso_direto(self.usuario, plano)
+        return self._cache_acesso_direto[plano.id]
 
     def _gestores_ids(self, acao: Acao) -> tuple[int, ...]:
         """Quem acompanha a ação (avisos de conclusão e de pedido de prazo): o responsável pelo pai imediato."""
@@ -198,7 +206,7 @@ class AcaoService:
         codigos = self.usuario.codigos_permissao
         return (
             codigo in codigos
-            and (self._eh_gestor(acao) or "planos:editar" in codigos)
+            and (self._eh_gestor(acao) or ("planos:editar" in codigos and self._acesso_direto(acao.plano)))
             and acao.plano.arquivado_em is None
         )
 

@@ -82,7 +82,7 @@ export function GamificacaoPage() {
   const opcoes = useOpcoesGamificacao();
   const daArea = <T extends { area_id: number }>(lista: T[] | undefined) => (lista ?? []).filter((e) => !filtros.area_id || e.area_id === filtros.area_id);
   const setores = daArea(opcoes.data?.setores);
-  // Equipes cadastradas (módulo Equipes): o ranking considera só os membros.
+  // Equipes visíveis ao usuário (módulo Equipes): filtra os participantes, com a pontuação geral de cada um.
   const equipes = daArea(opcoes.data?.equipes);
   const regras = useRegrasPontuacao();
   const resumo = useResumoGamificacao(filtros, temPeriodo);
@@ -155,10 +155,10 @@ export function GamificacaoPage() {
               ))}
             </Select>
           </label>
-          <label className={styles.campo}>
-            <span className={styles.rotulo}>Equipe</span>
+          <label className={styles.campo} title="Mostra os participantes da equipe com a pontuação geral de cada um (não só a do plano). Participar de equipe não gera pontos.">
+            <span className={styles.rotulo}>Equipe (participantes)</span>
             <Select compacto value={filtros.equipe_id ?? ""} onChange={(e) => atualizar({ equipe_id: e.target.value || null })}>
-              <option value="">{equipes.length ? "Todas" : "Nenhuma cadastrada"}</option>
+              <option value="">{equipes.length ? "Todas" : "Nenhuma disponível"}</option>
               {equipes.map((q) => (
                 <option key={q.id} value={q.id}>
                   {q.nome}

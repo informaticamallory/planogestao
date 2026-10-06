@@ -61,7 +61,7 @@ def filtros_query(
     setor_id: int | None = None,
     tipo_id: int | None = None,
     origem_id: int | None = None,
-    equipe_id: Annotated[int | None, Query(description="Planos cujo responsável é membro da equipe.")] = None,
+    equipe_id: Annotated[int | None, Query(description="O plano vinculado à equipe.")] = None,
     meus: bool = False,
     arquivados: Annotated[
         FiltroArquivados, Query(description="Exibição: excluir = ativos (padrão), somente = arquivados, incluir = todos.")

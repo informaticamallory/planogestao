@@ -4,6 +4,7 @@ import { Link, useLocation, useParams, useSearchParams } from "react-router-dom"
 
 import { AbaAcoes, lerFiltroAcoes, type FiltroAcoes } from "../../components/planos/detalhe/AbaAcoes";
 import { AbaAnexos } from "../../components/planos/detalhe/AbaAnexos";
+import { AbaEquipes } from "../../components/planos/detalhe/AbaEquipes";
 import { AbaHistorico } from "../../components/planos/detalhe/AbaHistorico";
 import { AbaIndicadores } from "../../components/planos/detalhe/AbaIndicadores";
 import { AbaResumo } from "../../components/planos/detalhe/AbaResumo";
@@ -12,13 +13,15 @@ import { CartoesIndicadoresPlano } from "../../components/planos/detalhe/Cartoes
 import { Button } from "../../components/ui/Button";
 import { Tabs } from "../../components/ui/Tabs";
 import { usePlanoDetalhe, usePlanoIndicadores } from "../../hooks/usePlano";
+import { temPermissao, useAuthStore } from "../../store/authStore";
 import styles from "./PlanoDetalhePage.module.css";
 
-const ABAS = ["resumo", "acoes", "historico", "anexos", "indicadores"] as const;
+const ABAS = ["resumo", "acoes", "equipes", "historico", "anexos", "indicadores"] as const;
 type IdAba = (typeof ABAS)[number];
 const ROTULO_ABA: Record<IdAba, string> = {
   resumo: "Resumo",
   acoes: "Ações",
+  equipes: "Equipes",
   historico: "Histórico",
   anexos: "Anexos",
   indicadores: "Indicadores",
@@ -33,10 +36,13 @@ export function PlanoDetalhePage() {
   const [avisos, setAvisos] = useState<string[]>(() => (location.state as { avisos?: string[] } | null)?.avisos ?? []);
 
   const detalhe = usePlanoDetalhe(planoId);
+  // "Equipes do plano" só para quem pode ver equipes.
+  const verEquipes = temPermissao(useAuthStore((s) => s.usuario), "equipes:ver");
+  const abas = ABAS.filter((id) => id !== "equipes" || verEquipes);
   const indicadores = usePlanoIndicadores(planoId);
 
   // Aba e filtro na URL: recarregar ou compartilhar o link mantém a mesma visão.
-  const aba: IdAba = ehAba(params.get("aba")) ? (params.get("aba") as IdAba) : "resumo";
+  const aba: IdAba = ehAba(params.get("aba")) && abas.includes(params.get("aba") as IdAba) ? (params.get("aba") as IdAba) : "resumo";
   const categoria = lerFiltroAcoes(params.get("categoria"));
   const irPara = (novaAba: IdAba, novaCategoria: FiltroAcoes | null = null) =>
     setParams(
@@ -84,7 +90,7 @@ export function PlanoDetalhePage() {
 
       <Tabs
         rotulo="Seções do plano"
-        abas={ABAS.map((id) => ({
+        abas={abas.map((id) => ({
           id,
           rotulo: ROTULO_ABA[id],
           contador: id === "acoes" ? indicadores.data?.total_acoes : undefined,
@@ -94,6 +100,7 @@ export function PlanoDetalhePage() {
       >
         {aba === "resumo" && <AbaResumo plano={plano} />}
         {aba === "acoes" && <AbaAcoes plano={plano} filtroCategoria={categoria} onFiltrar={(c) => irPara("acoes", c)} />}
+        {aba === "equipes" && <AbaEquipes plano={plano} />}
         {aba === "historico" && <AbaHistorico planoId={plano.id} />}
         {aba === "anexos" && <AbaAnexos plano={plano} />}
         {aba === "indicadores" && <AbaIndicadores indicadores={indicadores.data} />}

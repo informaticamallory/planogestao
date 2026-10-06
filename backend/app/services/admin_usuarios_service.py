@@ -132,7 +132,7 @@ class UsuariosAdminService:
 
     def pendencias_areas(self) -> dict:
         """Para o Administrador regularizar: usuários sem área autorizada e atribuições fora das áreas."""
-        from app.models import Acao, PlanoDeAcao
+        from app.models import Acao, Equipe, EquipeMembro, PlanoDeAcao
         from app.models.enums import STATUS_ACAO_DESCARTADOS
 
         restritos = [u for u in self.db.scalars(select(Usuario).where(Usuario.ativo.is_(True)).order_by(Usuario.nome))
@@ -151,6 +151,12 @@ class UsuariosAdminService:
             ).order_by(PlanoDeAcao.codigo, Acao.id)):
                 papel = "Responsável por sub-item" if a.acao_pai_id else "Responsável por ação"
                 atribuicoes.append(dict(usuario=u, papel=papel, plano=a.plano, acao=a))
+            # Participação em equipe ativa de plano fora das áreas (a equipe não dá acesso a outra área).
+            for e in self.db.scalars(select(Equipe).join(EquipeMembro, EquipeMembro.equipe_id == Equipe.id)
+                                     .join(PlanoDeAcao, PlanoDeAcao.id == Equipe.plano_id).where(
+                EquipeMembro.usuario_id == u.id, Equipe.ativo.is_(True), PlanoDeAcao.arquivado_em.is_(None), fora
+            ).order_by(PlanoDeAcao.codigo, Equipe.nome)).unique():
+                atribuicoes.append(dict(usuario=u, papel=f"Participante da equipe “{e.nome}”", plano=e.plano, acao=None))
         return dict(sem_area=sem_area, atribuicoes=atribuicoes)
 
     def _commit(self) -> None:

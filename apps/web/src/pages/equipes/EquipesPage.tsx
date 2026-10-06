@@ -1,45 +1,60 @@
-import type { TipoPeriodo } from "@planogestao/shared-types";
+import type { ConsultaEquipes } from "@planogestao/api-client";
+import type { EquipeItem } from "@planogestao/shared-types";
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 
 import styles from "../../components/admin/Admin.module.css";
 import estilos from "../../components/equipes/Equipes.module.css";
+import { ModalExcluirEquipe } from "../../components/equipes/ModalExcluirEquipe";
 import { Badge } from "../../components/ui/Badge";
-import { ButtonLink } from "../../components/ui/Button";
+import { ButtonLink, classesDoBotao } from "../../components/ui/Button";
 import { Card } from "../../components/ui/Card";
 import { Input } from "../../components/ui/Input";
 import { Pagination } from "../../components/ui/Pagination";
 import { Select } from "../../components/ui/Select";
 import { Table } from "../../components/ui/Table";
-import { useEquipes } from "../../hooks/useEquipes";
+import { DropdownItem, DropdownMenu } from "../../components/ui/DropdownMenu";
+import { Icon } from "../../components/ui/Icon";
+import { useEquipes, useSituacaoEquipe } from "../../hooks/useEquipes";
 import { useOpcoesPlanos } from "../../hooks/usePlanos";
 import { temPermissao, useAuthStore } from "../../store/authStore";
-import { ROTULO_PERIODO } from "../../utils/rotulos";
 
 const TAMANHOS = [20, 50, 100];
-// Sem "personalizado" aqui (sem campos de data na listagem); o padrão é o mesmo dos Indicadores.
-const PERIODOS: TipoPeriodo[] = (Object.keys(ROTULO_PERIODO) as TipoPeriodo[]).filter((p) => p !== "personalizado");
+const SITUACOES = ["ativas", "inativas", "sem_plano"] as const;
+type Situacao = (typeof SITUACOES)[number];
 const idPositivo = (v: string | null) => (v && Number(v) > 0 ? Number(v) : undefined);
-const pct = (v: number | null) => (v === null ? "—" : `${v.toLocaleString("pt-BR")}%`);
+
+/** Situação da equipe (e se o plano dela está arquivado). */
+export function SelosEquipe({ equipe }: { equipe: EquipeItem }) {
+  return (
+    <span className={estilos.selos}>
+      <Badge tom={equipe.ativo ? "sucesso" : "neutro"}>{equipe.ativo ? "Ativa" : "Inativa"}</Badge>
+      {!equipe.plano && <Badge tom="aviso">Sem plano vinculado</Badge>}
+      {equipe.plano?.arquivado && <Badge tom="neutro">Plano arquivado</Badge>}
+    </span>
+  );
+}
 
 export function EquipesPage() {
   const navigate = useNavigate();
   const usuario = useAuthStore((s) => s.usuario);
-  const podeGerenciar = temPermissao(usuario, "equipes:gerenciar");
+  const podeCriar = temPermissao(usuario, "equipes:gerenciar");
   const [params, setParams] = useSearchParams();
   const q = params.get("q") ?? "";
+  const plano = params.get("plano") ?? "";
   const [busca, setBusca] = useState(q);
-  const periodoBruto = params.get("periodo") as TipoPeriodo | null;
-  const periodo: TipoPeriodo = periodoBruto && PERIODOS.includes(periodoBruto) ? periodoBruto : "ano";
-  const ativoParam = params.get("ativo");
-  const consulta = {
+  const [buscaPlano, setBuscaPlano] = useState(plano);
+  const situacaoParam = params.get("situacao") as Situacao | null;
+  const consulta: ConsultaEquipes = {
     q: q || undefined,
+    plano: plano || undefined,
     area_id: idPositivo(params.get("area_id")),
-    ativo: ativoParam === "1" ? true : ativoParam === "0" ? false : undefined,
-    periodo,
+    situacao: situacaoParam && SITUACOES.includes(situacaoParam) ? situacaoParam : undefined,
     page: Math.max(1, Number(params.get("page")) || 1),
     page_size: TAMANHOS.includes(Number(params.get("page_size"))) ? Number(params.get("page_size")) : 20,
   };
+  const [excluindo, setExcluindo] = useState<EquipeItem | null>(null);
+  const situacao = useSituacaoEquipe();
 
   const atualizar = (mudancas: Record<string, string | null>, manterPagina = false) =>
     setParams(
@@ -55,16 +70,19 @@ export function EquipesPage() {
       { replace: true },
     );
 
-  // Busca com pequena espera, para não consultar a cada tecla.
+  // Buscas com pequena espera, para não consultar a cada tecla.
   useEffect(() => {
-    const t = setTimeout(() => busca !== q && atualizar({ q: busca.trim() || null }), 350);
+    const t = setTimeout(() => {
+      if (busca !== q || buscaPlano !== plano) atualizar({ q: busca.trim() || null, plano: buscaPlano.trim() || null });
+    }, 350);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [busca]);
+  }, [busca, buscaPlano]);
 
   const lista = useEquipes(consulta);
   const areas = useOpcoesPlanos().data?.areas ?? [];
   const dados = lista.data;
+  const filtrando = !!(consulta.q || consulta.plano || consulta.area_id || consulta.situacao);
 
   return (
     <div className={styles.pagina}>
@@ -72,11 +90,12 @@ export function EquipesPage() {
         <div>
           <h1 className={styles.titulo}>Equipes</h1>
           <p className={styles.subtitulo}>
-            Grupos de trabalho com supervisor e membros. O desempenho é o % de ações no prazo das ações cujo responsável é
-            membro, no período escolhido — o mesmo cálculo dos Indicadores.
+            Equipes de trabalho de cada plano de ação, com participantes de áreas e funções diferentes e um coordenador. Você vê
+            as equipes dos planos que gerencia e as equipes das quais participa. A equipe não substitui o gestor do plano nem os
+            responsáveis pelas ações, e participar dela não gera pontos na gamificação.
           </p>
         </div>
-        {podeGerenciar && (
+        {podeCriar && (
           <ButtonLink to="/equipes/nova" variante="primaria">
             + Nova equipe
           </ButtonLink>
@@ -85,8 +104,12 @@ export function EquipesPage() {
 
       <div className={styles.barra}>
         <label className={styles.filtro}>
-          Buscar
-          <Input compacto type="search" placeholder="Equipe ou supervisor" value={busca} onChange={(e) => setBusca(e.target.value)} />
+          Equipe
+          <Input compacto type="search" placeholder="Nome da equipe" value={busca} onChange={(e) => setBusca(e.target.value)} />
+        </label>
+        <label className={styles.filtro}>
+          Plano
+          <Input compacto type="search" placeholder="Código ou nome do plano" value={buscaPlano} onChange={(e) => setBuscaPlano(e.target.value)} />
         </label>
         <label className={styles.filtro}>
           Área
@@ -101,77 +124,105 @@ export function EquipesPage() {
         </label>
         <label className={styles.filtro}>
           Situação
-          <Select compacto value={ativoParam ?? ""} onChange={(e) => atualizar({ ativo: e.target.value || null })}>
+          <Select compacto value={consulta.situacao ?? ""} onChange={(e) => atualizar({ situacao: e.target.value || null })}>
             <option value="">Todas</option>
-            <option value="1">Ativas</option>
-            <option value="0">Inativas</option>
-          </Select>
-        </label>
-        <label className={styles.filtro}>
-          Desempenho no período
-          <Select compacto value={periodo} onChange={(e) => atualizar({ periodo: e.target.value === "ano" ? null : e.target.value }, true)}>
-            {PERIODOS.map((p) => (
-              <option key={p} value={p}>
-                {ROTULO_PERIODO[p]}
-              </option>
-            ))}
+            <option value="ativas">Ativas</option>
+            <option value="inativas">Inativas</option>
+            <option value="sem_plano">Sem plano vinculado</option>
           </Select>
         </label>
       </div>
 
+      {situacao.error && <p className={styles.erro}>{situacao.error.message}</p>}
       <Card semPadding>
         {lista.error ? (
           <p className={styles.erro}>Não foi possível carregar: {lista.error.message}</p>
         ) : !dados ? (
           <p className={styles.estado}>Carregando…</p>
         ) : dados.items.length === 0 ? (
-          <p className={styles.estado}>
-            {consulta.q || consulta.area_id || consulta.ativo !== undefined ? "Nenhuma equipe com esses filtros." : "Nenhuma equipe cadastrada ainda."}
-          </p>
+          <p className={styles.estado}>{filtrando ? "Nenhuma equipe com esses filtros." : "Nenhuma equipe para exibir."}</p>
         ) : (
           <Table>
             <thead>
               <tr>
                 <th scope="col">Equipe</th>
-                <th scope="col">Área / Função/Cargo</th>
-                <th scope="col">Supervisor</th>
-                <th scope="col" data-numerico>
-                  Membros
+                <th scope="col" className={estilos.colSecundaria}>
+                  Plano
                 </th>
-                <th scope="col">Desempenho</th>
+                <th scope="col" className={estilos.colSecundaria}>
+                  Área
+                </th>
+                <th scope="col" className={estilos.colSecundaria}>
+                  Coordenador
+                </th>
+                <th scope="col" data-numerico className={estilos.colSecundaria}>
+                  Participantes
+                </th>
                 <th scope="col">Situação</th>
+                <th scope="col" data-acoes>
+                  Operações
+                </th>
               </tr>
             </thead>
             <tbody>
               {dados.items.map((e) => (
-                <tr key={e.id} className={estilos.linha} data-inativo={e.ativo ? undefined : true} onClick={() => navigate(`/equipes/${e.id}`)}>
+                <tr key={e.id} data-inativo={e.ativo ? undefined : true}>
                   <td>
-                    {/* Link real para teclado/leitor de tela; a linha inteira é clicável com o mouse. */}
-                    <Link to={`/equipes/${e.id}`} className={estilos.nome} onClick={(ev) => ev.stopPropagation()}>
+                    <Link to={`/equipes/${e.id}`} className={estilos.nome}>
                       {e.nome}
                     </Link>
-                    {e.descricao && <span className={styles.meta}>{e.descricao}</span>}
+                    {/* Celular: as colunas secundárias vêm aqui, embaixo do nome. */}
+                    <span className={`${styles.meta} ${estilos.metaCelular}`}>
+                      {e.plano ? e.plano.codigo : "Sem plano vinculado"}
+                      <br />
+                      {e.area.nome} · {e.total_participantes} participante{e.total_participantes === 1 ? "" : "s"}
+                      <br />
+                      Coordenador: {e.coordenador.nome}
+                    </span>
                   </td>
-                  <td>
-                    {e.area.nome}
-                    {e.setor && <span className={styles.meta}>{e.setor.nome}</span>}
-                  </td>
-                  <td>{e.supervisor.nome}</td>
-                  <td data-numerico>{e.membros}</td>
-                  <td>
-                    {e.desempenho === null ? (
-                      <span className={styles.meta}>Sem ações vencidas ou concluídas</span>
+                  <td className={estilos.colSecundaria}>
+                    {e.plano ? (
+                      <>
+                        <span className={estilos.codigo}>{e.plano.codigo}</span>
+                        <span className={styles.meta}>{e.plano.nome}</span>
+                      </>
                     ) : (
-                      <div className={estilos.desempenho} title="Ações concluídas até o prazo ÷ (concluídas + em atraso)">
-                        <div className={estilos.trilho} role="presentation">
-                          <div className={estilos.preenchimento} style={{ width: `${e.desempenho}%` }} />
-                        </div>
-                        <span className={estilos.valor}>{pct(e.desempenho)}</span>
-                      </div>
+                      <span className={styles.meta}>Sem plano vinculado</span>
                     )}
                   </td>
+                  <td className={estilos.colSecundaria}>{e.area.nome}</td>
+                  <td className={estilos.colSecundaria}>{e.coordenador.nome}</td>
+                  <td data-numerico className={estilos.colSecundaria}>
+                    {e.total_participantes}
+                  </td>
                   <td>
-                    <Badge tom={e.ativo ? "sucesso" : "neutro"}>{e.ativo ? "Ativa" : "Inativa"}</Badge>
+                    <SelosEquipe equipe={e} />
+                  </td>
+                  <td data-acoes>
+                    <div className={styles.acoesLinha}>
+                      <ButtonLink to={`/equipes/${e.id}`} variante="link">
+                        Visualizar
+                      </ButtonLink>
+                      {e.pode_gerenciar && (
+                        <DropdownMenu
+                          rotulo={<Icon name="more" size={16} strokeWidth={2.6} />}
+                          ariaLabel={`Operações: ${e.nome}`}
+                          classeBotao={classesDoBotao({ variante: "icone", tamanho: "sm" })}
+                        >
+                          {(fechar) => (
+                            <>
+                              <DropdownItem onClick={() => (fechar(), navigate(`/equipes/${e.id}/editar`))}>Editar</DropdownItem>
+                              <DropdownItem disabled={situacao.isPending} onClick={() => (fechar(), situacao.mutate({ id: e.id, ativo: !e.ativo }))}>
+                                {e.ativo ? "Inativar" : "Ativar"}
+                              </DropdownItem>
+                              <DropdownItem perigo onClick={() => (fechar(), setExcluindo(e))}>
+                                Excluir
+                              </DropdownItem>
+                            </>
+                          )}
+                        </DropdownMenu>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -182,14 +233,16 @@ export function EquipesPage() {
 
       {dados && dados.total > 0 && (
         <Pagination
-          pagina={consulta.page}
-          tamanho={consulta.page_size}
+          pagina={consulta.page!}
+          tamanho={consulta.page_size!}
           total={dados.total}
           tamanhos={TAMANHOS}
           onPagina={(p) => atualizar({ page: String(p) }, true)}
           onTamanho={(t) => atualizar({ page_size: String(t) })}
         />
       )}
+
+      <ModalExcluirEquipe equipe={excluindo} onFechar={() => setExcluindo(null)} />
     </div>
   );
 }

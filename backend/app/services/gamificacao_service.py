@@ -9,6 +9,8 @@ relatório de auditoria saem dessas mesmas linhas — por isso os totais coincid
 - Empate: mesma pontuação = mesma colocação (1º, 1º, 3º). Não há critério de desempate; prêmio de
   colocação disputada por empatados fica pendente de definição.
 - Área/setor/equipe só filtram as linhas exibidas: colocação e prêmio são os da classificação geral.
+  Equipe filtra pessoas (participantes) com a pontuação geral delas: participar ou coordenar não gera pontos,
+  e cada pessoa aparece uma vez, mesmo que esteja em várias equipes.
 - Tendência: pontos do período de apuração anterior (o cadastrado imediatamente antes).
 """
 
@@ -342,7 +344,8 @@ class GamificacaoService:
         if f.setor_id is not None:
             ativos = ativos.where(PlanoDeAcao.setor_id == f.setor_id)
         if f.equipe_id is not None:
-            ativos = ativos.where(PlanoDeAcao.responsavel_id.in_(select(EquipeMembro.usuario_id).where(EquipeMembro.equipe_id == f.equipe_id)))
+            # O plano da equipe (não os planos de cada participante).
+            ativos = ativos.where(PlanoDeAcao.id.in_(select(Equipe.plano_id).where(Equipe.id == f.equipe_id)))
         por_categoria = lambda c: {l.usuario_id for l in linhas if l.categoria == c.value}
         return dict(
             periodo_id=periodo.id, periodo_nome=periodo.nome, periodo_inicio=periodo.data_inicio, periodo_fim=periodo.data_fim,
@@ -376,5 +379,7 @@ class GamificacaoService:
         return dict(
             areas=[{"id": a.id, "nome": a.nome} for a in areas],
             setores=[{"id": s.id, "nome": s.nome, "area_id": s.area_id} for s in setores],
-            equipes=[{"id": e.id, "nome": e.nome, "area_id": e.area_id} for e in equipes],
+            # O nome se repete entre planos: a opção leva o código do plano.
+            equipes=[{"id": e.id, "nome": f"{e.nome} · {e.plano.codigo}" if e.plano else e.nome,
+                      "area_id": e.plano.area_id if e.plano else e.area_id} for e in equipes],
         )
