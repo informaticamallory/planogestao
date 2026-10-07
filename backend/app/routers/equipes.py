@@ -13,7 +13,7 @@ from app.core.deps import require_permission
 from app.core.tempo import como_utc, hoje_local
 from app.models import Equipe, EquipeHistorico, EquipeMembro, PlanoDeAcao, Usuario
 from app.schemas.comum import Opcao, Pagina
-from app.services.equipes_service import DadosEquipe, EquipesService
+from app.services.equipes_service import DadosEquipe, EquipesService, FiltrosEquipes
 
 router = APIRouter(prefix="/equipes", tags=["equipes"])
 
@@ -144,6 +144,43 @@ class DesempenhoEquipe(BaseModel):
     participantes: list[DesempenhoParticipante]
 
 
+class NoParticipante(BaseModel):
+    usuario_id: int = Field(description="O mesmo usuário em todas as equipes de que participa.")
+    nome: str
+    funcao_cargo: str | None
+    ativo: bool
+    coordenador: bool = Field(description="Papel interno da equipe; não há chefia entre os participantes.")
+    corresponde_busca: bool = Field(description="Atende ao filtro de participante (para destacar).")
+
+
+class NoEquipe(BaseModel):
+    id: int
+    nome: str
+    descricao: str | None
+    ativo: bool
+    area: Opcao
+    total_participantes: int
+    pode_gerenciar: bool
+    somente_leitura: str | None
+    participantes: list[NoParticipante] = Field(description="Coordenador e demais participantes, por nome.")
+
+
+class NoPlano(BaseModel):
+    plano: PlanoDaEquipe | None = Field(description="Nulo: grupo das equipes sem plano vinculado.")
+    gestor: Opcao | None = Field(description="Responsável pelo plano.")
+    area: Opcao | None
+    pode_criar_equipe: bool
+    total_pessoas: int = Field(description="Pessoas distintas nas equipes exibidas deste plano.")
+    equipes: list[NoEquipe]
+
+
+class ArvoreEquipes(BaseModel):
+    planos: list[NoPlano]
+    total_equipes: int = Field(description="Equipes que atendem aos filtros.")
+    total_pessoas: int = Field(description="Pessoas distintas (quem está em várias equipes conta uma vez).")
+    truncado: bool = Field(description="Há mais equipes do que o limite da árvore: refine os filtros.")
+
+
 def _opcao(u: Usuario | None) -> Opcao | None:
     return Opcao(id=u.id, nome=u.nome) if u is not None else None
 
@@ -194,24 +231,75 @@ def _dados(c: EquipeSalvar) -> DadosEquipe:
 # ---- endpoints ---------------------------------------------------------------------------------
 
 
-@router.get("", response_model=Pagina[EquipeItem])
-def listar(
-    usuario: UsuarioLeitura,
+def filtros_query(
     q: Annotated[str, Query(max_length=100, description="Busca no nome da equipe.")] = "",
     plano: Annotated[str, Query(max_length=100, description="Busca no código ou no nome do plano.")] = "",
+    participante: Annotated[str, Query(max_length=100, description="Nome ou e-mail de um participante.")] = "",
     plano_id: int | None = None,
     area_id: Annotated[int | None, Query(description="Área do plano.")] = None,
     situacao: Literal["ativas", "inativas", "sem_plano"] | None = None,
+    planos: Annotated[
+        Literal["todos", "ativos", "arquivados"], Query(description="Planos ativos, arquivados (consulta histórica) ou todos.")
+    ] = "todos",
+) -> FiltrosEquipes:
+    return FiltrosEquipes(q=q, plano=plano, participante=participante, plano_id=plano_id, area_id=area_id, situacao=situacao, planos=planos)
+
+
+FiltrosDep = Annotated[FiltrosEquipes, Depends(filtros_query)]
+
+
+@router.get("", response_model=Pagina[EquipeItem])
+def listar(
+    usuario: UsuarioLeitura,
+    filtros: FiltrosDep,
     page: Annotated[int, Query(ge=1)] = 1,
     page_size: Annotated[int, Query(ge=1, le=100)] = 20,
     db: Session = Depends(get_db),
 ):
     svc = _svc(db, usuario)
-    equipes, total = svc.listar(q, plano, plano_id, area_id, situacao, page, page_size)
+    equipes, total = svc.listar(filtros, page, page_size)
     contagem = svc.contagem_membros([e.id for e in equipes])
     return Pagina[EquipeItem](
         items=[EquipeItem(**_item(svc, e, contagem.get(e.id, 0))) for e in equipes], total=total, page=page, page_size=page_size
     )
+
+
+@router.get("/arvore", response_model=ArvoreEquipes)
+def arvore(usuario: UsuarioLeitura, filtros: FiltrosDep, db: Session = Depends(get_db)):
+    """Plano → equipes → participantes (Equipes › Árvore), com os mesmos filtros e a mesma visibilidade da lista.
+    Representação das equipes de trabalho: não cria hierarquia entre participantes nem muda perfis ou responsáveis."""
+    svc = _svc(db, usuario)
+    r = svc.arvore(filtros)
+    planos = []
+    for g in r["grupos"]:
+        p: PlanoDeAcao | None = g["plano"]
+        planos.append(NoPlano(
+            plano=PlanoDaEquipe(id=p.id, codigo=p.codigo, nome=p.nome, arquivado=p.arquivado_em is not None) if p else None,
+            gestor=_opcao(p.responsavel) if p else None,
+            area=Opcao(id=p.area.id, nome=p.area.nome) if p else None,
+            pode_criar_equipe=g["pode_criar_equipe"],
+            total_pessoas=len(g["pessoas"]),
+            equipes=[
+                NoEquipe(
+                    id=x["equipe"].id, nome=x["equipe"].nome, descricao=x["equipe"].descricao, ativo=x["equipe"].ativo,
+                    area=Opcao(id=x["equipe"].area.id, nome=x["equipe"].area.nome),
+                    total_participantes=len(x["participantes"]),
+                    pode_gerenciar=svc.pode_gerenciar(x["equipe"]) and svc.somente_leitura(x["equipe"]) is None,
+                    somente_leitura=svc.somente_leitura(x["equipe"]),
+                    participantes=[
+                        NoParticipante(
+                            usuario_id=m.usuario.id, nome=m.usuario.nome,
+                            funcao_cargo=m.usuario.setor.nome if m.usuario.setor else None, ativo=m.usuario.ativo,
+                            coordenador=m.usuario_id == x["equipe"].coordenador_id,
+                            corresponde_busca=m.usuario_id in x["correspondem"],
+                        )
+                        for m in x["participantes"]
+                    ],
+                )
+                for x in g["equipes"]
+            ],
+        ))
+    return ArvoreEquipes(planos=planos, total_equipes=r["total_equipes"], total_pessoas=r["total_pessoas"], truncado=r["truncado"])
 
 
 @router.post("", response_model=EquipeDetalhe, status_code=status.HTTP_201_CREATED)

@@ -8,8 +8,19 @@ import { Modal } from "../ui/Modal";
 /** Rótulo do plano vinculado: "PA-2026-001 — Nome" ou "Sem plano vinculado". */
 export const rotuloPlano = (e: Pick<EquipeItem, "plano">) => (e.plano ? `${e.plano.codigo} — ${e.plano.nome}` : "Sem plano vinculado");
 
+/** O que a confirmação precisa (serve para a equipe da lista, do detalhe ou da árvore). */
+export type EquipeParaExcluir = Pick<EquipeItem, "id" | "nome" | "plano">;
+
 /** Confirmação da exclusão (lógica) identificando a equipe e o plano. */
-export function ModalExcluirEquipe({ equipe, onFechar, onExcluida }: { equipe: EquipeItem | null; onFechar: () => void; onExcluida?: () => void }) {
+export function ModalExcluirEquipe({
+  equipe,
+  onFechar,
+  onExcluida,
+}: {
+  equipe: EquipeParaExcluir | null;
+  onFechar: () => void;
+  onExcluida?: () => void;
+}) {
   const excluir = useExcluirEquipe();
   const fechar = () => {
     excluir.reset();

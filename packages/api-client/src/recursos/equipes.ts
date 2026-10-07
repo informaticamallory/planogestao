@@ -8,10 +8,14 @@ export interface ConsultaEquipes {
   q?: string;
   /** Código ou nome do plano. */
   plano?: string;
+  /** Nome ou e-mail de um participante. */
+  participante?: string;
   plano_id?: number;
   /** Área do plano. */
   area_id?: number;
   situacao?: "ativas" | "inativas" | "sem_plano";
+  /** Consulta histórica: "todos" (padrão), só planos ativos ou só arquivados. */
+  planos?: "todos" | "ativos" | "arquivados";
   page?: number;
   page_size?: number;
 }
@@ -24,6 +28,9 @@ export function criarEquipes(http: HttpClient) {
   const caminho = (equipeId: number) => ({ path: { equipe_id: equipeId } });
   return {
     listar: async (q: ConsultaEquipes = {}) => exigirDados(await http.GET("/equipes", { params: { query: q } })),
+    /** Plano → equipes → participantes, com os mesmos filtros da lista (sem paginação). */
+    arvore: async (q: Omit<ConsultaEquipes, "page" | "page_size"> = {}) =>
+      exigirDados(await http.GET("/equipes/arvore", { params: { query: q } })),
     detalhe: async (equipeId: number) => exigirDados(await http.GET("/equipes/{equipe_id}", { params: caminho(equipeId) })),
     criar: async (body: EquipeSalvar) => exigirDados(await http.POST("/equipes", { body })),
     atualizar: async (equipeId: number, body: EquipeSalvar) =>

@@ -15,7 +15,7 @@ import { Table } from "../../components/ui/Table";
 import { Tabs } from "../../components/ui/Tabs";
 import { useDesempenhoEquipe, useEquipe, useHistoricoEquipe, useSituacaoEquipe } from "../../hooks/useEquipes";
 import { formatarData, formatarDataDoInstante, formatarDataHora } from "../../utils/datas";
-import { SelosEquipe } from "./EquipesPage";
+import { SelosEquipe } from "../../components/equipes/SelosEquipe";
 
 type Aba = "participantes" | "desempenho" | "historico";
 const ABAS: Aba[] = ["participantes", "desempenho", "historico"];

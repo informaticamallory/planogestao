@@ -1300,6 +1300,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/equipes/arvore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Arvore
+         * @description Plano → equipes → participantes (Equipes › Árvore), com os mesmos filtros e a mesma visibilidade da lista.
+         *     Representação das equipes de trabalho: não cria hierarquia entre participantes nem muda perfis ou responsáveis.
+         */
+        get: operations["arvore_equipes_arvore_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/equipes/opcoes/planos": {
         parameters: {
             query?: never;
@@ -2827,6 +2848,26 @@ export interface components {
             /** Planos */
             planos: number;
         };
+        /** ArvoreEquipes */
+        ArvoreEquipes: {
+            /** Planos */
+            planos: components["schemas"]["NoPlano"][];
+            /**
+             * Total Equipes
+             * @description Equipes que atendem aos filtros.
+             */
+            total_equipes: number;
+            /**
+             * Total Pessoas
+             * @description Pessoas distintas (quem está em várias equipes conta uma vez).
+             */
+            total_pessoas: number;
+            /**
+             * Truncado
+             * @description Há mais equipes do que o limite da árvore: refine os filtros.
+             */
+            truncado: boolean;
+        };
         /** AtividadeRecente */
         AtividadeRecente: {
             /** Id */
@@ -4057,6 +4098,70 @@ export interface components {
          * @enum {string}
          */
         Nivel: "principal" | "subacao";
+        /** NoEquipe */
+        NoEquipe: {
+            /** Id */
+            id: number;
+            /** Nome */
+            nome: string;
+            /** Descricao */
+            descricao: string | null;
+            /** Ativo */
+            ativo: boolean;
+            area: components["schemas"]["Opcao"];
+            /** Total Participantes */
+            total_participantes: number;
+            /** Pode Gerenciar */
+            pode_gerenciar: boolean;
+            /** Somente Leitura */
+            somente_leitura: string | null;
+            /**
+             * Participantes
+             * @description Coordenador e demais participantes, por nome.
+             */
+            participantes: components["schemas"]["NoParticipante"][];
+        };
+        /** NoParticipante */
+        NoParticipante: {
+            /**
+             * Usuario Id
+             * @description O mesmo usuário em todas as equipes de que participa.
+             */
+            usuario_id: number;
+            /** Nome */
+            nome: string;
+            /** Funcao Cargo */
+            funcao_cargo: string | null;
+            /** Ativo */
+            ativo: boolean;
+            /**
+             * Coordenador
+             * @description Papel interno da equipe; não há chefia entre os participantes.
+             */
+            coordenador: boolean;
+            /**
+             * Corresponde Busca
+             * @description Atende ao filtro de participante (para destacar).
+             */
+            corresponde_busca: boolean;
+        };
+        /** NoPlano */
+        NoPlano: {
+            /** @description Nulo: grupo das equipes sem plano vinculado. */
+            plano: components["schemas"]["PlanoDaEquipe"] | null;
+            /** @description Responsável pelo plano. */
+            gestor: components["schemas"]["Opcao"] | null;
+            area: components["schemas"]["Opcao"] | null;
+            /** Pode Criar Equipe */
+            pode_criar_equipe: boolean;
+            /**
+             * Total Pessoas
+             * @description Pessoas distintas nas equipes exibidas deste plano.
+             */
+            total_pessoas: number;
+            /** Equipes */
+            equipes: components["schemas"]["NoEquipe"][];
+        };
         /** NotificacaoItem */
         NotificacaoItem: {
             /** Id */
@@ -8727,16 +8832,20 @@ export interface operations {
     listar_equipes_get: {
         parameters: {
             query?: {
+                page?: number;
+                page_size?: number;
                 /** @description Busca no nome da equipe. */
                 q?: string;
                 /** @description Busca no código ou no nome do plano. */
                 plano?: string;
+                /** @description Nome ou e-mail de um participante. */
+                participante?: string;
                 plano_id?: number | null;
                 /** @description Área do plano. */
                 area_id?: number | null;
                 situacao?: ("ativas" | "inativas" | "sem_plano") | null;
-                page?: number;
-                page_size?: number;
+                /** @description Planos ativos, arquivados (consulta histórica) ou todos. */
+                planos?: "todos" | "ativos" | "arquivados";
             };
             header?: never;
             path?: never;
@@ -8784,6 +8893,48 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["EquipeDetalhe"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    arvore_equipes_arvore_get: {
+        parameters: {
+            query?: {
+                /** @description Busca no nome da equipe. */
+                q?: string;
+                /** @description Busca no código ou no nome do plano. */
+                plano?: string;
+                /** @description Nome ou e-mail de um participante. */
+                participante?: string;
+                plano_id?: number | null;
+                /** @description Área do plano. */
+                area_id?: number | null;
+                situacao?: ("ativas" | "inativas" | "sem_plano") | null;
+                /** @description Planos ativos, arquivados (consulta histórica) ou todos. */
+                planos?: "todos" | "ativos" | "arquivados";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ArvoreEquipes"];
                 };
             };
             /** @description Validation Error */

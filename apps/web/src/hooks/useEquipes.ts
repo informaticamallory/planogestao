@@ -12,6 +12,14 @@ export const useEquipes = (consulta: ConsultaEquipes, ativo = true) =>
     enabled: ativo,
   });
 
+export const useArvoreEquipes = (consulta: Omit<ConsultaEquipes, "page" | "page_size">, ativo = true) =>
+  useQuery({
+    queryKey: ["equipes", "arvore", consulta],
+    queryFn: () => api.equipes.arvore(consulta),
+    placeholderData: keepPreviousData,
+    enabled: ativo,
+  });
+
 export const useEquipe = (equipeId: number) =>
   useQuery({ queryKey: ["equipes", equipeId, "detalhe"], queryFn: () => api.equipes.detalhe(equipeId), enabled: Number.isFinite(equipeId) });
 

@@ -2,7 +2,7 @@ import type { PlanoDetalhe } from "@planogestao/shared-types";
 import { Link } from "react-router-dom";
 
 import { useEquipes } from "../../../hooks/useEquipes";
-import { SelosEquipe } from "../../../pages/equipes/EquipesPage";
+import { SelosEquipe } from "../../equipes/SelosEquipe";
 import admin from "../../admin/Admin.module.css";
 import estilos from "../../equipes/Equipes.module.css";
 import { ButtonLink } from "../../ui/Button";

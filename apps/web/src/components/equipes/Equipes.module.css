@@ -16,6 +16,47 @@
   gap: var(--espaco-1);
 }
 
+/* Seletor Lista | Árvore (mesmo visual do Tabela | Kanban das ações). */
+.barraVista {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--espaco-2) var(--espaco-3);
+}
+
+.grupoBotoes {
+  display: inline-flex;
+  border: var(--borda-fina) solid var(--cor-borda);
+  border-radius: var(--raio-2);
+  overflow: hidden;
+}
+
+.alternador {
+  min-height: 2.25rem;
+  padding: var(--espaco-1) var(--espaco-4);
+  border: 0;
+  background: var(--cor-superficie);
+  color: var(--cor-texto);
+  font: inherit;
+  cursor: pointer;
+}
+
+.alternadorAtivo {
+  background: var(--cor-primaria);
+  color: var(--cor-primaria-texto);
+}
+
+.alternador:focus-visible {
+  outline: 2px solid var(--cor-primaria);
+  outline-offset: -2px;
+}
+
+@media (--ate-tablet) {
+  .alternador {
+    min-height: var(--alvo-toque);
+  }
+}
+
 /* Área e coordenador: no celular saem da tabela e aparecem embaixo do nome. */
 .metaCelular {
   display: none;

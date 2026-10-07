@@ -30,6 +30,7 @@ from app.services.permissoes_plano import pode_gerenciar_equipes
 
 GERENCIAR = "equipes:gerenciar"
 LIMITE_OPCOES = 20
+LIMITE_ARVORE = 500  # equipes por consulta da árvore (acima disso: refinar os filtros)
 
 MENSAGEM_ARQUIVADO = "O plano desta equipe está arquivado: a equipe fica só para consulta. Desarquive o plano para alterá-la."
 
@@ -43,6 +44,17 @@ class Evento:
     ATIVACAO = "ativacao"
     INATIVACAO = "inativacao"
     EXCLUSAO = "exclusao"
+
+
+@dataclass(frozen=True)
+class FiltrosEquipes:
+    q: str = ""  # nome da equipe
+    plano: str = ""  # código ou nome do plano
+    participante: str = ""  # nome ou e-mail
+    plano_id: int | None = None
+    area_id: int | None = None
+    situacao: str | None = None  # ativas | inativas | sem_plano
+    planos: str = "todos"  # todos | ativos | arquivados
 
 
 @dataclass(frozen=True)
@@ -147,28 +159,76 @@ class EquipesService:
             ).all()
         )
 
-    def listar(
-        self, q: str, plano: str, plano_id: int | None, area_id: int | None, situacao: str | None, page: int, page_size: int
-    ) -> tuple[list[Equipe], int]:
+    def _consulta(self, f: FiltrosEquipes):
+        """Equipes visíveis com os filtros da página (os mesmos na Lista e na Árvore)."""
         stmt = select(Equipe).outerjoin(PlanoDeAcao, PlanoDeAcao.id == Equipe.plano_id).where(self.filtro_visiveis())
-        if termo := q.strip():
+        if termo := f.q.strip():
             stmt = stmt.where(Equipe.nome.contains(termo, autoescape=True))
-        if termo := plano.strip():
+        if termo := f.plano.strip():
             stmt = stmt.where(or_(PlanoDeAcao.codigo.contains(termo, autoescape=True), PlanoDeAcao.nome.contains(termo, autoescape=True)))
-        if plano_id is not None:
-            stmt = stmt.where(Equipe.plano_id == plano_id)
-        if area_id is not None:
-            stmt = stmt.where(func.coalesce(PlanoDeAcao.area_id, Equipe.area_id) == area_id)
-        if situacao == "ativas":
+        if termo := f.participante.strip():
+            # Equipes com um participante cujo nome ou e-mail contém o termo (a equipe vem inteira, com o contexto).
+            stmt = stmt.where(exists(
+                select(EquipeMembro.usuario_id).join(Usuario, Usuario.id == EquipeMembro.usuario_id).where(
+                    EquipeMembro.equipe_id == Equipe.id,
+                    or_(Usuario.nome.contains(termo, autoescape=True), Usuario.email.contains(termo, autoescape=True)),
+                )
+            ).correlate(Equipe))
+        if f.plano_id is not None:
+            stmt = stmt.where(Equipe.plano_id == f.plano_id)
+        if f.area_id is not None:
+            stmt = stmt.where(func.coalesce(PlanoDeAcao.area_id, Equipe.area_id) == f.area_id)
+        if f.situacao == "ativas":
             stmt = stmt.where(Equipe.ativo.is_(True))
-        elif situacao == "inativas":
+        elif f.situacao == "inativas":
             stmt = stmt.where(Equipe.ativo.is_(False))
-        elif situacao == "sem_plano":
+        elif f.situacao == "sem_plano":
             stmt = stmt.where(Equipe.plano_id.is_(None))
+        # Consulta histórica: equipes de planos arquivados entram por padrão; o filtro restringe.
+        if f.planos == "ativos":
+            stmt = stmt.where(or_(Equipe.plano_id.is_(None), PlanoDeAcao.arquivado_em.is_(None)))
+        elif f.planos == "arquivados":
+            stmt = stmt.where(PlanoDeAcao.arquivado_em.is_not(None))
+        return stmt
+
+    def listar(self, f: FiltrosEquipes, page: int, page_size: int) -> tuple[list[Equipe], int]:
+        stmt = self._consulta(f)
         total = self.db.scalar(select(func.count()).select_from(stmt.subquery())) or 0
         ordem = (Equipe.ativo.desc(), PlanoDeAcao.codigo.desc(), Equipe.nome, Equipe.id)
         itens = list(self.db.scalars(stmt.order_by(*ordem).offset((page - 1) * page_size).limit(page_size)).unique())
         return itens, total
+
+    def arvore(self, f: FiltrosEquipes, limite: int = LIMITE_ARVORE) -> dict:
+        """Plano → equipes → participantes, com os filtros da página. Usa só os vínculos reais (equipe_membros):
+        a mesma pessoa em várias equipes é o mesmo usuário; os totais contam pessoas distintas, sem somar equipes."""
+        stmt = self._consulta(f)
+        total = self.db.scalar(select(func.count()).select_from(stmt.subquery())) or 0
+        ordem = (PlanoDeAcao.codigo.desc(), Equipe.ativo.desc(), Equipe.nome, Equipe.id)
+        equipes = list(self.db.scalars(stmt.order_by(*ordem).limit(limite)).unique())
+        membros: dict[int, list[EquipeMembro]] = {e.id: [] for e in equipes}
+        if equipes:
+            for m in self.db.scalars(
+                select(EquipeMembro).join(Usuario, Usuario.id == EquipeMembro.usuario_id)
+                .where(EquipeMembro.equipe_id.in_(list(membros))).order_by(Usuario.nome)
+            ).unique():
+                membros[m.equipe_id].append(m)
+        termo = f.participante.strip().casefold()
+        grupos: dict[int | None, dict] = {}
+        for e in equipes:
+            g = grupos.setdefault(e.plano_id, dict(plano=e.plano, equipes=[], pessoas=set()))
+            participantes = membros[e.id]
+            g["pessoas"].update(m.usuario_id for m in participantes)
+            g["equipes"].append(dict(
+                equipe=e, participantes=participantes,
+                correspondem={m.usuario_id for m in participantes
+                              if termo and (termo in m.usuario.nome.casefold() or termo in m.usuario.email.casefold())},
+            ))
+        # Planos na ordem da consulta; as equipes antigas (sem plano) por último.
+        ordenados = [g for k, g in grupos.items() if k is not None] + ([grupos[None]] if None in grupos else [])
+        for g in ordenados:
+            g["pode_criar_equipe"] = g["plano"] is not None and pode_gerenciar_equipes(self.usuario, g["plano"])
+        pessoas = set().union(*(g["pessoas"] for g in ordenados)) if ordenados else set()
+        return dict(grupos=ordenados, total_equipes=total, total_pessoas=len(pessoas), truncado=total > len(equipes))
 
     def participantes(self, equipe: Equipe) -> list[EquipeMembro]:
         return list(

@@ -74,9 +74,12 @@ textarea {
   background-clip: padding-box;
 }
 
-/* Entrada suave de conteúdo (kit: .fade-up). */
+/* Entrada suave de conteúdo (kit: .fade-up).
+   `backwards`, não `both`: ao terminar, a animação deixa de valer e o elemento fica sem `transform`. Com `both`
+   sobrava uma matriz identidade, e qualquer transform vira o contêiner dos `position: fixed` internos — os menus
+   suspensos (DropdownMenu) abriam deslocados ou fora da tela dentro do <main>. */
 .fade-up {
-  animation: mallory-fade-up 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: mallory-fade-up 0.45s cubic-bezier(0.22, 1, 0.36, 1) backwards;
 }
 @keyframes mallory-fade-up {
   from {

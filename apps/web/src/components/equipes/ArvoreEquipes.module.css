@@ -1,0 +1,292 @@
+/* Equipes › Árvore: plano → equipes → composição, em listas aninhadas com recuo e linha-guia. */
+
+.arvoreContainer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-3);
+}
+
+.barraArvore {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--espaco-2) var(--espaco-3);
+}
+
+.botoesArvore {
+  display: flex;
+  gap: var(--espaco-2);
+}
+
+.aviso {
+  margin: 0;
+  padding: var(--espaco-2) var(--espaco-3);
+  border-radius: var(--raio-2);
+  background: var(--cor-aviso-fundo, color-mix(in oklab, var(--warning) 12%, transparent));
+  font-size: var(--fonte-sm);
+}
+
+.arvore,
+.grupo,
+.composicao {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.arvore {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-3);
+}
+
+/* Cada plano é um cartão; as equipes ficam recuadas, com a linha-guia à esquerda. */
+.noPlano {
+  border: var(--borda-fina) solid var(--cor-borda);
+  border-radius: var(--raio-3, var(--raio-2));
+  background: var(--cor-superficie);
+}
+
+.grupo {
+  display: flex;
+  flex-direction: column;
+  margin: 0 var(--espaco-3) var(--espaco-3) calc(var(--espaco-3) + 1rem);
+  border-left: var(--borda-fina) solid var(--cor-borda);
+}
+
+.noEquipe {
+  padding-left: var(--espaco-3);
+}
+
+.noEquipe + .noEquipe {
+  border-top: var(--borda-fina) dashed var(--cor-borda);
+}
+
+.noEquipe[data-inativo] .tituloEquipe {
+  color: var(--cor-texto-suave);
+}
+
+.linha {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--espaco-2);
+  padding: var(--espaco-2) var(--espaco-3) var(--espaco-2) var(--espaco-2);
+}
+
+.alternar {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 2rem;
+  height: 2rem;
+  border: 0;
+  border-radius: var(--raio-1);
+  background: none;
+  color: var(--cor-texto-suave);
+  cursor: pointer;
+}
+
+.alternar:hover {
+  background: var(--cor-fundo);
+  color: var(--cor-texto);
+}
+
+.alternar:focus-visible,
+.botaoPessoa:focus-visible {
+  outline: 2px solid var(--cor-primaria);
+  outline-offset: 2px;
+}
+
+.conteudo {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.125rem;
+  min-width: 0;
+  padding-top: 0.25rem;
+  overflow-wrap: anywhere;
+}
+
+.tituloPlano {
+  font-weight: 600;
+  color: var(--cor-texto);
+}
+
+a.tituloPlano:hover,
+.tituloEquipe:hover {
+  color: var(--cor-primaria);
+}
+
+.codigo {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.tituloEquipe {
+  font-weight: 600;
+}
+
+.descricao {
+  font-size: var(--fonte-sm);
+  color: var(--cor-texto-suave);
+}
+
+.meta {
+  font-size: var(--fonte-xs);
+  color: var(--cor-texto-suave);
+}
+
+.selos {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: var(--espaco-1);
+  margin-top: 0.125rem;
+}
+
+.operacao {
+  flex: none;
+}
+
+/* ---- composição: todos no mesmo nível (sem chefia); o coordenador vem primeiro, em destaque ---- */
+
+.composicao {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
+  gap: var(--espaco-2);
+  padding: 0 var(--espaco-3) var(--espaco-3) calc(2rem + var(--espaco-2));
+}
+
+.pessoa {
+  min-width: 0;
+}
+
+.botaoPessoa {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  width: 100%;
+  min-height: 2.75rem;
+  padding: var(--espaco-2) var(--espaco-3);
+  border: var(--borda-fina) solid var(--cor-borda);
+  border-radius: var(--raio-2);
+  background: var(--cor-superficie);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+
+button.botaoPessoa {
+  cursor: pointer;
+}
+
+button.botaoPessoa:hover {
+  background: var(--cor-fundo);
+}
+
+.coordenador .botaoPessoa {
+  border-color: color-mix(in oklab, var(--cor-primaria) 45%, var(--cor-borda));
+  background: color-mix(in oklab, var(--cor-primaria) 7%, var(--cor-superficie));
+}
+
+.nomePessoa {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--espaco-1) var(--espaco-2);
+  font-weight: 600;
+}
+
+.funcao {
+  font-size: var(--fonte-sm);
+  color: var(--cor-texto-suave);
+}
+
+.destaque {
+  padding: 0 0.125rem;
+  border-radius: var(--raio-1);
+  background: color-mix(in oklab, var(--warning) 35%, transparent);
+  color: inherit;
+}
+
+/* ---- ações do participante (modal) ---- */
+
+.listaAcoes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-2);
+  margin: var(--espaco-3) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.listaAcoes li {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-1);
+  padding-bottom: var(--espaco-2);
+  border-bottom: var(--borda-fina) solid var(--cor-borda);
+}
+
+.acao {
+  display: flex;
+  gap: var(--espaco-2);
+}
+
+.numeroAcao {
+  flex: none;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.descricaoAcao {
+  overflow-wrap: anywhere;
+}
+
+.metaAcao {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--espaco-2);
+}
+
+/* Toque: alvos de 44px; no celular, recuos compactos e a composição em uma coluna. */
+@media (--ate-tablet) {
+  .alternar {
+    width: var(--alvo-toque);
+    height: var(--alvo-toque);
+  }
+
+  .conteudo {
+    padding-top: 0.625rem;
+  }
+}
+
+@media (--mobile) {
+  .linha {
+    padding: var(--espaco-1) var(--espaco-2) var(--espaco-1) 0;
+    gap: var(--espaco-1);
+  }
+
+  .grupo {
+    margin: 0 var(--espaco-2) var(--espaco-2) var(--espaco-3);
+  }
+
+  .noEquipe {
+    padding-left: var(--espaco-1);
+  }
+
+  .composicao {
+    grid-template-columns: 1fr;
+    padding: 0 var(--espaco-2) var(--espaco-2) var(--espaco-5);
+  }
+
+  .barraArvore {
+    align-items: stretch;
+  }
+
+  .botoesArvore > * {
+    flex: 1;
+  }
+}
