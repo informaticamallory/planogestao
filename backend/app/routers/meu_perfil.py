@@ -9,7 +9,7 @@ Registrado antes de `usuarios.router` no main.py, para "/usuarios/me" não cair 
 
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends, File, Header, HTTPException, Path, Response, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, Header, HTTPException, Path, Response, UploadFile, status
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 from sqlalchemy.orm import Session
@@ -19,7 +19,8 @@ from app.core.deps import get_current_user
 from app.models import Usuario
 from app.routers.auth import CLIENT_TYPE_HEADER, _is_mobile, _responder
 from app.routers.usuarios import _validar_senha
-from app.schemas.auth import CorDestaque, TamanhoFonte, TemaPreferido, TokenResponse, UsuarioLogado
+from app.core.foto import normalizar_ajuste
+from app.schemas.auth import AjusteFoto, CorDestaque, TamanhoFonte, TemaPreferido, TokenResponse, UsuarioLogado
 from app.services.armazenamento import obter_armazenamento
 from app.services.auth_service import AuthService, SenhaAtualIncorreta, montar_usuario_logado
 from app.services.meu_perfil_service import NOME_FOTO, PASTA_FOTOS, DadosPerfil, MeuPerfilService
@@ -105,10 +106,24 @@ def atualizar_meu_perfil(corpo: UsuarioSelfUpdate, usuario: UsuarioLogadoDep, db
 @router.post("/foto", response_model=UsuarioLogado)
 def enviar_foto(
     usuario: UsuarioLogadoDep,
-    arquivo: Annotated[UploadFile, File(description="JPEG, PNG ou WebP de até 5 MB. Vira um quadrado de 256 px.")],
+    arquivo: Annotated[UploadFile, File(description="JPEG, PNG ou WebP de até 5 MB. Guardada inteira, sem recorte.")],
+    formato: Annotated[str, Form()] = "quadrado",
+    encaixe: Annotated[str, Form()] = "preencher",
+    x: Annotated[float, Form()] = 0.5,
+    y: Annotated[float, Form()] = 0.5,
+    zoom: Annotated[float, Form()] = 1.0,
     db: Session = Depends(get_db),
 ):
-    return montar_usuario_logado(MeuPerfilService(db, usuario).trocar_foto(arquivo.file, obter_armazenamento()))
+    """Foto nova com o enquadramento feito no editor (enviados juntos: cancelar no editor não envia nada)."""
+    ajuste = normalizar_ajuste(formato, encaixe, x, y, zoom)
+    return montar_usuario_logado(MeuPerfilService(db, usuario).trocar_foto(arquivo.file, obter_armazenamento(), ajuste))
+
+
+@router.put("/foto/ajuste", response_model=UsuarioLogado)
+def ajustar_foto(corpo: AjusteFoto, usuario: UsuarioLogadoDep, db: Session = Depends(get_db)):
+    """Muda só o enquadramento da foto atual (formato, encaixe, posição, zoom); a imagem guardada não muda."""
+    ajuste = normalizar_ajuste(corpo.formato, corpo.encaixe, corpo.x, corpo.y, corpo.zoom)
+    return montar_usuario_logado(MeuPerfilService(db, usuario).ajustar_foto(ajuste))
 
 
 @router.delete("/foto", response_model=UsuarioLogado)
@@ -134,7 +149,7 @@ def trocar_senha(
 
 
 @fotos_router.get("/{arquivo}", response_class=FileResponse, include_in_schema=False)
-def foto(arquivo: Annotated[str, Path(max_length=40)]):
+def foto(arquivo: Annotated[str, Path(max_length=60)]):
     """Foto de perfil. Pública como qualquer <img>: o nome é aleatório (128 bits) e muda a cada troca."""
     if not NOME_FOTO.match(arquivo):
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Foto não encontrada.")

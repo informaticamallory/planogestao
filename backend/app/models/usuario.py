@@ -1,8 +1,9 @@
 from datetime import datetime
 
-from sqlalchemy import Boolean, Column, DateTime, ForeignKey, String, Table, false, true
+from sqlalchemy import JSON, Boolean, Column, DateTime, ForeignKey, String, Table, false, true
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from app.core.foto import fragmento, sem_fragmento
 from app.core.permissoes import CODIGOS_CATALOGO, PERFIL_ADMINISTRADOR
 from app.models.base import Base, BigIntPK, TimestampMixin
 from app.models.estrutura import Area, Setor
@@ -28,7 +29,10 @@ class Usuario(TimestampMixin, Base):
     area_id: Mapped[int | None] = mapped_column(BigIntPK, ForeignKey("areas.id"), index=True)
     setor_id: Mapped[int | None] = mapped_column(BigIntPK, ForeignKey("setores.id"), index=True)
     ativo: Mapped[bool] = mapped_column(Boolean, server_default=true(), nullable=False)
-    avatar_url: Mapped[str | None] = mapped_column(String(500))
+    # Foto: o arquivo (coluna avatar_url, sem recorte) e o enquadramento (ver core/foto.py). Ler `avatar_url`
+    # devolve os dois juntos (ajuste no fragmento da URL), para qualquer tela que mostra a foto aplicar o mesmo.
+    avatar_arquivo: Mapped[str | None] = mapped_column("avatar_url", String(500))
+    avatar_ajuste: Mapped[dict | None] = mapped_column(JSON)
     ultimo_login_em: Mapped[datetime | None] = mapped_column(DateTime)
     # Preferências do próprio usuário (tela Meu Perfil): acompanham a conta entre dispositivos.
     tema: Mapped[str] = mapped_column(String(12), server_default="automatico", nullable=False)  # claro | escuro | automatico
@@ -44,6 +48,19 @@ class Usuario(TimestampMixin, Base):
     area: Mapped[Area | None] = relationship(lazy="joined")
     setor: Mapped[Setor | None] = relationship(lazy="joined")
     areas_autorizadas: Mapped[list[Area]] = relationship(secondary=usuario_area_autorizada, lazy="selectin", order_by=Area.nome)
+
+    @property
+    def avatar_url(self) -> str | None:
+        return f"{self.avatar_arquivo}{fragmento(self.avatar_ajuste)}" if self.avatar_arquivo else None
+
+    @avatar_url.setter
+    def avatar_url(self, valor: str | None) -> None:
+        """Outra foto (ex.: endereço cadastrado pela Administração) zera o enquadramento; a mesma URL de volta
+        (com ou sem fragmento) não mexe nele."""
+        arquivo = sem_fragmento(valor)
+        if arquivo != self.avatar_arquivo:
+            self.avatar_arquivo = arquivo
+            self.avatar_ajuste = None
 
     @property
     def codigos_permissao(self) -> set[str]:

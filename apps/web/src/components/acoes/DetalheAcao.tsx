@@ -4,6 +4,8 @@ import { Link } from "react-router-dom";
 
 import { useAcaoDetalhe } from "../../hooks/useAcao";
 import { formatarData, formatarDataHora } from "../../utils/datas";
+import { ROTULO_LISTA_PLANOS, caminhoListaPlanos } from "../../utils/hierarquiaPlanos";
+import { NavegacaoHierarquia, type NivelHierarquia } from "../planos/NavegacaoHierarquia";
 import { Icon } from "../ui/Icon";
 import { ProgressBar } from "../ui/ProgressBar";
 import { PriorityBadge, ActionStatusBadge } from "../ui/StatusBadges";
@@ -21,6 +23,31 @@ function descreverPrazo(a: AcaoDetalhe): string {
   if (a.dias_para_prazo < 0) return `${data} · vencido há ${-a.dias_para_prazo} dia(s)`;
   if (a.dias_para_prazo === 0) return `${data} · vence hoje`;
   return `${data} · faltam ${a.dias_para_prazo} dia(s)`;
+}
+
+const rotuloItem = (nivel: number, numero: string) => `${nivel === 0 ? "Ação" : "Sub-item"} ${numero}`;
+
+/**
+ * Página da ação: caminho Todos os planos → Plano → Ação → Sub-item… pelos vínculos reais (plano e
+ * `caminho`, da ação principal ao pai imediato). "Voltar" sobe um nível: o pai, ou o plano (aba Ações) na ação
+ * principal; nível sem acesso é pulado (o responsável por um sub-item pode não ver o plano nem os de cima).
+ */
+function hierarquiaDaAcao(acao: AcaoDetalhe): { niveis: NivelHierarquia[]; voltarPara: string; voltarRotulo: string } {
+  const lista = caminhoListaPlanos();
+  const doPlano = acao.plano_visivel ? `/planos/${acao.plano.id}?aba=acoes` : undefined;
+  const ancestrais = acao.caminho.map((c, i) => ({
+    rotulo: rotuloItem(i, c.numero),
+    titulo: `${rotuloItem(i, c.numero)} — ${c.descricao}`,
+    para: c.acessivel ? `/acoes/${c.id}` : undefined,
+  }));
+  const niveis: NivelHierarquia[] = [
+    { rotulo: ROTULO_LISTA_PLANOS, para: lista },
+    { rotulo: acao.plano.codigo, titulo: `${acao.plano.codigo} — ${acao.plano.nome}`, para: doPlano },
+    ...ancestrais,
+    { rotulo: rotuloItem(acao.caminho.length, acao.numero), titulo: acao.descricao },
+  ];
+  const acima = [...niveis.slice(0, -1)].reverse().find((n) => n.para);
+  return { niveis, voltarPara: acima?.para ?? lista, voltarRotulo: acima?.rotulo ?? ROTULO_LISTA_PLANOS };
 }
 
 interface DetalheAcaoProps {
@@ -51,8 +78,10 @@ export function DetalheAcao({ acaoId, compacto = false }: DetalheAcaoProps) {
   return (
     <div className={compacto ? `${styles.pagina} ${styles.compacto}` : styles.pagina}>
       <header className={styles.cabecalho}>
-        {/* O responsável por uma subação pode não ter acesso ao plano: aí o código aparece sem link. */}
-        {acao.plano_visivel ? (
+        {!compacto && <NavegacaoHierarquia {...hierarquiaDaAcao(acao)} />}
+        {/* Modal (Minhas Ações): referência ao plano e caminho de origem como antes. O responsável por uma
+            subação pode não ter acesso ao plano: aí o código aparece sem link. */}
+        {!compacto ? null : acao.plano_visivel ? (
           <Link to={`/planos/${acao.plano.id}?aba=acoes`} className={styles.migalha}>
             <Icon name="chevronLeft" size={15} />
             {acao.plano.codigo} · {acao.plano.nome}
@@ -62,7 +91,7 @@ export function DetalheAcao({ acaoId, compacto = false }: DetalheAcaoProps) {
             {acao.plano.codigo} · {acao.plano.nome}
           </span>
         )}
-        {acao.caminho.length > 0 && (
+        {compacto && acao.caminho.length > 0 && (
           // Caminho de origem: PA → Ação 1 → Subação 1.1 → … (link só onde o usuário tem acesso).
           <nav className={styles.origem} aria-label="Caminho de origem">
             {acao.plano.codigo}

@@ -1,0 +1,83 @@
+/* "← Voltar" + caminho (breadcrumb) no topo do plano e da ação. */
+.navegacao {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--espaco-2) var(--espaco-3);
+  min-width: 0;
+}
+
+.voltar {
+  flex: none;
+}
+
+.caminho {
+  min-width: 0;
+  font-size: var(--fonte-sm);
+}
+
+.caminho ol {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--espaco-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.caminho li {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--espaco-1);
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* Separador só visual: texto alternativo vazio (o leitor de tela já anuncia a lista do caminho). */
+.caminho li + li::before {
+  content: "›";
+  content: "›" / "";
+  color: var(--cor-texto-suave);
+}
+
+/* Rótulos longos não quebram o layout: uma linha com reticências (o title mostra o texto completo). */
+.caminho a,
+.caminho span {
+  max-width: 16rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.caminho a {
+  color: var(--cor-primaria);
+}
+
+.atual {
+  font-weight: 600;
+  color: var(--cor-texto);
+}
+
+.semAcesso {
+  color: var(--cor-texto-suave);
+}
+
+@media (--ate-tablet) {
+  .caminho a {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--alvo-toque);
+  }
+}
+
+@media (--mobile) {
+  .caminho {
+    flex-basis: 100%;
+  }
+
+  .caminho a,
+  .caminho span {
+    max-width: 10rem;
+  }
+}

@@ -35,3 +35,33 @@
   border-radius: var(--r-xl);
   font-size: var(--text-2xl);
 }
+
+/* Foto com enquadramento (FotoEnquadrada): a moldura recorta; a imagem inteira fica por baixo. */
+.moldura {
+  position: relative;
+  display: inline-block;
+  flex-shrink: 0;
+  overflow: hidden;
+  /* Isola o recorte (o scale da imagem não vaza do canto arredondado/círculo). */
+  isolation: isolate;
+}
+
+.imagem {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+/* Circular: vale sobre o raio de cada tamanho. */
+.moldura.circular {
+  border-radius: 50%;
+}
+
+/* "Foto inteira": fundo neutro nas sobras (sem cortar a imagem). */
+.moldura.inteira {
+  background: var(--bg-2);
+}

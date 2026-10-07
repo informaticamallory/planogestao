@@ -8,10 +8,12 @@ interface ModalProps {
   onFechar: () => void;
   acoes: ReactNode;
   children: ReactNode;
+  /** "larga": conteúdo em duas colunas (ex.: editor de foto). Padrão: 30rem. */
+  largura?: "padrao" | "larga";
 }
 
 /** Diálogo modal centralizado sobre <dialog> (foco preso e Esc nativos). */
-export function Modal({ aberto, titulo, onFechar, acoes, children }: ModalProps) {
+export function Modal({ aberto, titulo, onFechar, acoes, children, largura = "padrao" }: ModalProps) {
   const ref = useRef<HTMLDialogElement>(null);
   const idTitulo = useId();
 
@@ -25,7 +27,7 @@ export function Modal({ aberto, titulo, onFechar, acoes, children }: ModalProps)
   return (
     <dialog
       ref={ref}
-      className={styles.modal}
+      className={largura === "larga" ? `${styles.modal} ${styles.larga}` : styles.modal}
       aria-labelledby={idTitulo}
       onClose={(e) => {
         // No React o "close" propaga pela árvore: sem isto, fechar um modal aberto dentro de um

@@ -3,17 +3,19 @@ import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from "r
 import { useSearchParams } from "react-router-dom";
 
 import styles from "../../components/admin/Admin.module.css";
+import { EditorFoto } from "../../components/perfil/EditorFoto";
 import { Avatar } from "../../components/ui/Avatar";
 import { Button } from "../../components/ui/Button";
 import { Card } from "../../components/ui/Card";
 import { Field, fieldAria } from "../../components/ui/Field";
 import { Icon, type IconName } from "../../components/ui/Icon";
 import { Input } from "../../components/ui/Input";
-import { KpiCard } from "../../components/ui/KpiCard";
 import { Tabs } from "../../components/ui/Tabs";
-import { useAtualizarMeuPerfil, useEnviarFoto, useRemoverFoto, useSalvarAparencia, useTrocarSenha } from "../../hooks/useMeuPerfil";
+import { useAjustarFoto, useAtualizarMeuPerfil, useEnviarFoto, useRemoverFoto, useSalvarAparencia, useTrocarSenha } from "../../hooks/useMeuPerfil";
 import { useAparencia } from "../../store/aparenciaStore";
 import { useAuthStore } from "../../store/authStore";
+import { AJUSTE_PADRAO, lerUrlFoto, type AjusteFoto } from "../../utils/ajusteFoto";
+import { resolverUrlApi } from "../../utils/urlApi";
 import estilos from "./MeuPerfil.module.css";
 
 type Aba = "dados" | "aparencia" | "seguranca";
@@ -83,17 +85,19 @@ export function MeuPerfilPage() {
 function AbaDados({ usuario }: { usuario: UsuarioLogado }) {
   const atualizar = useAtualizarMeuPerfil();
   const enviarFoto = useEnviarFoto();
+  const ajustarFoto = useAjustarFoto();
   const removerFoto = useRemoverFoto();
   const [nome, setNome] = useState(usuario.nome);
   const [erroNome, setErroNome] = useState<string>();
   const [salvo, setSalvo] = useState(false);
-  const [arquivo, setArquivo] = useState<File | null>(null);
-  const [preview, setPreview] = useState<string | null>(null);
+  // Editor: foto nova escolhida (ainda não enviada) ou reajuste da foto atual. Cancelar não envia nada.
+  const [editor, setEditor] = useState<{ arquivo: File | null; src: string; ajuste: AjusteFoto } | null>(null);
   const [erroFoto, setErroFoto] = useState<string>();
   const entrada = useRef<HTMLInputElement>(null);
 
-  // Libera a URL temporária do preview.
-  useEffect(() => () => void (preview && URL.revokeObjectURL(preview)), [preview]);
+  // Libera a URL temporária da foto escolhida (blob:) quando o editor fecha ou troca de foto.
+  const blob = editor?.arquivo ? editor.src : null;
+  useEffect(() => () => void (blob && URL.revokeObjectURL(blob)), [blob]);
 
   const nomeNormalizado = nome.trim().split(/\s+/).join(" ");
   const nomeAlterado = nomeNormalizado !== usuario.nome;
@@ -109,59 +113,62 @@ function AbaDados({ usuario }: { usuario: UsuarioLogado }) {
     const f = e.target.files?.[0];
     e.target.value = ""; // permite escolher o mesmo arquivo de novo
     enviarFoto.reset();
+    ajustarFoto.reset();
     if (!f) return;
     if (!FOTO_TIPOS.includes(f.type)) return setErroFoto("Escolha uma imagem JPEG, PNG ou WebP.");
     if (f.size > FOTO_MAX_MB * 1024 * 1024) return setErroFoto(`A foto deve ter no máximo ${FOTO_MAX_MB} MB.`);
     setErroFoto(undefined);
-    setArquivo(f);
-    setPreview(URL.createObjectURL(f));
+    // Foto nova: ajuste novo (centralizado, sem zoom); só o formato escolhido antes é mantido.
+    const formato = usuario.avatar_ajuste?.formato ?? AJUSTE_PADRAO.formato;
+    setEditor({ arquivo: f, src: URL.createObjectURL(f), ajuste: { ...AJUSTE_PADRAO, formato } });
   };
 
-  const descartar = () => {
-    setArquivo(null);
-    setPreview(null);
+  const abrirAjuste = () => {
+    if (!usuario.avatar_url) return;
+    enviarFoto.reset();
+    ajustarFoto.reset();
+    const atual = lerUrlFoto(usuario.avatar_url);
+    // A imagem inteira guardada (fotos antigas: a própria foto), nunca uma versão já recortada.
+    const src = resolverUrlApi(usuario.avatar_original_url ?? atual.src);
+    setEditor({ arquivo: null, src, ajuste: usuario.avatar_ajuste ?? atual.ajuste ?? AJUSTE_PADRAO });
   };
 
-  const erroApiFoto = enviarFoto.error?.message ?? removerFoto.error?.message;
+  const fechar = () => setEditor(null);
+
+  const salvarFoto = (ajuste: AjusteFoto) => {
+    if (!editor) return;
+    if (editor.arquivo) enviarFoto.mutate({ arquivo: editor.arquivo, ajuste }, { onSuccess: fechar });
+    else ajustarFoto.mutate(ajuste, { onSuccess: fechar });
+  };
+
+  const erroApiFoto = removerFoto.error?.message;
 
   return (
     <div className={estilos.secoes}>
       <Card titulo="Foto">
         <div className={estilos.foto}>
-          {preview ? (
-            <img src={preview} alt="Pré-visualização da nova foto" className={estilos.preview} />
-          ) : (
-            <Avatar nome={usuario.nome} url={usuario.avatar_url} tamanho="xl" className={estilos.avatarGrande} />
-          )}
+          <Avatar nome={usuario.nome} url={usuario.avatar_url} tamanho="xl" className={estilos.avatarGrande} />
           <div className={estilos.fotoAcoes}>
-            {arquivo ? (
-              <>
-                <p className={estilos.dica}>Pré-visualização. A foto é recortada no centro, em formato quadrado.</p>
-                <div className={estilos.botoes}>
-                  <Button variante="primaria" disabled={enviarFoto.isPending} onClick={() => enviarFoto.mutate(arquivo, { onSuccess: descartar })}>
-                    {enviarFoto.isPending ? "Enviando…" : "Usar esta foto"}
-                  </Button>
-                  <Button onClick={descartar} disabled={enviarFoto.isPending}>
-                    Cancelar
-                  </Button>
-                </div>
-              </>
-            ) : (
-              <>
-                <p className={estilos.dica}>JPEG, PNG ou WebP, até {FOTO_MAX_MB} MB.</p>
-                <div className={estilos.botoes}>
-                  <Button onClick={() => entrada.current?.click()}>
-                    <Icon name="upload" size={15} />
-                    {usuario.avatar_url ? "Trocar foto" : "Enviar foto"}
-                  </Button>
-                  {usuario.avatar_url && (
-                    <Button variante="link" disabled={removerFoto.isPending} onClick={() => removerFoto.mutate()}>
-                      Remover foto
-                    </Button>
-                  )}
-                </div>
-              </>
-            )}
+            <p className={estilos.dica}>
+              JPEG, PNG ou WebP, até {FOTO_MAX_MB} MB. A foto é guardada inteira; você escolhe o formato e o enquadramento.
+            </p>
+            <div className={estilos.botoes}>
+              <Button onClick={() => entrada.current?.click()}>
+                <Icon name="upload" size={15} />
+                {usuario.avatar_url ? "Trocar foto" : "Enviar foto"}
+              </Button>
+              {usuario.avatar_url && (
+                <Button onClick={abrirAjuste}>
+                  <Icon name="sliders" size={15} />
+                  Ajustar foto
+                </Button>
+              )}
+              {usuario.avatar_url && (
+                <Button variante="link" disabled={removerFoto.isPending} onClick={() => removerFoto.mutate()}>
+                  Remover foto
+                </Button>
+              )}
+            </div>
             <input ref={entrada} type="file" accept={FOTO_TIPOS.join(",")} hidden onChange={escolher} aria-label="Escolher foto" />
             {(erroFoto || erroApiFoto) && (
               <p className={styles.erro} role="alert">
@@ -171,6 +178,16 @@ function AbaDados({ usuario }: { usuario: UsuarioLogado }) {
           </div>
         </div>
       </Card>
+
+      <EditorFoto
+        aberto={editor !== null}
+        src={editor?.src ?? null}
+        ajusteInicial={editor?.ajuste ?? AJUSTE_PADRAO}
+        salvando={enviarFoto.isPending || ajustarFoto.isPending}
+        erro={enviarFoto.error?.message ?? ajustarFoto.error?.message}
+        onCancelar={fechar}
+        onSalvar={salvarFoto}
+      />
 
       <Card titulo="Dados pessoais">
         <form className={estilos.form} onSubmit={salvarNome} noValidate>
@@ -248,28 +265,6 @@ function AbaAparencia() {
               </span>
             </label>
           ))}
-        </div>
-
-        {/* Pré-visualização ao vivo: usa os mesmos componentes da interface, já no tamanho escolhido. */}
-        <div className={estilos.previa} aria-label="Pré-visualização">
-          <span className={estilos.rotuloPrevia}>Pré-visualização</span>
-          <div className={estilos.conteudoPrevia}>
-            <div className={estilos.textoPrevia}>
-              <h3 className={estilos.tituloPrevia}>Plano PA-2026-014 · Redução de refugo na linha 3</h3>
-              <p>
-                Ação &ldquo;Revisar o procedimento de setup&rdquo; vence em 3 dias. Responsável: Fernanda Rocha. Progresso atual de 60%.
-              </p>
-              <div className={estilos.botoes}>
-                <Button variante="primaria" tamanho="sm" tabIndex={-1}>
-                  Registrar progresso
-                </Button>
-                <Button tamanho="sm" tabIndex={-1}>
-                  Ver plano
-                </Button>
-              </div>
-            </div>
-            <KpiCard valor="72%" rotulo="Ações no prazo" dica="36 de 50 ações" tom="sucesso" className={estilos.kpiPrevia} />
-          </div>
         </div>
       </Card>
 

@@ -17,7 +17,8 @@ from app.core.security import (
 from app.models import RefreshToken, Usuario
 from app.repositories.refresh_token_repository import RefreshTokenRepository
 from app.repositories.usuario_repository import UsuarioRepository
-from app.schemas.auth import ReferenciaSimples, UsuarioLogado
+from app.schemas.auth import AjusteFoto, ReferenciaSimples, UsuarioLogado
+from app.services.meu_perfil_service import url_original
 
 
 class CredenciaisInvalidas(Exception):
@@ -46,6 +47,9 @@ def montar_usuario_logado(usuario: Usuario) -> UsuarioLogado:
         nome=usuario.nome,
         email=usuario.email,
         avatar_url=usuario.avatar_url,
+        avatar_original_url=url_original(usuario),
+        avatar_ajuste=AjusteFoto(**{k: v for k, v in usuario.avatar_ajuste.items() if k in AjusteFoto.model_fields})
+        if usuario.avatar_ajuste else None,
         perfil=ReferenciaSimples.model_validate(usuario.perfil),
         area=ReferenciaSimples.model_validate(usuario.area) if usuario.area else None,
         setor=ReferenciaSimples.model_validate(usuario.setor) if usuario.setor else None,

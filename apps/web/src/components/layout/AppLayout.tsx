@@ -4,6 +4,7 @@ import { Link, Outlet, useLocation } from "react-router-dom";
 import { useMenuRecolhido } from "../../hooks/useMenuRecolhido";
 import { useAuthStore } from "../../store/authStore";
 import { useFaixa } from "../../utils/breakpoints";
+import { useLembrarListaPlanos } from "../../utils/hierarquiaPlanos";
 import { SinoNotificacoes } from "../notificacoes/SinoNotificacoes";
 import { Avatar } from "../ui/Avatar";
 import { Button } from "../ui/Button";
@@ -32,6 +33,8 @@ export function AppLayout() {
   const [gavetaAberta, setGavetaAberta] = useState(false);
   const location = useLocation();
   const botaoMenu = useRef<HTMLButtonElement>(null);
+  // Filtros/página da listagem de planos (para "Todos os planos" no caminho do plano e da ação).
+  useLembrarListaPlanos();
 
   // Ao mudar de faixa: tablet volta a começar recolhido e a gaveta do celular fecha.
   useEffect(() => {

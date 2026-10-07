@@ -4,11 +4,13 @@ import { useNavigate } from "react-router-dom";
 
 import { useArquivamentoPlano, useConcluirPlano, useExcluirPlano } from "../../../hooks/usePlano";
 import { formatarData, formatarDataDoInstante } from "../../../utils/datas";
+import { ROTULO_LISTA_PLANOS, caminhoListaPlanos } from "../../../utils/hierarquiaPlanos";
 import { Badge } from "../../ui/Badge";
 import { Button, ButtonLink } from "../../ui/Button";
 import { Input } from "../../ui/Input";
 import { Modal } from "../../ui/Modal";
 import { ConfirmarOperacao } from "../ConfirmarOperacao";
+import { NavegacaoHierarquia } from "../NavegacaoHierarquia";
 import { PriorityBadge } from "../../ui/StatusBadges";
 import { PlanStatusBadge } from "../../ui/StatusBadges";
 import styles from "./CabecalhoPlano.module.css";
@@ -33,6 +35,17 @@ export function CabecalhoPlano({ plano }: { plano: PlanoDetalhe }) {
 
   return (
     <header className={styles.cabecalho}>
+      {/* Hierarquia: no detalhe do plano, "Voltar" leva sempre a Todos os planos (com os filtros salvos). */}
+      <div className={styles.linhaVoltar}>
+        <NavegacaoHierarquia
+          niveis={[
+            { rotulo: ROTULO_LISTA_PLANOS, para: caminhoListaPlanos() },
+            { rotulo: plano.codigo, titulo: `${plano.codigo} — ${plano.nome}` },
+          ]}
+          voltarPara={caminhoListaPlanos()}
+          voltarRotulo={ROTULO_LISTA_PLANOS}
+        />
+      </div>
       {arquivado && (
         <p className={styles.faixaArquivado} role="status">
           PA arquivado em {formatarDataDoInstante(plano.arquivado_em!)}

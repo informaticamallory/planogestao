@@ -33,13 +33,25 @@ class ReferenciaSimples(BaseModel):
     nome: str
 
 
+class AjusteFoto(BaseModel):
+    """Enquadramento da foto (só visual: a imagem guardada é a foto inteira). Ver core/foto.py."""
+
+    formato: Literal["circular", "quadrado"] = Field(description="Quadrado = cantos arredondados (padrão do kit).")
+    encaixe: Literal["preencher", "inteira"] = Field(description="inteira = foto toda visível, sem cortes, com fundo neutro.")
+    x: float = Field(ge=0, le=1, description="Posição horizontal (0 = esquerda, 1 = direita).")
+    y: float = Field(ge=0, le=1, description="Posição vertical (0 = topo, 1 = base).")
+    zoom: float = Field(ge=1, le=3, description="1 = a foto cobre a moldura; até 3x.")
+
+
 class UsuarioLogado(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
     nome: str
     email: str
-    avatar_url: str | None
+    avatar_url: str | None = Field(description="Foto com o enquadramento no fragmento (#f=…&m=…&x=…&y=…&z=…).")
+    avatar_original_url: str | None = Field(default=None, description="Imagem inteira para o editor de enquadramento.")
+    avatar_ajuste: AjusteFoto | None = Field(default=None, description="Enquadramento salvo (nulo: padrão).")
     perfil: ReferenciaSimples
     area: ReferenciaSimples | None
     setor: ReferenciaSimples | None

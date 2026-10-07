@@ -9,6 +9,7 @@ type Schemas = components["schemas"];
 export type LoginRequest = Schemas["LoginRequest"];
 export type TokenResponse = Schemas["TokenResponse"];
 export type UsuarioLogado = Schemas["UsuarioLogado"];
+export type AjusteFoto = Schemas["AjusteFoto"];
 export type ReferenciaSimples = Schemas["ReferenciaSimples"];
 
 export type TipoPeriodo = Schemas["TipoPeriodo"];

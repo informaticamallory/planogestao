@@ -506,10 +506,33 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Enviar Foto */
+        /**
+         * Enviar Foto
+         * @description Foto nova com o enquadramento feito no editor (enviados juntos: cancelar no editor não envia nada).
+         */
         post: operations["enviar_foto_usuarios_me_foto_post"];
         /** Remover Foto */
         delete: operations["remover_foto_usuarios_me_foto_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/usuarios/me/foto/ajuste": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Ajustar Foto
+         * @description Muda só o enquadramento da foto atual (formato, encaixe, posição, zoom); a imagem guardada não muda.
+         */
+        put: operations["ajustar_foto_usuarios_me_foto_ajuste_put"];
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -2789,6 +2812,39 @@ export interface components {
             /** Avisos */
             avisos: string[];
         };
+        /**
+         * AjusteFoto
+         * @description Enquadramento da foto (só visual: a imagem guardada é a foto inteira). Ver core/foto.py.
+         */
+        AjusteFoto: {
+            /**
+             * Formato
+             * @description Quadrado = cantos arredondados (padrão do kit).
+             * @enum {string}
+             */
+            formato: "circular" | "quadrado";
+            /**
+             * Encaixe
+             * @description inteira = foto toda visível, sem cortes, com fundo neutro.
+             * @enum {string}
+             */
+            encaixe: "preencher" | "inteira";
+            /**
+             * X
+             * @description Posição horizontal (0 = esquerda, 1 = direita).
+             */
+            x: number;
+            /**
+             * Y
+             * @description Posição vertical (0 = topo, 1 = base).
+             */
+            y: number;
+            /**
+             * Zoom
+             * @description 1 = a foto cobre a moldura; até 3x.
+             */
+            zoom: number;
+        };
         /** AnexoResumo */
         AnexoResumo: {
             /** Id */
@@ -2916,9 +2972,34 @@ export interface components {
             /**
              * Arquivo
              * Format: binary
-             * @description JPEG, PNG ou WebP de até 5 MB. Vira um quadrado de 256 px.
+             * @description JPEG, PNG ou WebP de até 5 MB. Guardada inteira, sem recorte.
              */
             arquivo: string;
+            /**
+             * Formato
+             * @default quadrado
+             */
+            formato: string;
+            /**
+             * Encaixe
+             * @default preencher
+             */
+            encaixe: string;
+            /**
+             * X
+             * @default 0.5
+             */
+            x: number;
+            /**
+             * Y
+             * @default 0.5
+             */
+            y: number;
+            /**
+             * Zoom
+             * @default 1
+             */
+            zoom: number;
         };
         /** CadastroSalvar */
         CadastroSalvar: {
@@ -6104,8 +6185,18 @@ export interface components {
             nome: string;
             /** Email */
             email: string;
-            /** Avatar Url */
+            /**
+             * Avatar Url
+             * @description Foto com o enquadramento no fragmento (#f=…&m=…&x=…&y=…&z=…).
+             */
             avatar_url: string | null;
+            /**
+             * Avatar Original Url
+             * @description Imagem inteira para o editor de enquadramento.
+             */
+            avatar_original_url?: string | null;
+            /** @description Enquadramento salvo (nulo: padrão). */
+            avatar_ajuste?: components["schemas"]["AjusteFoto"] | null;
             perfil: components["schemas"]["ReferenciaSimples"];
             area: components["schemas"]["ReferenciaSimples"] | null;
             setor: components["schemas"]["ReferenciaSimples"] | null;
@@ -7343,6 +7434,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["UsuarioLogado"];
+                };
+            };
+        };
+    };
+    ajustar_foto_usuarios_me_foto_ajuste_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AjusteFoto"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UsuarioLogado"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

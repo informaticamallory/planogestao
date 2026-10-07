@@ -114,3 +114,9 @@
   color: var(--fg);
   font-size: var(--text-sm, 0.875rem);
 }
+
+/* "← Voltar": canto superior esquerdo, acima do código do plano. */
+.linhaVoltar {
+  display: flex;
+  justify-content: flex-start;
+}

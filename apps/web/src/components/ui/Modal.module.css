@@ -9,6 +9,10 @@
   box-shadow: var(--shadow-lg);
 }
 
+.modal.larga {
+  width: min(46rem, calc(100vw - 2rem));
+}
+
 .modal::backdrop {
   background: var(--overlay);
   backdrop-filter: blur(2px);
@@ -50,6 +54,11 @@
     overflow-y: auto;
     border-width: var(--borda-fina) 0 0;
     border-radius: var(--r-2xl) var(--r-2xl) 0 0;
+  }
+
+  /* A folha também vale para o modal largo (a largura de desktop não pode vencer aqui). */
+  .modal.larga {
+    width: 100vw;
   }
 
   .modal[open] {

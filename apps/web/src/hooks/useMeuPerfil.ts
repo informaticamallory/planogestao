@@ -1,4 +1,4 @@
-import type { CorDestaque, TamanhoFonte, TemaPreferido, TrocarSenha, UsuarioLogado, UsuarioSelfUpdate } from "@planogestao/shared-types";
+import type { AjusteFoto, CorDestaque, TamanhoFonte, TemaPreferido, TrocarSenha, UsuarioLogado, UsuarioSelfUpdate } from "@planogestao/shared-types";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { api } from "../services/api";
@@ -21,7 +21,15 @@ export function useAtualizarMeuPerfil() {
 
 export function useEnviarFoto() {
   const aoAtualizar = useAoAtualizar();
-  return useMutation({ mutationFn: (arquivo: File) => api.meuPerfil.enviarFoto(arquivo), onSuccess: aoAtualizar });
+  return useMutation({
+    mutationFn: ({ arquivo, ajuste }: { arquivo: File; ajuste: AjusteFoto }) => api.meuPerfil.enviarFoto(arquivo, ajuste),
+    onSuccess: aoAtualizar,
+  });
+}
+
+export function useAjustarFoto() {
+  const aoAtualizar = useAoAtualizar();
+  return useMutation({ mutationFn: (ajuste: AjusteFoto) => api.meuPerfil.ajustarFoto(ajuste), onSuccess: aoAtualizar });
 }
 
 export function useRemoverFoto() {
