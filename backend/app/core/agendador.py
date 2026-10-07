@@ -13,9 +13,28 @@ from app.core.config import get_settings
 from app.core.database import SessionLocal
 from app.core.tempo import fuso_local, hoje_local
 from app.services.alertas_prazo import verificar_prazos
+from app.services.avisos_agendados import gerar_resumos_semanais, verificar_planos_sem_atualizacao
 from app.services.email_notificacoes import processar_pendentes
 
 logger = logging.getLogger("planogestao.agendador")
+
+
+def job_avisos_agendados() -> None:
+    """Resumo semanal (no dia/horário de Configurações) e plano sem atualização. Cada parte isolada."""
+    try:
+        with SessionLocal() as db:
+            r = gerar_resumos_semanais(db, datetime.now(fuso_local()))
+        if r.usuarios:
+            logger.info("Resumo semanal %s a %s: %s pessoa(s), %s plano(s).", *r.periodo, r.usuarios, r.planos)
+    except Exception:
+        logger.exception("Falha no job do resumo semanal")
+    try:
+        with SessionLocal() as db:
+            n = verificar_planos_sem_atualizacao(db, hoje_local())
+        if n:
+            logger.info("Plano sem atualização: %s notificação(ões) nova(s).", n)
+    except Exception:
+        logger.exception("Falha no job de planos sem atualização")
 
 
 def job_alertas_de_prazo() -> None:
@@ -46,6 +65,7 @@ def iniciar_agendador() -> BackgroundScheduler | None:
     jobs = []
     if s.ALERTAS_INTERVALO_MIN > 0:
         jobs.append((job_alertas_de_prazo, s.ALERTAS_INTERVALO_MIN, "alertas_prazo"))
+        jobs.append((job_avisos_agendados, s.ALERTAS_INTERVALO_MIN, "avisos_agendados"))
     if s.EMAIL_HABILITADO and s.EMAIL_INTERVALO_MIN > 0:
         jobs.append((job_envios_email, s.EMAIL_INTERVALO_MIN, "envios_email"))
     if not jobs:

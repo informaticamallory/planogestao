@@ -558,6 +558,31 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/usuarios/me/preferencias-notificacao": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Listar Preferencias Notificacao
+         * @description Os sete avisos operacionais, com os canais escolhidos (ou o padrão). Convites de primeiro acesso e
+         *     mensagens de segurança não dependem destas preferências.
+         */
+        get: operations["listar_preferencias_notificacao_usuarios_me_preferencias_notificacao_get"];
+        /**
+         * Salvar Preferencias Notificacao
+         * @description Grava os tipos enviados (os demais ficam como estão). Tipo inexistente ou repetido → 422.
+         */
+        put: operations["salvar_preferencias_notificacao_usuarios_me_preferencias_notificacao_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/usuarios/opcoes": {
         parameters: {
             query?: never;
@@ -2404,6 +2429,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/envios-email/{envio_id}/tentativas": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Listar Tentativas Envio
+         * @description Auditoria de cada tentativa do e-mail (o registro do envio guarda só a última situação).
+         */
+        get: operations["listar_tentativas_envio_envios_email__envio_id__tentativas_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/health": {
         parameters: {
             query?: never;
@@ -2470,6 +2515,16 @@ export interface components {
              * @description Substitui os pré-requisitos (ids de ações principais do plano).
              */
             depende_de?: number[] | null;
+            /**
+             * Responsavel Id
+             * @description Troca o responsável (só gestores; conta ativa com acesso à área do plano).
+             */
+            responsavel_id?: number | null;
+            /**
+             * Motivo Alteracao Prazo
+             * @description Opcional: motivo da mudança de prazo (histórico e aviso aos envolvidos).
+             */
+            motivo_alteracao_prazo?: string | null;
         };
         /** AcaoCalendario */
         AcaoCalendario: {
@@ -3168,6 +3223,11 @@ export interface components {
             maximo: number;
             /** Unidade */
             unidade: string;
+            /**
+             * Tipo
+             * @description inteiro | dia_semana (1 = segunda … 7 = domingo) | horario (minutos desde 00:00)
+             */
+            tipo: string;
             /** Atualizado Em */
             atualizado_em: string | null;
             /** Atualizado Por */
@@ -3408,7 +3468,7 @@ export interface components {
             id: number;
             /**
              * Evento
-             * @description plano_criado | acao_criada | subitem_criado
+             * @description Modelo do e-mail (ex.: plano_criado, acao_criada, resumo_semanal, prazo_proximo).
              */
             evento: string;
             /** Referencia Tipo */
@@ -3423,7 +3483,7 @@ export interface components {
             assunto: string;
             /**
              * Situacao
-             * @description pendente | enviando | enviado | falhou | sem_endereco | ignorado | desabilitado
+             * @description pendente | enviando | enviado | falhou | sem_endereco | ignorado (inclui não enviado na revalidação) | modelo_inativo | desabilitado
              */
             situacao: string;
             /** Tentativas */
@@ -4800,6 +4860,11 @@ export interface components {
              * @default false
              */
             rascunho: boolean;
+            /**
+             * Motivo Alteracao Prazo
+             * @description Opcional: motivo da mudança das datas estimadas (histórico e aviso).
+             */
+            motivo_alteracao_prazo?: string | null;
         };
         /** PlanoCriado */
         PlanoCriado: {
@@ -5227,6 +5292,43 @@ export interface components {
             a_vencer: number;
             /** No Prazo */
             no_prazo: number;
+        };
+        /** PreferenciaNotificacaoItem */
+        PreferenciaNotificacaoItem: {
+            /** Tipo */
+            tipo: string;
+            /** Rotulo */
+            rotulo: string;
+            /** Descricao */
+            descricao: string;
+            /**
+             * Sistema
+             * @description Receber na central do sistema (e no push do app).
+             */
+            sistema: boolean;
+            /**
+             * Email
+             * @description Receber por e-mail.
+             */
+            email: boolean;
+            /** Padrao Sistema */
+            padrao_sistema: boolean;
+            /** Padrao Email */
+            padrao_email: boolean;
+            /**
+             * Personalizado
+             * @description False = usando o padrão do tipo.
+             */
+            personalizado: boolean;
+        };
+        /** PreferenciaNotificacaoSalvar */
+        PreferenciaNotificacaoSalvar: {
+            /** Tipo */
+            tipo: string;
+            /** Sistema */
+            sistema: boolean;
+            /** Email */
+            email: boolean;
         };
         /** PremioEntrada */
         PremioEntrada: {
@@ -5959,6 +6061,23 @@ export interface components {
          * @enum {string}
          */
         Tela: "dashboard" | "indicadores";
+        /** TentativaEnvioItem */
+        TentativaEnvioItem: {
+            /** Numero */
+            numero: number;
+            /**
+             * Resultado
+             * @description enviado | falhou | cancelado (não enviado na revalidação)
+             */
+            resultado: string;
+            /** Erro */
+            erro: string | null;
+            /**
+             * Criado Em
+             * Format: date-time
+             */
+            criado_em: string;
+        };
         /** TestePedido */
         TestePedido: {
             /** Evento */
@@ -7494,6 +7613,59 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TokenResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    listar_preferencias_notificacao_usuarios_me_preferencias_notificacao_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PreferenciaNotificacaoItem"][];
+                };
+            };
+        };
+    };
+    salvar_preferencias_notificacao_usuarios_me_preferencias_notificacao_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PreferenciaNotificacaoSalvar"][];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PreferenciaNotificacaoItem"][];
                 };
             };
             /** @description Validation Error */
@@ -11403,6 +11575,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Pagina_EnvioEmailItem_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    listar_tentativas_envio_envios_email__envio_id__tentativas_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                envio_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TentativaEnvioItem"][];
                 };
             };
             /** @description Validation Error */

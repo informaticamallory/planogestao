@@ -1,8 +1,8 @@
 /**
- * Estrutura da ação: pré-requisitos ("Depende da conclusão de"), planejamento (área, função/cargo,
+ * Estrutura da ação: pré-requisitos ("Depende da conclusão de"), planejamento (responsável, área, função/cargo,
  * prazo inicial estimado) e subações. As regras valem no backend; aqui só se mostra e se envia.
  */
-import type { AcaoDetalhe, AcaoDoPlano, AcaoAtualizar, RefAcao } from "@planogestao/shared-types";
+import type { AcaoDetalhe, AcaoDoPlano, AcaoAtualizar, RefAcao, UsuarioOpcao } from "@planogestao/shared-types";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 
@@ -21,6 +21,7 @@ import { Checkbox, Input, Textarea } from "../ui/Input";
 import { ProgressBar } from "../ui/ProgressBar";
 import { Select } from "../ui/Select";
 import { ActionStatusBadge } from "../ui/StatusBadges";
+import { UserPicker } from "../ui/UserPicker";
 import styles from "./Acao.module.css";
 
 const ABERTOS = ["aguardando_aceite", "aceita", "em_andamento", "bloqueada"];
@@ -120,17 +121,21 @@ export function FaixaAguardando({ acao }: { acao: AcaoDetalhe }) {
 // ---- planejamento --------------------------------------------------------------------------
 
 interface Rascunho {
+  responsavel: UsuarioOpcao | null;
   area_id: string;
   setor_id: string;
   prazo_inicio: string;
   depende_de: number[];
+  motivo_prazo: string;
 }
 
 const doDetalhe = (a: AcaoDetalhe): Rascunho => ({
+  responsavel: { id: a.responsavel.id, nome: a.responsavel.nome, area: null },
   area_id: String(a.area.id),
   setor_id: a.setor ? String(a.setor.id) : "",
   prazo_inicio: a.prazo_inicio ?? "",
   depende_de: a.depende_de.map((p) => p.id),
+  motivo_prazo: "",
 });
 
 /** A ação `id` depende (direta ou indiretamente) de `alvo`? (para não oferecer ciclos) */
@@ -194,7 +199,10 @@ export function BlocoPlanejamento({ acao }: { acao: AcaoDetalhe }) {
   };
 
   const alteracoes: AcaoAtualizar = {};
-  if (r.prazo_inicio && r.prazo_inicio !== (acao.prazo_inicio ?? "")) alteracoes.prazo_inicio = r.prazo_inicio;
+  if (r.responsavel && r.responsavel.id !== acao.responsavel.id) alteracoes.responsavel_id = r.responsavel.id;
+  const mudouInicio = !!r.prazo_inicio && r.prazo_inicio !== (acao.prazo_inicio ?? "");
+  if (mudouInicio) alteracoes.prazo_inicio = r.prazo_inicio;
+  if (mudouInicio && r.motivo_prazo.trim()) alteracoes.motivo_alteracao_prazo = r.motivo_prazo.trim();
   if (r.area_id !== String(acao.area.id)) alteracoes.area_id = Number(r.area_id);
   if (r.setor_id !== (acao.setor ? String(acao.setor.id) : "")) alteracoes.setor_id = r.setor_id ? Number(r.setor_id) : null;
   const atuais = acao.depende_de.map((p) => p.id).sort().join(",");
@@ -220,6 +228,8 @@ export function BlocoPlanejamento({ acao }: { acao: AcaoDetalhe }) {
       {!editando ? (
         <>
           <dl className={styles.listaDatas}>
+            <dt>Responsável</dt>
+            <dd>{acao.responsavel.nome}</dd>
             <dt>Área / Função/Cargo</dt>
             <dd>
               {acao.area.nome}
@@ -260,6 +270,19 @@ export function BlocoPlanejamento({ acao }: { acao: AcaoDetalhe }) {
         </>
       ) : (
         <div className={styles.formSolicitacao}>
+          <Field
+            id="plan-responsavel"
+            rotulo="Responsável"
+            obrigatorio
+            ajuda="Precisa ter a área do plano entre as autorizadas. O novo responsável é avisado; status, prazos e pontos não mudam."
+          >
+            <UserPicker
+              id="plan-responsavel"
+              ariaLabel="Responsável"
+              valor={r.responsavel}
+              onSelecionar={(responsavel) => setR({ ...r, responsavel: responsavel ?? r.responsavel })}
+            />
+          </Field>
           <Field id="plan-area" rotulo="Área" obrigatorio>
             <Select id="plan-area" value={r.area_id} onChange={(e) => setR({ ...r, area_id: e.target.value, setor_id: "" })}>
               {opcoes?.areas.map((o) => (
@@ -288,6 +311,16 @@ export function BlocoPlanejamento({ acao }: { acao: AcaoDetalhe }) {
               onChange={(e) => setR({ ...r, prazo_inicio: e.target.value })}
             />
           </Field>
+          {mudouInicio && (
+            <Field id="plan-motivo-prazo" rotulo="Motivo da alteração de prazo" ajuda="Opcional. Vai para o histórico e para o aviso aos envolvidos.">
+              <Input
+                {...fieldAria("plan-motivo-prazo")}
+                maxLength={500}
+                value={r.motivo_prazo}
+                onChange={(e) => setR({ ...r, motivo_prazo: e.target.value })}
+              />
+            </Field>
+          )}
           {acao.plano_visivel && (
             <fieldset className={styles.grupoRefs}>
               <legend>Depende da conclusão de</legend>

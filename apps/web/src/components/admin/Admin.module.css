@@ -240,6 +240,12 @@
   text-align: right;
 }
 
+/* Horário (hh:mm + ícone do relógio) e dia da semana precisam de mais espaço que um número. */
+.controleConfig input[type="time"] {
+  width: 8rem;
+  text-align: left;
+}
+
 @media (--mobile) {
   .linhaConfig {
     grid-template-columns: 1fr;

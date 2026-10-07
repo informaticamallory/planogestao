@@ -10,8 +10,13 @@ from app.services.push import agendar_push
 
 class CanalNotificacaoApp:
     def entregar(self, db: Session, evento: Evento) -> int:
+        from app.services.preferencias_notificacao import recebem  # evita import circular
+
         criadas: list[Notificacao] = []
-        for usuario_id in evento.destinatarios_efetivos():
+        destinatarios = evento.destinatarios_efetivos()
+        # Preferência "Receber no sistema" (só nos tipos configuráveis; os demais vão sempre).
+        querem = recebem(db, evento.tipo, destinatarios, "sistema")
+        for usuario_id in (d for d in destinatarios if d in querem):
             chave = f"{evento.chave_deduplicacao}:{usuario_id}" if evento.chave_deduplicacao else None
             if chave and db.scalar(select(Notificacao.id).where(Notificacao.chave_deduplicacao == chave)):
                 continue  # este alerta já foi dado para este usuário

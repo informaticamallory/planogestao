@@ -12,6 +12,7 @@ const CAMPOS_ACAO: Record<string, string> = {
   area: "a área",
   setor: "a função/cargo",
   depende_de: "os pré-requisitos",
+  responsavel: "o responsável",
   responsavel_id: "o responsável",
   observacao: "a observação",
 };

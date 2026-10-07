@@ -38,10 +38,10 @@ from app.schemas.plano import (
     PlanoDetalhe,
 )
 from app.services.alertas_prazo import verificar_acao
+from app.services import avisos as avisos_operacionais
 from app.services import dependencias
 from app.services.armazenamento import Armazenamento
 from app.services.email_notificacoes import enfileirar_criacao_item, enfileirar_criacao_plano
-from app.services.eventos import Evento, TipoEvento, publicar
 from app.services.escopo import MENSAGEM_SEM_ACESSO_AREA, filtro_planos_visiveis
 from app.services.ciclo_plano import apto_a_conclusao, concluir_manualmente, recalcular_status
 from app.services.historico import registrar_historico, registrar_historico_plano
@@ -208,8 +208,8 @@ class PlanoEscritaService:
             raise RegraNegocio("Cadastre ao menos uma ação com área (ou defina a área do responsável pelo plano).")
         return responsavel.area_id, None
 
-    def _historico_plano(self, plano: PlanoDeAcao, evento: EventoPlano, campo=None, anterior=None, novo=None) -> None:
-        registrar_historico_plano(self.db, plano, self.usuario.id, evento, campo, anterior, novo)
+    def _historico_plano(self, plano: PlanoDeAcao, evento: EventoPlano, campo=None, anterior=None, novo=None, motivo=None):
+        return registrar_historico_plano(self.db, plano, self.usuario.id, evento, campo, anterior, novo, motivo=motivo)
 
     def criar(self, dados: PlanoCriar) -> PlanoCriado:
         self._validar_identificacao(dados)
@@ -319,22 +319,11 @@ class PlanoEscritaService:
     def _avisar_atribuicao(self, acao: Acao) -> None:
         """Avisos da criação de uma ação/sub-item (ou da liberação do rascunho em que ela foi criada)."""
         plano = acao.plano
-        # E-mail de criação: responsável (e, no sub-item, o responsável pelo pai), qualquer status.
+        # E-mail de criação: responsável (e, no sub-item, o responsável pelo pai), qualquer status. Para o
+        # responsável, é o e-mail de "Ação atribuída" (respeita a preferência de e-mail desse tipo).
         enfileirar_criacao_item(self.db, acao, self.usuario)
-        if acao.status in STATUS_ACAO_ABERTOS:
-            tipo = f"o sub-item {acao.numero_exibicao}" if acao.eh_subacao else "a ação"
-            publicar(
-                self.db,
-                Evento(
-                    tipo=TipoEvento.ACAO_ATRIBUIDA,
-                    destinatarios=(acao.responsavel_id,),
-                    autor_id=self.usuario.id,
-                    titulo=f"{'Novo sub-item atribuído' if acao.eh_subacao else 'Nova ação atribuída'} a você — {plano.codigo}",
-                    mensagem=f"{self.usuario.nome} atribuiu a você {tipo} “{acao.descricao}” (prazo {_formatar(acao.prazo)}).",
-                    referencia_tipo=ReferenciaNotificacao.ACAO,
-                    referencia_id=acao.id,
-                ),
-            )
+        # Central: "Ação atribuída" (só itens em aberto; acesso e preferência conferidos em avisos.py).
+        avisos_operacionais.acao_atribuida_na_criacao(self.db, acao, self.usuario)
         verificar_acao(self.db, acao, self.hoje)
 
     def _acao_resumo(self, acao: Acao) -> AcaoResumo:
@@ -427,12 +416,18 @@ class PlanoEscritaService:
         self._validar_identificacao(dados, plano)
         self._validar_rascunho(plano, dados.rascunho)
         responsavel_antes, area_antes = plano.responsavel_id, plano.area_id
+        era_rascunho = plano.rascunho
+        datas_antes = (plano.data_inicio_estimado, plano.data_fim_estimado)
+        motivo_prazo = (dados.motivo_alteracao_prazo or "").strip()[:200] or None
+        hist_datas = None
 
         # Auditoria campo a campo, na mesma transação da alteração.
         for campo in self._CAMPOS_SIMPLES:
             anterior, novo = getattr(plano, campo), getattr(dados, campo)
             if anterior != novo:
-                self._historico_plano(plano, EventoPlano.ALTERACAO, campo, anterior, novo)
+                eh_data = campo in ("data_inicio_estimado", "data_fim_estimado")
+                h = self._historico_plano(plano, EventoPlano.ALTERACAO, campo, anterior, novo, motivo=motivo_prazo if eh_data else None)
+                hist_datas = h if eh_data else hist_datas
                 setattr(plano, campo, novo)
         for campo, model in self._CAMPOS_RELACAO:
             # Área/setor não enviados: mantém os do plano (agora são escolhidos por ação).
@@ -463,6 +458,12 @@ class PlanoEscritaService:
             if plano.status == StatusPlano.CONCLUIDO:
                 # Concluído enquanto rascunho: os pontos e o aviso saem na liberação.
                 creditar_conclusao_plano(self.db, plano)
+
+        # Datas do plano alteradas (fora do rascunho): o responsável/gestor do plano, se não foi ele quem mudou.
+        if hist_datas is not None and not era_rascunho:
+            self.db.flush()
+            self.db.refresh(plano, ["responsavel"])
+            avisos_operacionais.prazo_alterado_plano(self.db, plano, self.usuario, datas_antes, motivo_prazo, hist_datas.id)
 
         self.db.commit()
         self.db.refresh(plano)

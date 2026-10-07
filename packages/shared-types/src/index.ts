@@ -157,6 +157,11 @@ export type SetorSalvar = Schemas["SetorSalvar"];
 export type ConfiguracaoItem = Schemas["ConfiguracaoItem"];
 export type ConfiguracoesPublicas = Schemas["ConfiguracoesPublicas"];
 
+// Preferências de notificação (Meu Perfil) e auditoria das tentativas de e-mail.
+export type PreferenciaNotificacaoItem = Schemas["PreferenciaNotificacaoItem"];
+export type PreferenciaNotificacaoSalvar = Schemas["PreferenciaNotificacaoSalvar"];
+export type TentativaEnvioItem = Schemas["TentativaEnvioItem"];
+
 // Configurações de e-mail (Administração).
 export type ConfigEmailTela = Schemas["ConfigEmailTela"];
 export type ModeloTela = Schemas["ModeloTela"];

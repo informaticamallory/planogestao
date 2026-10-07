@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import BigInteger, DateTime, ForeignKey, Index, Integer, String, Text, func
+from sqlalchemy import JSON, BigInteger, DateTime, ForeignKey, Index, Integer, String, Text, func
 from sqlalchemy.dialects import mysql
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -51,5 +51,27 @@ class EnvioEmail(Base):
     processando_desde: Mapped[datetime | None] = mapped_column(DateTime)
     ultimo_erro: Mapped[str | None] = mapped_column(Text)
     enviado_em: Mapped[datetime | None] = mapped_column(DateTime)
+    # Avisos operacionais: o que conferir de novo antes do envio (plano/item, prazo e responsável vigentes;
+    # no resumo semanal, os planos e o período). Nulo nos e-mails que não revalidam.
+    contexto: Mapped[dict | None] = mapped_column(JSON)
     criado_em: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), nullable=False)
     atualizado_em: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False)
+
+
+class ResultadoTentativa:
+    ENVIADO = "enviado"
+    FALHOU = "falhou"  # vai tentar de novo (ou esgotou: ver a situação do envio)
+    CANCELADO = "cancelado"  # não enviado na revalidação (ex.: perdeu o acesso ao plano)
+
+
+class EnvioEmailTentativa(Base):
+    """Auditoria de cada tentativa de um e-mail da fila: o registro do envio guarda só a última situação."""
+
+    __tablename__ = "envios_email_tentativas"
+
+    id: Mapped[int] = mapped_column(BigIntPK, primary_key=True, autoincrement=True)
+    envio_id: Mapped[int] = mapped_column(BigIntPK, ForeignKey("envios_email.id", ondelete="CASCADE"), nullable=False, index=True)
+    numero: Mapped[int] = mapped_column(Integer, nullable=False)
+    resultado: Mapped[str] = mapped_column(String(20), nullable=False)
+    erro: Mapped[str | None] = mapped_column(Text)
+    criado_em: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), nullable=False)

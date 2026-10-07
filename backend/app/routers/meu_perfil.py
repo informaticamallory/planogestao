@@ -21,6 +21,7 @@ from app.routers.auth import CLIENT_TYPE_HEADER, _is_mobile, _responder
 from app.routers.usuarios import _validar_senha
 from app.core.foto import normalizar_ajuste
 from app.schemas.auth import AjusteFoto, CorDestaque, TamanhoFonte, TemaPreferido, TokenResponse, UsuarioLogado
+from app.services import preferencias_notificacao
 from app.services.armazenamento import obter_armazenamento
 from app.services.auth_service import AuthService, SenhaAtualIncorreta, montar_usuario_logado
 from app.services.meu_perfil_service import NOME_FOTO, PASTA_FOTOS, DadosPerfil, MeuPerfilService
@@ -146,6 +147,45 @@ def trocar_senha(
     except SenhaAtualIncorreta:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Senha atual incorreta.") from None
     return _responder(sessao, response, _is_mobile(client_type))
+
+
+class PreferenciaNotificacaoItem(BaseModel):
+    tipo: str
+    rotulo: str
+    descricao: str
+    sistema: bool = Field(description="Receber na central do sistema (e no push do app).")
+    email: bool = Field(description="Receber por e-mail.")
+    padrao_sistema: bool
+    padrao_email: bool
+    personalizado: bool = Field(description="False = usando o padrão do tipo.")
+
+
+class PreferenciaNotificacaoSalvar(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    tipo: str = Field(max_length=50)
+    sistema: bool
+    email: bool
+
+
+@router.get("/preferencias-notificacao", response_model=list[PreferenciaNotificacaoItem])
+def listar_preferencias_notificacao(usuario: UsuarioLogadoDep, db: Session = Depends(get_db)):
+    """Os sete avisos operacionais, com os canais escolhidos (ou o padrão). Convites de primeiro acesso e
+    mensagens de segurança não dependem destas preferências."""
+    return preferencias_notificacao.listar(db, usuario.id)
+
+
+@router.put("/preferencias-notificacao", response_model=list[PreferenciaNotificacaoItem])
+def salvar_preferencias_notificacao(
+    corpo: list[PreferenciaNotificacaoSalvar], usuario: UsuarioLogadoDep, db: Session = Depends(get_db),
+):
+    """Grava os tipos enviados (os demais ficam como estão). Tipo inexistente ou repetido → 422."""
+    if len(corpo) > len(preferencias_notificacao.TIPOS):
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Tipos demais na mesma gravação.")
+    try:
+        return preferencias_notificacao.salvar(db, usuario.id, [i.model_dump() for i in corpo])
+    except preferencias_notificacao.PreferenciaInvalida as exc:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(exc)) from None
 
 
 @fotos_router.get("/{arquivo}", response_class=FileResponse, include_in_schema=False)

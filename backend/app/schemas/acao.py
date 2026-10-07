@@ -145,8 +145,14 @@ class AcaoAtualizar(BaseModel):
     depende_de: list[int] | None = Field(
         default=None, max_length=50, description="Substitui os pré-requisitos (ids de ações principais do plano)."
     )
+    responsavel_id: int | None = Field(
+        default=None, description="Troca o responsável (só gestores; conta ativa com acesso à área do plano)."
+    )
+    motivo_alteracao_prazo: str | None = Field(
+        default=None, max_length=500, description="Opcional: motivo da mudança de prazo (histórico e aviso aos envolvidos)."
+    )
 
-    @field_validator("observacao", "motivo_bloqueio", "justificativa", mode="before")
+    @field_validator("observacao", "motivo_bloqueio", "justificativa", "motivo_alteracao_prazo", mode="before")
     @classmethod
     def _aparar(cls, v: object) -> object:
         return v.strip() if isinstance(v, str) else v

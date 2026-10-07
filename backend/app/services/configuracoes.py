@@ -28,15 +28,20 @@ class DefParametro:
     unidade: str
     # Exposto em GET /configuracoes/publicas (textos do front, ex. "vencendo nos próximos N dias").
     publico: bool = False
+    # Como a tela mostra o valor (sempre gravado como inteiro): inteiro | dia_semana (1 = segunda … 7 = domingo,
+    # ISO) | horario (minutos desde 00:00, no fuso America/Sao_Paulo).
+    tipo: str = "inteiro"
 
+
+GRUPO_AVISOS = "Prazos e notificações"
 
 CATALOGO: dict[str, DefParametro] = {
     p.chave: p
     for p in [
         DefParametro(
-            "dias_alerta_vencimento_acao", "Prazos e notificações", "Antecedência do alerta de vencimento de ações",
-            "O responsável é notificado do vencimento de uma ação em aberto quando faltam até este número de dias. "
-            "Não altera a tag \"A vencer\", que é fixa em 3 dias.",
+            "dias_alerta_vencimento_acao", "Prazos e notificações", "Antecedência do aviso de prazo próximo",
+            "O responsável é avisado uma vez (por prazo vigente) quando uma ação ou sub-item em aberto entra nesta "
+            "faixa antes do vencimento. Não altera a tag \"A vencer\", que é fixa em 3 dias.",
             padrao=3, minimo=0, maximo=30, unidade="dias", publico=True,
         ),
         DefParametro(
@@ -48,6 +53,28 @@ CATALOGO: dict[str, DefParametro] = {
             "gamificacao_minimo_podio", "Gamificação", "Mínimo de colaboradores para exibir o pódio",
             "Abaixo disso o painel mostra um aviso em vez do pódio (Top 5).",
             padrao=3, minimo=1, maximo=5, unidade="colaboradores",
+        ),
+        DefParametro(
+            "resumo_semanal_dia", GRUPO_AVISOS, "Dia do resumo semanal",
+            "Dia da semana em que o responsável (gestor) de cada plano recebe o resumo dos 7 dias anteriores.",
+            padrao=1, minimo=1, maximo=7, unidade="", tipo="dia_semana",
+        ),
+        DefParametro(
+            "resumo_semanal_horario", GRUPO_AVISOS, "Horário do resumo semanal",
+            "Horário de Brasília (America/Sao_Paulo). O resumo sai na primeira verificação depois dele (a cada 15 minutos).",
+            padrao=8 * 60, minimo=0, maximo=24 * 60 - 1, unidade="", tipo="horario",
+        ),
+        DefParametro(
+            "dias_plano_sem_atualizacao", GRUPO_AVISOS, "Intervalo do aviso de plano sem atualização",
+            "Dias sem movimentação relevante (itens criados, status, progresso, prazos, responsáveis, observações, "
+            "solicitações de prazo e anexos) até o responsável (gestor) ser avisado. Planos concluídos não são avisados.",
+            padrao=7, minimo=1, maximo=90, unidade="dias",
+        ),
+        DefParametro(
+            "dias_repeticao_aviso_inatividade", GRUPO_AVISOS, "Repetição do aviso de plano sem atualização",
+            "Enquanto o plano continuar parado, o aviso se repete a cada este número de dias (0 = avisar uma vez só). "
+            "Qualquer movimentação relevante reinicia a contagem.",
+            padrao=7, minimo=0, maximo=90, unidade="dias",
         ),
     ]
 }

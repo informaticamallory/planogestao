@@ -1,4 +1,10 @@
-import type { AjusteFoto, TokenResponse, TrocarSenha, UsuarioSelfUpdate } from "@planogestao/shared-types";
+import type {
+  AjusteFoto,
+  PreferenciaNotificacaoSalvar,
+  TokenResponse,
+  TrocarSenha,
+  UsuarioSelfUpdate,
+} from "@planogestao/shared-types";
 
 import type { HttpClient } from "../client";
 import { exigirDados } from "../errors";
@@ -37,6 +43,13 @@ export function criarMeuPerfil(http: HttpClient, onSession: (sessao: TokenRespon
     ajustarFoto: async (ajuste: AjusteFoto) => exigirDados(await http.PUT("/usuarios/me/foto/ajuste", { body: ajuste })),
 
     removerFoto: async () => exigirDados(await http.DELETE("/usuarios/me/foto")),
+
+    /** Canais (sistema/e-mail) de cada aviso operacional; sem escolha salva, vem o padrão do tipo. */
+    preferenciasNotificacao: async () => exigirDados(await http.GET("/usuarios/me/preferencias-notificacao")),
+
+    /** Grava os tipos enviados (os demais ficam como estão). */
+    salvarPreferenciasNotificacao: async (itens: PreferenciaNotificacaoSalvar[]) =>
+      exigirDados(await http.PUT("/usuarios/me/preferencias-notificacao", { body: itens })),
 
     /** Encerra as sessões dos outros dispositivos; esta recebe uma sessão nova (repassada ao app). */
     trocarSenha: async (dados: TrocarSenha) => {

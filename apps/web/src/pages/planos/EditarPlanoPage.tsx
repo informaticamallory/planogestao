@@ -15,7 +15,8 @@ import {
 } from "../../components/planos/novo/formularioPlano";
 import { SeletorModo, useModoFormularioPlano } from "../../components/planos/novo/SeletorModo";
 import { Button, ButtonLink } from "../../components/ui/Button";
-import { Field } from "../../components/ui/Field";
+import { Field, fieldAria } from "../../components/ui/Field";
+import { Input } from "../../components/ui/Input";
 import { Modal } from "../../components/ui/Modal";
 import { Select } from "../../components/ui/Select";
 import { PlanStatusBadge } from "../../components/ui/StatusBadges";
@@ -57,6 +58,11 @@ function FormularioEdicao({ plano }: { plano: PlanoDetalhe }) {
   const [mostrarErros, setMostrarErros] = useState(false);
   const [modo, setModo] = useModoFormularioPlano();
   const [etapa, setEtapa] = useState(0);
+  const [motivoPrazo, setMotivoPrazo] = useState("");
+  // Datas estimadas mudadas num plano já liberado: o responsável/gestor é avisado (com o motivo, se houver).
+  const mudouDatas =
+    !plano.rascunho &&
+    (form.data_inicio_estimado !== inicial.current.data_inicio_estimado || form.data_fim_estimado !== inicial.current.data_fim_estimado);
 
   const alterar = (parcial: Partial<PlanoForm>) => setForm((f) => ({ ...f, ...parcial }));
   // Plano liberado (ou sendo liberado agora) exige a etapa 2; o rascunho não.
@@ -80,7 +86,8 @@ function FormularioEdicao({ plano }: { plano: PlanoDetalhe }) {
       setEtapa(comErro);
       return focarPrimeiroErro();
     }
-    atualizar.mutate(paraAtualizacao(form), {
+    const dados = paraAtualizacao(form);
+    atualizar.mutate(mudouDatas && motivoPrazo.trim() ? { ...dados, motivo_alteracao_prazo: motivoPrazo.trim() } : dados, {
       onSuccess: (r) => {
         liberar();
         navigate(`/planos/${plano.id}`, { state: { avisos: r.avisos } });
@@ -116,6 +123,15 @@ function FormularioEdicao({ plano }: { plano: PlanoDetalhe }) {
                     <span className={styles.rotuloSituacao}>Status</span>
                     <PlanStatusBadge status={plano.status} prazoTag={plano.prazo_tag} />
                     <span className={styles.ajudaSituacao}>Calculado pelas ações (não é editável).</span>
+                    {mudouDatas && (
+                      <Field
+                        id="motivo_prazo"
+                        rotulo="Motivo da alteração das datas"
+                        ajuda="Opcional. Vai para o histórico e para o aviso ao responsável pelo plano."
+                      >
+                        <Input {...fieldAria("motivo_prazo")} maxLength={200} value={motivoPrazo} onChange={(e) => setMotivoPrazo(e.target.value)} />
+                      </Field>
+                    )}
                     {plano.rascunho && (
                       <Field
                         id="situacao"

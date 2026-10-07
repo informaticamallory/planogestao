@@ -20,6 +20,7 @@ interface Rascunho {
   prazo: string;
   motivo_bloqueio: string;
   justificativa: string;
+  motivo_prazo: string;
 }
 
 const doDetalhe = (a: AcaoDetalhe): Rascunho => ({
@@ -29,6 +30,7 @@ const doDetalhe = (a: AcaoDetalhe): Rascunho => ({
   prazo: a.prazo,
   motivo_bloqueio: "",
   justificativa: "",
+  motivo_prazo: "",
 });
 
 /** Status, progresso, observação e (para gestores) prazo. Envia só o que mudou. */
@@ -52,7 +54,9 @@ export function FormExecucao({ acao }: { acao: AcaoDetalhe }) {
   if (r.status !== acao.status) alteracoes.status = r.status;
   if (progressoEditavel && r.progresso !== acao.progresso) alteracoes.progresso = r.progresso;
   if (r.observacao.trim() !== (acao.observacao ?? "")) alteracoes.observacao = r.observacao.trim();
-  if (p.editar_prazo && r.prazo !== acao.prazo) alteracoes.prazo = r.prazo;
+  const mudouPrazo = p.editar_prazo && r.prazo !== acao.prazo;
+  if (mudouPrazo) alteracoes.prazo = r.prazo;
+  if (mudouPrazo && r.motivo_prazo.trim()) alteracoes.motivo_alteracao_prazo = r.motivo_prazo.trim();
   if (r.status === "bloqueada" && acao.status !== "bloqueada") alteracoes.motivo_bloqueio = r.motivo_bloqueio.trim();
   const cancelando = r.status === "cancelada" && acao.status !== "cancelada";
   const ehSubacao = acao.acao_origem !== null;
@@ -101,6 +105,12 @@ export function FormExecucao({ acao }: { acao: AcaoDetalhe }) {
           </div>
         )}
       </div>
+
+      {mudouPrazo && (
+        <Field id="motivo_prazo" rotulo="Motivo da alteração de prazo" ajuda="Opcional. Vai para o histórico e para o aviso ao responsável e ao gestor do plano.">
+          <Input {...fieldAria("motivo_prazo")} maxLength={500} value={r.motivo_prazo} onChange={(e) => mudar({ motivo_prazo: e.target.value })} />
+        </Field>
+      )}
 
       {solicitando && <FormSolicitacao acao={acao} onFechar={() => setSolicitando(false)} />}
 

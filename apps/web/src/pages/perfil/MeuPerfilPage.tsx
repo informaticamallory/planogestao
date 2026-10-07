@@ -1,4 +1,4 @@
-import type { CorDestaque, TamanhoFonte, TemaPreferido, UsuarioLogado } from "@planogestao/shared-types";
+import type { CorDestaque, PreferenciaNotificacaoItem, TamanhoFonte, TemaPreferido, UsuarioLogado } from "@planogestao/shared-types";
 import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import { useSearchParams } from "react-router-dom";
 
@@ -9,17 +9,26 @@ import { Button } from "../../components/ui/Button";
 import { Card } from "../../components/ui/Card";
 import { Field, fieldAria } from "../../components/ui/Field";
 import { Icon, type IconName } from "../../components/ui/Icon";
-import { Input } from "../../components/ui/Input";
+import { Checkbox, Input } from "../../components/ui/Input";
 import { Tabs } from "../../components/ui/Tabs";
-import { useAjustarFoto, useAtualizarMeuPerfil, useEnviarFoto, useRemoverFoto, useSalvarAparencia, useTrocarSenha } from "../../hooks/useMeuPerfil";
+import {
+  useAjustarFoto,
+  useAtualizarMeuPerfil,
+  useEnviarFoto,
+  usePreferenciasNotificacao,
+  useRemoverFoto,
+  useSalvarAparencia,
+  useSalvarPreferenciasNotificacao,
+  useTrocarSenha,
+} from "../../hooks/useMeuPerfil";
 import { useAparencia } from "../../store/aparenciaStore";
 import { useAuthStore } from "../../store/authStore";
 import { AJUSTE_PADRAO, lerUrlFoto, type AjusteFoto } from "../../utils/ajusteFoto";
 import { resolverUrlApi } from "../../utils/urlApi";
 import estilos from "./MeuPerfil.module.css";
 
-type Aba = "dados" | "aparencia" | "seguranca";
-const ABAS: Aba[] = ["dados", "aparencia", "seguranca"];
+type Aba = "dados" | "aparencia" | "notificacoes" | "seguranca";
+const ABAS: Aba[] = ["dados", "aparencia", "notificacoes", "seguranca"];
 
 // Mesmas regras do backend (ele revalida o conteúdo real da imagem).
 const FOTO_TIPOS = ["image/jpeg", "image/png", "image/webp"];
@@ -47,7 +56,7 @@ const CORES: { id: CorDestaque | null; rotulo: string; amostra: string }[] = [
 ];
 
 /**
- * A conta do próprio usuário: dados pessoais, aparência e senha.
+ * A conta do próprio usuário: dados pessoais, aparência, notificações e senha.
  * Perfil de acesso, área e função/cargo não aparecem aqui de propósito: são definidos só pela Administração.
  */
 export function MeuPerfilPage() {
@@ -71,11 +80,13 @@ export function MeuPerfilPage() {
         abas={[
           { id: "dados", rotulo: "Dados pessoais" },
           { id: "aparencia", rotulo: "Aparência" },
+          { id: "notificacoes", rotulo: "Notificações" },
           { id: "seguranca", rotulo: "Segurança" },
         ]}
       >
         {aba === "dados" && <AbaDados usuario={usuario} />}
         {aba === "aparencia" && <AbaAparencia />}
+        {aba === "notificacoes" && <AbaNotificacoes />}
         {aba === "seguranca" && <AbaSeguranca />}
       </Tabs>
     </div>
@@ -286,6 +297,115 @@ function AbaAparencia() {
       <p className={estilos.status} role="status">
         {salvar.isPending ? "Salvando…" : salvar.isError ? `Não foi possível salvar: ${salvar.error.message}` : salvar.isSuccess ? "Salvo na sua conta." : ""}
       </p>
+    </div>
+  );
+}
+
+type Canais = Record<string, { sistema: boolean; email: boolean }>;
+
+const canaisDe = (lista: PreferenciaNotificacaoItem[], padrao = false): Canais =>
+  Object.fromEntries(
+    lista.map((i) => [i.tipo, padrao ? { sistema: i.padrao_sistema, email: i.padrao_email } : { sistema: i.sistema, email: i.email }]),
+  );
+
+/**
+ * Por tipo de aviso: receber no sistema (central e push do app) e/ou por e-mail. Salva só o que mudou.
+ * Convites de primeiro acesso e mensagens de segurança não dependem destas opções.
+ */
+function AbaNotificacoes() {
+  const lista = usePreferenciasNotificacao();
+  const salvar = useSalvarPreferenciasNotificacao();
+  const [canais, setCanais] = useState<Canais | null>(null);
+  const [salvo, setSalvo] = useState(false);
+
+  // Parte do que está salvo (uma vez); depois de salvar, do que a API devolveu.
+  useEffect(() => {
+    if (lista.data && canais === null) setCanais(canaisDe(lista.data));
+  }, [lista.data, canais]);
+
+  if (lista.error) return <p className={styles.erro}>Não foi possível carregar: {lista.error.message}</p>;
+  if (!lista.data || !canais) return <p className={styles.estado}>Carregando…</p>;
+
+  const itens = lista.data;
+  const atual = (tipo: string) => canais[tipo] ?? { sistema: true, email: false };
+  const alterados = itens.filter((i) => atual(i.tipo).sistema !== i.sistema || atual(i.tipo).email !== i.email);
+  const padrao = canaisDe(itens, true);
+  const ehPadrao = itens.every((i) => atual(i.tipo).sistema === i.padrao_sistema && atual(i.tipo).email === i.padrao_email);
+
+  const marcar = (tipo: string, canal: "sistema" | "email", valor: boolean) => {
+    setSalvo(false);
+    salvar.reset();
+    setCanais((c) => ({ ...c, [tipo]: { ...atual(tipo), [canal]: valor } }));
+  };
+
+  const gravar = () =>
+    salvar.mutate(
+      alterados.map((i) => ({ tipo: i.tipo, ...atual(i.tipo) })),
+      {
+        onSuccess: (novos) => {
+          setCanais(canaisDe(novos));
+          setSalvo(true);
+        },
+      },
+    );
+
+  return (
+    <div className={estilos.secoes}>
+      <Card titulo="Avisos">
+        <p className={estilos.dica}>
+          Escolha como receber cada aviso. “No sistema” é o sino e a página Notificações (e o aviso no app do celular). Os avisos chegam
+          só para quem tem acesso ao plano ou ao item.
+        </p>
+        <ul className={estilos.listaAvisos}>
+          {itens.map((i) => (
+            <li key={i.tipo} className={estilos.aviso}>
+              <div className={estilos.avisoTexto}>
+                <strong>{i.rotulo}</strong>
+                <span>{i.descricao}</span>
+              </div>
+              <div className={estilos.avisoCanais}>
+                <Checkbox
+                  rotulo="No sistema"
+                  aria-label={`${i.rotulo}: receber no sistema`}
+                  checked={atual(i.tipo).sistema}
+                  onChange={(e) => marcar(i.tipo, "sistema", e.target.checked)}
+                />
+                <Checkbox
+                  rotulo="Por e-mail"
+                  aria-label={`${i.rotulo}: receber por e-mail`}
+                  checked={atual(i.tipo).email}
+                  onChange={(e) => marcar(i.tipo, "email", e.target.checked)}
+                />
+              </div>
+            </li>
+          ))}
+        </ul>
+        <p className={estilos.dica}>
+          Convites de primeiro acesso e mensagens de segurança não dependem destas opções. Atrasos, solicitações e respostas de prazo e
+          planos a vencer ou concluídos continuam sempre no sistema.
+        </p>
+        {salvar.error && <p className={styles.erro}>{salvar.error.message}</p>}
+        <div className={estilos.rodapeForm}>
+          {salvo && alterados.length === 0 && (
+            <span className={styles.sucesso} role="status">
+              Preferências salvas.
+            </span>
+          )}
+          <Button
+            variante="link"
+            disabled={ehPadrao || salvar.isPending}
+            onClick={() => {
+              setSalvo(false);
+              setCanais(padrao);
+            }}
+          >
+            Restaurar padrão
+          </Button>
+          <Button variante="primaria" disabled={alterados.length === 0 || salvar.isPending} onClick={gravar}>
+            {salvar.isPending ? "Salvando…" : "Salvar"}
+          </Button>
+        </div>
+      </Card>
     </div>
   );
 }

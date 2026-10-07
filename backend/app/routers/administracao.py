@@ -17,7 +17,7 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.deps import get_current_user, require_admin, require_permission
 from app.core.tempo import como_utc
-from app.models import Configuracao, EnvioEmail, Usuario
+from app.models import Configuracao, EnvioEmail, EnvioEmailTentativa, Usuario
 from app.schemas.comum import Pagina
 from app.services import configuracoes
 from app.services.admin_cadastros_service import CadastrosService
@@ -318,6 +318,7 @@ class ConfiguracaoItem(BaseModel):
     minimo: int
     maximo: int
     unidade: str
+    tipo: str = Field(description="inteiro | dia_semana (1 = segunda … 7 = domingo) | horario (minutos desde 00:00)")
     atualizado_em: datetime | None
     atualizado_por: str | None
 
@@ -338,7 +339,7 @@ def _item(d: configuracoes.DefParametro, registro: Configuracao | None) -> Confi
         valor = d.padrao
     return ConfiguracaoItem(
         chave=d.chave, grupo=d.grupo, rotulo=d.rotulo, descricao=d.descricao, valor=valor, padrao=d.padrao,
-        minimo=d.minimo, maximo=d.maximo, unidade=d.unidade,
+        minimo=d.minimo, maximo=d.maximo, unidade=d.unidade, tipo=d.tipo,
         atualizado_em=como_utc(registro.atualizado_em) if registro else None,
         atualizado_por=registro.atualizado_por.nome if registro and registro.atualizado_por else None,
     )
@@ -374,13 +375,13 @@ envios_email_router = APIRouter(prefix="/envios-email", tags=["administracao"])
 
 class EnvioEmailItem(BaseModel):
     id: int
-    evento: str = Field(description="plano_criado | acao_criada | subitem_criado")
+    evento: str = Field(description="Modelo do e-mail (ex.: plano_criado, acao_criada, resumo_semanal, prazo_proximo).")
     referencia_tipo: str
     referencia_id: int
     usuario_id: int | None
     destinatario: str | None
     assunto: str
-    situacao: str = Field(description="pendente | enviando | enviado | falhou | sem_endereco | ignorado | desabilitado")
+    situacao: str = Field(description="pendente | enviando | enviado | falhou | sem_endereco | ignorado (inclui não enviado na revalidação) | modelo_inativo | desabilitado")
     tentativas: int
     ultimo_erro: str | None
     criado_em: datetime
@@ -420,3 +421,21 @@ def listar_envios_email(
         for e in linhas
     ]
     return Pagina[EnvioEmailItem](items=itens, total=total, page=page, page_size=page_size)
+
+
+class TentativaEnvioItem(BaseModel):
+    numero: int
+    resultado: str = Field(description="enviado | falhou | cancelado (não enviado na revalidação)")
+    erro: str | None
+    criado_em: datetime
+
+
+@envios_email_router.get("/{envio_id}/tentativas", response_model=list[TentativaEnvioItem])
+def listar_tentativas_envio(envio_id: int, _: UsuarioAdmin, db: Session = Depends(get_db)):
+    """Auditoria de cada tentativa do e-mail (o registro do envio guarda só a última situação)."""
+    if db.get(EnvioEmail, envio_id) is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Envio não encontrado.")
+    linhas = db.scalars(
+        select(EnvioEmailTentativa).where(EnvioEmailTentativa.envio_id == envio_id).order_by(EnvioEmailTentativa.id)
+    )
+    return [TentativaEnvioItem(numero=t.numero, resultado=t.resultado, erro=t.erro, criado_em=como_utc(t.criado_em)) for t in linhas]

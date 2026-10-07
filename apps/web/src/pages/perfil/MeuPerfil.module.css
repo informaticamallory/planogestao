@@ -222,3 +222,51 @@
   line-height: 1;
   text-align: center;
 }
+
+/* ---- notificações ---- */
+.listaAvisos {
+  display: flex;
+  flex-direction: column;
+  margin: 0 0 var(--space-3);
+  padding: 0;
+  list-style: none;
+}
+
+.aviso {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--espaco-4);
+  padding: var(--space-3) 0;
+  border-top: var(--borda-fina) solid var(--border);
+}
+
+.aviso:first-child {
+  border-top: 0;
+}
+
+.avisoTexto {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+  font-size: var(--text-sm);
+}
+
+.avisoTexto span {
+  color: var(--fg-muted);
+}
+
+.avisoCanais {
+  display: flex;
+  flex-shrink: 0;
+  gap: var(--espaco-4);
+}
+
+@media (--mobile) {
+  .aviso {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-2);
+  }
+}

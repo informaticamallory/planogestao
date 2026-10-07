@@ -32,7 +32,7 @@ from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
 from app.core.security import utcnow
-from app.models import Acao, EnvioEmail, PlanoDeAcao, SituacaoEnvio, Usuario
+from app.models import Acao, EnvioEmail, EnvioEmailTentativa, PlanoDeAcao, ResultadoTentativa, SituacaoEnvio, Usuario
 from app.services.email_modelos import ModeloEfetivo, cco_do_envio, modelo_efetivo, renderizar
 
 logger = logging.getLogger("planogestao.email")
@@ -125,30 +125,37 @@ def _situacao(usuario: Usuario, modelo: ModeloEfetivo) -> tuple[str, str | None]
         return SituacaoEnvio.MODELO_INATIVO, "Envio deste tipo de notificação desativado em Configurações de e-mail."
     if not usuario.ativo:
         return SituacaoEnvio.IGNORADO, "Usuário inativo."
+    if usuario.convite_pendente:
+        return SituacaoEnvio.IGNORADO, "Convite de primeiro acesso pendente."
     if not _EMAIL_VALIDO.match(endereco):
         return SituacaoEnvio.SEM_ENDERECO, "Responsável sem e-mail válido cadastrado: e-mail não enviado."
     return SituacaoEnvio.PENDENTE, None
 
 
-def _enfileirar(db: Session, evento: str, ref_tipo: str, ref_id: int, destinatarios: list[Usuario], valores: dict) -> list[EnvioEmail]:
+def _enfileirar(
+    db: Session, evento: str, ref_tipo: str, ref_id: int, destinatarios: list[Usuario], valores: dict,
+    chave_evento: str | None = None, contexto: dict | None = None, blocos: dict[str, tuple[str, str]] | None = None,
+) -> list[EnvioEmail]:
     """Um e-mail por destinatário, com o modelo salvo e ativo do evento (ou o padrão). O CCO (padrão +
     modelo, sem repetidos e sem os destinatários principais) vai uma única vez por evento: no primeiro
-    e-mail que será de fato enviado."""
+    e-mail que será de fato enviado. `chave_evento` identifica uma ocorrência (ex.: uma troca de prazo) quando
+    o mesmo registro pode gerar o mesmo tipo de e-mail mais de uma vez."""
     modelo = modelo_efetivo(db, evento)
     principais = [(u.email or "").strip() for u in destinatarios]
     cco = cco_do_envio(db, modelo, principais)
     envios: list[EnvioEmail] = []
     for usuario in destinatarios:
-        chave = f"{evento}:{ref_tipo}:{ref_id}:{usuario.id}"
+        chave = f"{chave_evento}:{usuario.id}" if chave_evento else f"{evento}:{ref_tipo}:{ref_id}:{usuario.id}"
         if db.scalar(select(EnvioEmail.id).where(EnvioEmail.chave == chave)) is not None:
             continue  # já registrado (ex.: repetição da mesma operação)
         situacao, erro = _situacao(usuario, modelo)
-        msg = renderizar(modelo.assunto, modelo.corpo, {**valores, "destinatario": usuario.nome}, evento)
+        msg = renderizar(modelo.assunto, modelo.corpo, {**valores, "destinatario": usuario.nome}, evento, blocos=blocos)
         leva_cco = bool(cco) and situacao == SituacaoEnvio.PENDENTE
         envio = EnvioEmail(
             chave=chave, evento=evento, referencia_tipo=ref_tipo, referencia_id=ref_id, usuario_id=usuario.id,
             destinatario=(usuario.email or "").strip() or None, cco=", ".join(cco) if leva_cco else None,
             assunto=msg.assunto, corpo_html=msg.html, corpo_texto=msg.texto, situacao=situacao, ultimo_erro=erro,
+            contexto=contexto,
             # Truncado no segundo: o DATETIME do MySQL arredonda a fração e poderia jogar o envio para o segundo seguinte.
             proxima_tentativa_em=utcnow().replace(microsecond=0) if situacao == SituacaoEnvio.PENDENTE else None,
         )
@@ -179,12 +186,40 @@ def enfileirar_criacao_plano(db: Session, plano: PlanoDeAcao, autor: Usuario) ->
 
 def enfileirar_criacao_item(db: Session, acao: Acao, autor: Usuario) -> list[EnvioEmail]:
     """Nova ação: responsável. Novo sub-item (qualquer nível): responsável e responsável pelo pai imediato,
-    um único e-mail por pessoa."""
+    um único e-mail por pessoa. Para o responsável, este é o e-mail de "Ação atribuída": quem desligou esse
+    e-mail em Meu Perfil não o recebe (o responsável pelo pai, sim). Revalidado antes do envio."""
+    from app.services.preferencias_notificacao import recebem  # evita import circular
+
     db.flush()
     pai = acao.acao_pai
     pessoas = {u.id: u for u in (acao.responsavel, pai.responsavel if pai is not None else None) if u is not None}
+    pai_id = pai.responsavel_id if pai is not None else None
+    if acao.responsavel_id != pai_id and acao.responsavel_id not in recebem(db, "acao_atribuida", [acao.responsavel_id], "email"):
+        pessoas.pop(acao.responsavel_id, None)
     evento = EventoEmail.SUBITEM_CRIADO if pai is not None else EventoEmail.ACAO_CRIADA
-    return _enfileirar(db, evento, "acao", acao.id, list(pessoas.values()), variaveis_item(acao, autor))
+    return _enfileirar(db, evento, "acao", acao.id, list(pessoas.values()), variaveis_item(acao, autor),
+                       contexto={"acao_id": acao.id})
+
+
+def enfileirar_aviso(
+    db: Session, evento: str, ref_tipo: str, ref_id: int, destinatarios: list[Usuario], valores: dict, chave_evento: str,
+    contexto: dict | None = None, blocos: dict[str, tuple[str, str]] | None = None,
+) -> list[EnvioEmail]:
+    """Avisos operacionais (services/avisos.py): mesma fila, modelo editável, CCO e novas tentativas."""
+    db.flush()
+    return _enfileirar(db, evento, ref_tipo, ref_id, destinatarios, valores, chave_evento=chave_evento,
+                       contexto=contexto, blocos=blocos)
+
+
+# ---- revalidação antes do envio ---------------------------------------------------------------------
+
+# evento -> função(db, envio) que devolve o motivo para NÃO enviar (ou None). Pode remontar o corpo (resumo).
+Validador = Callable[[Session, EnvioEmail], "str | None"]
+_validadores: dict[str, Validador] = {}
+
+
+def registrar_validador(evento: str, validador: Validador) -> None:
+    _validadores[evento] = validador
 
 
 def enfileirar_convite(db: Session, convite, usuario: Usuario, autor: Usuario, link: str, validade: str) -> EnvioEmail:
@@ -312,6 +347,7 @@ class ResultadoProcessamento:
     enviados: int = 0
     falhas: int = 0
     esgotados: int = 0
+    cancelados: int = 0  # não enviados na revalidação
 
 
 def processar_pendentes(
@@ -352,6 +388,18 @@ def processar_pendentes(
             continue  # outro processo pegou
         envio = db.get(EnvioEmail, envio_id)
         db.refresh(envio)
+        # Avisos operacionais: acesso, prazo e responsável conferidos de novo, agora.
+        validador = _validadores.get(envio.evento)
+        motivo = validador(db, envio) if validador and envio.contexto is not None else None
+        if motivo:
+            envio.situacao, envio.ultimo_erro = SituacaoEnvio.IGNORADO, motivo[:2000]
+            envio.proxima_tentativa_em = envio.processando_desde = None
+            db.add(EnvioEmailTentativa(envio_id=envio.id, numero=envio.tentativas + 1, resultado=ResultadoTentativa.CANCELADO,
+                                       erro=motivo[:2000]))
+            logger.info("E-mail %s não enviado na revalidação: %s", envio.chave, motivo)
+            r.cancelados += 1
+            db.commit()
+            continue
         envio.tentativas += 1
         try:
             remetente.enviar(envio)
@@ -367,6 +415,8 @@ def processar_pendentes(
                 espera = _ESPERA_MIN[min(envio.tentativas - 1, len(_ESPERA_MIN) - 1)]
                 envio.proxima_tentativa_em = agora() + timedelta(minutes=espera)
                 r.falhas += 1
+            db.add(EnvioEmailTentativa(envio_id=envio.id, numero=envio.tentativas, resultado=ResultadoTentativa.FALHOU,
+                                       erro=envio.ultimo_erro))
             logger.warning("Falha no e-mail %s (tentativa %s): %s", envio.chave, envio.tentativas, envio.ultimo_erro)
         else:
             envio.situacao = SituacaoEnvio.ENVIADO
@@ -374,6 +424,7 @@ def processar_pendentes(
             envio.ultimo_erro = None
             envio.proxima_tentativa_em = None
             apagar_link_sensivel(envio)
+            db.add(EnvioEmailTentativa(envio_id=envio.id, numero=envio.tentativas, resultado=ResultadoTentativa.ENVIADO))
             r.enviados += 1
         envio.processando_desde = None
         db.commit()
@@ -388,9 +439,9 @@ def enviar_teste(db: Session, evento: str, destinatario: str, assunto: str, corp
     sem os destinatários reais e sem CCO. Fica no registro de envios como "teste_<evento>"."""
     from uuid import uuid4
 
-    from app.services.email_modelos import dados_ficticios
+    from app.services.email_modelos import blocos_ficticios, dados_ficticios
 
-    msg = renderizar(assunto, corpo, dados_ficticios(evento), evento)
+    msg = renderizar(assunto, corpo, dados_ficticios(evento), evento, blocos=blocos_ficticios(evento))
     envio = EnvioEmail(
         chave=f"teste:{uuid4().hex}", evento=f"teste_{evento}", referencia_tipo="teste", referencia_id=0, usuario_id=admin.id,
         destinatario=destinatario, cco=None, assunto=msg.assunto, corpo_html=msg.html, corpo_texto=msg.texto,

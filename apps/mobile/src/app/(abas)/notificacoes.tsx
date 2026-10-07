@@ -12,14 +12,18 @@ import { COR_PRAZO } from "../../utils/rotulos";
 
 /** Mesmos tipos do web (utils/notificacoes.ts), com ícones do app. */
 const TIPOS: Record<string, { rotulo: string; icone: NomeIcone; cor: string }> = {
-  acao_atribuida: { rotulo: "Nova ação atribuída", icone: "userCheck", cor: cores.primaria },
-  acao_vencendo: { rotulo: "Ação a vencer", icone: "clock", cor: COR_PRAZO.a_vencer },
+  resumo_semanal: { rotulo: "Resumo semanal", icone: "barChart", cor: cores.info },
+  acao_atribuida: { rotulo: "Ação atribuída", icone: "userCheck", cor: cores.primaria },
+  acao_vencendo: { rotulo: "Prazo próximo", icone: "clock", cor: COR_PRAZO.a_vencer },
+  prazo_alterado: { rotulo: "Alteração de prazo", icone: "calendar", cor: cores.info },
   acao_atrasada: { rotulo: "Ação em atraso", icone: "alert", cor: COR_PRAZO.em_atraso },
   acao_concluida: { rotulo: "Ação concluída", icone: "checkCircle", cor: coresDados.concluida },
+  dependencia_liberada: { rotulo: "Dependência liberada", icone: "listChecks", cor: cores.primaria },
   solicitacao_prazo: { rotulo: "Solicitação de prazo", icone: "refresh", cor: cores.info },
   resposta_solicitacao_prazo: { rotulo: "Resposta de prazo", icone: "calendar", cor: cores.info },
   plano_vencendo: { rotulo: "Plano a vencer", icone: "clock", cor: COR_PRAZO.a_vencer },
   plano_concluido: { rotulo: "Plano concluído", icone: "checkCircle", cor: coresDados.concluida },
+  plano_sem_atualizacao: { rotulo: "Plano sem atualização", icone: "alert", cor: COR_PRAZO.a_vencer },
 };
 const infoTipo = (tipo: string) => TIPOS[tipo] ?? { rotulo: tipo, icone: "bell" as NomeIcone, cor: cores.textoSuave };
 

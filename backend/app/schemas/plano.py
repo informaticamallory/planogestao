@@ -238,6 +238,9 @@ class PlanoAtualizar(PlanoDadosBase):
     `rascunho=false` num rascunho libera o plano (exige etapa 2 e ao menos uma ação)."""
 
     rascunho: bool = False
+    motivo_alteracao_prazo: str | None = Field(
+        default=None, max_length=200, description="Opcional: motivo da mudança das datas estimadas (histórico e aviso)."
+    )
 
     @model_validator(mode="after")
     def _etapa2_para_plano_liberado(self) -> "PlanoAtualizar":

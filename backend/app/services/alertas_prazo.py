@@ -38,22 +38,18 @@ def _plano_ativo(plano: PlanoDeAcao) -> bool:
 
 
 def verificar_acao(db: Session, acao: Acao, hoje: date) -> int:
-    if not _plano_ativo(acao.plano) or acao.status not in STATUS_ACAO_ABERTOS:
+    # Item arquivado (ou abaixo de um arquivado, que é arquivado junto) não gera cobrança.
+    if not _plano_ativo(acao.plano) or acao.status not in STATUS_ACAO_ABERTOS or acao.arquivado_em is not None:
         return 0
     situacao = situacao_prazo(acao.status, acao.prazo, hoje)
     codigo = acao.plano.codigo
-    # O aviso de vencimento usa a antecedência das Configurações (a tag "A vencer" é fixa em 3 dias).
+    # "Prazo próximo": antecedência das Configurações (a tag "A vencer" é fixa em 3 dias). Uma vez por
+    # responsável e prazo vigente; trocar o prazo ou o responsável reavalia (chave nova). Ver avisos.py.
     if situacao != SituacaoPrazo.ATRASADA and hoje <= acao.prazo <= hoje + timedelta(days=dias_alerta_vencimento()):
-        evento = Evento(
-            tipo=TipoEvento.ACAO_VENCENDO,
-            destinatarios=(acao.responsavel_id,),
-            titulo=f"Ação vence {_quando(acao.prazo, hoje)} — {codigo}",
-            mensagem=f"A ação “{acao.descricao}” vence {_quando(acao.prazo, hoje)} e ainda está em aberto ({acao.progresso}% concluída).",
-            referencia_tipo=ReferenciaNotificacao.ACAO,
-            referencia_id=acao.id,
-            chave_deduplicacao=f"{TipoEvento.ACAO_VENCENDO}:{acao.id}:{acao.prazo}",
-        )
-    elif situacao == SituacaoPrazo.ATRASADA:
+        from app.services.avisos import prazo_proximo  # evita import circular
+
+        return prazo_proximo(db, acao, hoje)
+    if situacao == SituacaoPrazo.ATRASADA:
         evento = Evento(
             tipo=TipoEvento.ACAO_ATRASADA,
             destinatarios=(acao.responsavel_id,),

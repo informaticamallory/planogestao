@@ -35,8 +35,8 @@ from app.schemas.acao import (
 )
 from app.schemas.comum import Opcao
 from app.schemas.plano import AcaoCriar, AcoesAdicionadas
-from app.services import dependencias
-from app.services.escopo import filtro_planos_visiveis
+from app.services import avisos, dependencias
+from app.services.escopo import MENSAGEM_SEM_ACESSO_AREA, filtro_planos_visiveis
 from app.services.permissoes_plano import acesso_direto
 from app.services.historico import registrar_historico
 from app.services.alertas_prazo import verificar_acao
@@ -126,7 +126,7 @@ class AcaoService:
         return self._cache_acesso_direto[plano.id]
 
     def _gestores_ids(self, acao: Acao) -> tuple[int, ...]:
-        """Quem acompanha a ação (avisos de conclusão e de pedido de prazo): o responsável pelo pai imediato."""
+        """Quem responde a um pedido de prazo: o responsável pelo pai imediato (a conclusão usa avisos.py)."""
         if acao.acao_pai is not None:
             return tuple(i for i in (acao.acao_pai.responsavel_id, acao.criado_por_id) if i is not None)
         return (acao.plano.responsavel_id, acao.plano.criado_por_id)
@@ -407,7 +407,7 @@ class AcaoService:
     # ---- alterações -----------------------------------------------------------------------
 
     def _registrar(self, acao: Acao, campo: str, anterior, novo, evento=EventoHistorico.ALTERACAO, detalhe=None):
-        registrar_historico(self.db, acao, self.usuario.id, evento, campo, anterior, novo, detalhe=detalhe)
+        return registrar_historico(self.db, acao, self.usuario.id, evento, campo, anterior, novo, detalhe=detalhe)
 
     def _mudar_status(self, acao: Acao, novo: StatusAcao, detalhe: str | None = None) -> None:
         self._registrar(acao, "status", acao.status, novo, detalhe=detalhe)
@@ -426,20 +426,10 @@ class AcaoService:
     def _apos_mudanca(self, acao: Acao, status_anterior: StatusAcao, prazo_anterior: date) -> None:
         """Eventos derivados de uma mudança já aplicada (mesma transação)."""
         if acao.status == StatusAcao.CONCLUIDA and status_anterior != StatusAcao.CONCLUIDA:
-            plano = acao.plano
-            tipo = f"o sub-item {acao.numero_exibicao}" if acao.eh_subacao else "a ação"
-            publicar(
-                self.db,
-                Evento(
-                    tipo=TipoEvento.ACAO_CONCLUIDA,
-                    destinatarios=self._gestores_ids(acao),
-                    autor_id=self.usuario.id,
-                    titulo=f"{'Sub-item concluído' if acao.eh_subacao else 'Ação concluída'} — {plano.codigo}",
-                    mensagem=f"{self.usuario.nome} concluiu {tipo} “{acao.descricao}” do plano “{plano.nome}”.",
-                    referencia_tipo=ReferenciaNotificacao.ACAO,
-                    referencia_id=acao.id,
-                ),
-            )
+            self.db.flush()
+            avisos.acao_concluida(self.db, acao, self.usuario)
+            # Quem dependia desta (direto ou por um item acima) e não tem mais pendência: só o aviso.
+            avisos.dependencias_liberadas(self.db, acao, self.usuario)
             creditar_conclusao_acao(self.db, acao)
         # Mudou status ou prazo: reavalia na hora se a ação entrou em "vencendo"/"atrasada".
         if acao.status != status_anterior or acao.prazo != prazo_anterior:
@@ -453,8 +443,12 @@ class AcaoService:
         self._exigir_plano_ativo(acao)
         perm = self._permissoes(acao)
         enviados = dados.model_fields_set
-        avisos: list[str] = []
+        avisos_tela: list[str] = []
         status_anterior, prazo_anterior = acao.status, acao.prazo
+        datas_antes = (acao.prazo_inicio, acao.prazo)
+        self._hist_datas = None
+        self._troca = None
+        motivo_prazo = (dados.motivo_alteracao_prazo or "").strip() or None
 
         if not (perm.eh_responsavel or perm.eh_gestor):
             raise SemPermissaoAcao
@@ -470,14 +464,14 @@ class AcaoService:
             inicio = dados.prazo_inicio if "prazo_inicio" in enviados and dados.prazo_inicio else acao.prazo_inicio
             if inicio is not None and inicio > dados.prazo:
                 raise RegraAcao("O prazo inicial estimado não pode ser posterior ao prazo de conclusão.")
-            self._registrar(acao, "prazo", acao.prazo, dados.prazo)
+            self._hist_datas = self._registrar(acao, "prazo", acao.prazo, dados.prazo, detalhe=motivo_prazo)
             acao.prazo = dados.prazo
             if acao.prazo > acao.plano.data_fim_estimado:
-                avisos.append(
+                avisos_tela.append(
                     f"O novo prazo ({_fmt(acao.prazo)}) é posterior ao fim estimado do plano ({_fmt(acao.plano.data_fim_estimado)})."
                 )
 
-        self._atualizar_planejamento(acao, dados, perm, avisos)
+        self._atualizar_planejamento(acao, dados, perm, avisos_tela, motivo_prazo)
 
         if "status" in enviados and dados.status is not None and dados.status != acao.status:
             # Regras de dependência antes das transições, para a mensagem dizer o motivo.
@@ -516,10 +510,20 @@ class AcaoService:
             self._registrar(acao, "observacao", acao.observacao, dados.observacao or None)
             acao.observacao = dados.observacao or None
 
+        if self._hist_datas is not None:
+            self.db.flush()
+            avisos.prazo_alterado_item(self.db, acao, self.usuario, datas_antes, motivo_prazo, self._hist_datas.id)
+        if self._troca is not None:
+            anterior, hist = self._troca
+            self.db.flush()
+            avisos.acao_atribuida_na_troca(self.db, acao, self.usuario, anterior, hist.id)
+            # O aviso de prazo próximo é por responsável: o novo é avaliado na hora.
+            if acao.prazo == prazo_anterior and acao.status == status_anterior:
+                verificar_acao(self.db, acao, self.hoje)
         self._apos_mudanca(acao, status_anterior, prazo_anterior)
         self.db.commit()
         self.db.refresh(acao)
-        return AcaoAtualizada(acao=self._detalhe(acao), avisos=avisos)
+        return AcaoAtualizada(acao=self._detalhe(acao), avisos=avisos_tela)
 
     # ---- planejamento, cancelamento e subações ------------------------------------------------
 
@@ -534,8 +538,11 @@ class AcaoService:
             raise RegraAcao("A função/cargo informada não pertence à área selecionada.")
         return area, setor
 
-    def _atualizar_planejamento(self, acao: Acao, dados: AcaoAtualizar, perm: PermissoesAcao, avisos: list[str]) -> None:
-        """Prazo inicial estimado, área/função-cargo e pré-requisitos. Só gestores; cada mudança vai para o histórico."""
+    def _atualizar_planejamento(
+        self, acao: Acao, dados: AcaoAtualizar, perm: PermissoesAcao, avisos_tela: list[str], motivo_prazo: str | None = None
+    ) -> None:
+        """Prazo inicial estimado, responsável, área/função-cargo e pré-requisitos. Só gestores; cada mudança vai
+        para o histórico."""
         enviados = dados.model_fields_set
 
         def exigir_gestor() -> None:
@@ -546,8 +553,12 @@ class AcaoService:
             exigir_gestor()
             if dados.prazo_inicio > acao.prazo:
                 raise RegraAcao("O prazo inicial estimado não pode ser posterior ao prazo de conclusão.")
-            self._registrar(acao, "prazo_inicio", acao.prazo_inicio, dados.prazo_inicio)
+            self._hist_datas = self._registrar(acao, "prazo_inicio", acao.prazo_inicio, dados.prazo_inicio, detalhe=motivo_prazo)
             acao.prazo_inicio = dados.prazo_inicio
+
+        if "responsavel_id" in enviados and dados.responsavel_id is not None and dados.responsavel_id != acao.responsavel_id:
+            exigir_gestor()
+            self._trocar_responsavel(acao, dados.responsavel_id)
 
         nova_area = dados.area_id if "area_id" in enviados and dados.area_id is not None else acao.area_id
         if "setor_id" in enviados:
@@ -581,6 +592,24 @@ class AcaoService:
             rotulos = lambda lista: ", ".join(dependencias.rotulo(p) for p in lista) or None  # noqa: E731
             self._registrar(acao, "depende_de", rotulos(acao.depende_de), rotulos(prereqs))
             acao.depende_de = prereqs
+
+    def _trocar_responsavel(self, acao: Acao, novo_id: int) -> None:
+        """Novo responsável pelo item: conta ativa (sem convite pendente) com a área do plano entre as autorizadas.
+        Status, prazos e pontos não mudam; o histórico registra quem saiu e quem entrou, e o novo responsável é
+        avisado ("Ação atribuída")."""
+        novo = self.db.get(Usuario, novo_id)
+        if novo is None or not novo.ativo or novo.convite_pendente:
+            raise RegraAcao("Responsável inválido ou inativo.")
+        if not novo.acessa_area(acao.plano.area_id):
+            raise RegraAcao(f"{novo.nome}: {MENSAGEM_SEM_ACESSO_AREA}")
+        if self._pendente(acao):
+            raise RegraAcao("Há uma solicitação de prazo pendente: responda-a antes de trocar o responsável.")
+        anterior = acao.responsavel
+        hist = self._registrar(acao, "responsavel", anterior.nome if anterior else None, novo.nome)
+        acao.responsavel_id = novo.id
+        self.db.flush()
+        self.db.refresh(acao, ["responsavel"])
+        self._troca = (anterior, hist)
 
     def _preparar_cancelamento(self, acao: Acao, justificativa: str | None) -> str | None:
         """Valida o cancelamento e cancela junto as subações abertas. Devolve o detalhe do histórico."""
@@ -624,13 +653,13 @@ class AcaoService:
 
         escrita = PlanoEscritaService(self.db, self.usuario, self.hoje)
         try:
-            criadas, avisos = escrita.criar_itens(pai.plano, itens, pai=pai)
+            criadas, avisos_tela = escrita.criar_itens(pai.plano, itens, pai=pai)
         except RegraNegocio as exc:
             raise RegraAcao(str(exc)) from None
         for sub in criadas:
             self._registrar(pai, "subacao", None, f"{sub.numero_exibicao} — {sub.descricao}", detalhe="Sub-item criado.")
         self.db.commit()
-        return AcoesAdicionadas(acoes=[escrita._acao_resumo(s) for s in criadas], avisos=avisos)
+        return AcoesAdicionadas(acoes=[escrita._acao_resumo(s) for s in criadas], avisos=avisos_tela)
 
     def reabrir(self, acao_id: int, dados: ReabrirAcao) -> AcaoDetalhe:
         """Gestor volta uma ação concluída para em andamento (justificativa no histórico).
@@ -753,8 +782,10 @@ class AcaoService:
             evento=EventoHistorico.RESPOSTA_SOLICITACAO,
             detalhe=("Aprovada" if dados.aprovado else "Recusada") + (f": {justificativa}" if justificativa else ""),
         )
+        hist_prazo = None
+        datas_antes = (acao.prazo_inicio, acao.prazo)
         if dados.aprovado:
-            self._registrar(acao, "prazo", acao.prazo, solicitacao.novo_prazo_sugerido)
+            hist_prazo = self._registrar(acao, "prazo", acao.prazo, solicitacao.novo_prazo_sugerido, detalhe=solicitacao.motivo)
             acao.prazo = solicitacao.novo_prazo_sugerido
             # Contraproposta feita antes do aceite: aprovada, a condição do responsável foi atendida.
             if solicitacao.feita_antes_do_aceite and acao.status == StatusAcao.AGUARDANDO_ACEITE:
@@ -776,6 +807,11 @@ class AcaoService:
                 referencia_id=acao.id,
             ),
         )
+        if hist_prazo is not None:
+            self.db.flush()
+            avisos.prazo_alterado_item(
+                self.db, acao, self.usuario, datas_antes, solicitacao.motivo, hist_prazo.id, excluir=(solicitacao.solicitado_por_id,)
+            )
         self._apos_mudanca(acao, status_anterior, prazo_anterior)
         self.db.commit()
         self.db.refresh(acao)

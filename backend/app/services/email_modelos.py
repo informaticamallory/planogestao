@@ -53,7 +53,23 @@ class DefModelo:
     nota_botao: str = "O acesso exige login e respeita as suas permissões."
     # Convite: o link é pessoal (contém o token), então nunca vai para cópia oculta.
     com_cco: bool = True
+    # Variáveis que o corpo precisa manter (ex.: o conteúdo do resumo semanal).
+    obrigatorias: tuple[str, ...] = ()
+    # Variáveis montadas pelo sistema como bloco visual (listas, seções e botões), não como texto simples.
+    blocos: tuple[str, ...] = ()
 
+
+_VARIAVEIS_ITEM = {
+    "destinatario": _VARIAVEIS_COMUNS["destinatario"],
+    "numero_pa": _VARIAVEIS_COMUNS["numero_pa"],
+    "titulo_pa": _VARIAVEIS_COMUNS["titulo_pa"],
+    "item": "Ação ou sub-item (ex.: Ação 2 ou Sub-item 2.1).",
+    "descricao": "Descrição do item.",
+    "responsavel": "Responsável atual pelo item.",
+    "prazo_inicial": _VARIAVEIS_COMUNS["prazo_inicial"],
+    "prazo_conclusao": _VARIAVEIS_COMUNS["prazo_conclusao"],
+    "link_registro": "Endereço direto do item (o botão do e-mail já usa este link).",
+}
 
 _RODAPE_DADOS = """Responsável: {{responsavel}}
 Área: {{area}}
@@ -117,6 +133,97 @@ CATALOGO: dict[str, DefModelo] = {
             nota_botao="Nunca pedimos sua senha por e-mail.",
             com_cco=False,
         ),
+        # ---- avisos operacionais (services/avisos.py) --------------------------------------------
+        DefModelo(
+            "acao_atribuida",
+            "Ação atribuída (troca de responsável)",
+            {**_VARIAVEIS_ITEM, "responsavel_anterior": "Quem respondia pelo item antes da troca.",
+             "atribuido_por": "Quem fez a troca de responsável."},
+            "[Planos de Ação] Item atribuído a você: {{item}} — {{numero_pa}}",
+            "Olá, {{destinatario}}.\n\n{{atribuido_por}} atribuiu a você o item {{item}} do Plano de Ação {{numero_pa}} — "
+            "{{titulo_pa}}.\n\nDescrição: {{descricao}}\nResponsável: {{responsavel}}\nResponsável anterior: "
+            "{{responsavel_anterior}}\nPrazo inicial estimado: {{prazo_inicial}}\nPrazo de conclusão: {{prazo_conclusao}}",
+            botao="Ver item",
+        ),
+        DefModelo(
+            "prazo_proximo",
+            "Prazo próximo",
+            {**_VARIAVEIS_ITEM, "dias_restantes": "Dias que faltam para o vencimento (ex.: 3; 0 = vence hoje).",
+             "vence": "Quando vence, por extenso (ex.: em 3 dias, amanhã, hoje).",
+             "progresso": "Progresso atual do item (ex.: 40%)."},
+            "[Planos de Ação] Prazo próximo: {{item}} vence {{vence}} — {{numero_pa}}",
+            "Olá, {{destinatario}}.\n\nO item {{item}} do Plano de Ação {{numero_pa}} — {{titulo_pa}} vence {{vence}} e "
+            "ainda está em aberto.\n\nDescrição: {{descricao}}\nVencimento: {{prazo_conclusao}}\nDias restantes: {{dias_restantes}}\n"
+            "Progresso: {{progresso}}",
+            botao="Ver item",
+        ),
+        DefModelo(
+            "prazo_alterado",
+            "Alteração de prazo",
+            {**_VARIAVEIS_ITEM,
+             "item": "Registro alterado (ex.: Ação 2, Sub-item 2.1 ou Plano de Ação).",
+             "prazo_inicial_anterior": "Data inicial antes da alteração (dd/mm/aaaa).",
+             "prazo_inicial_novo": "Data inicial depois da alteração.",
+             "prazo_conclusao_anterior": "Data final antes da alteração.",
+             "prazo_conclusao_novo": "Data final depois da alteração.",
+             "alterado_por": "Quem alterou as datas.",
+             "motivo": f"Motivo informado ({VAZIO} quando não houver)."},
+            "[Planos de Ação] Prazo alterado: {{item}} — {{numero_pa}}",
+            "Olá, {{destinatario}}.\n\n{{alterado_por}} alterou as datas de {{item}} do Plano de Ação {{numero_pa}} — "
+            "{{titulo_pa}}.\n\nDescrição: {{descricao}}\nData inicial: {{prazo_inicial_anterior}} → {{prazo_inicial_novo}}\n"
+            "Data final: {{prazo_conclusao_anterior}} → {{prazo_conclusao_novo}}\nMotivo: {{motivo}}",
+            botao="Ver registro",
+        ),
+        DefModelo(
+            "acao_concluida",
+            "Ação concluída",
+            {**_VARIAVEIS_ITEM, "concluido_por": "Quem concluiu o item.", "data_conclusao": "Data da conclusão (dd/mm/aaaa).",
+             "situacao_prazo": "Situação em relação ao prazo (no prazo, antecipado ou com atraso)."},
+            "[Planos de Ação] Concluído: {{item}} — {{numero_pa}}",
+            "Olá, {{destinatario}}.\n\n{{concluido_por}} concluiu o item {{item}} do Plano de Ação {{numero_pa}} — "
+            "{{titulo_pa}}.\n\nDescrição: {{descricao}}\nResponsável: {{responsavel}}\nData de conclusão: {{data_conclusao}}\n"
+            "Prazo de conclusão: {{prazo_conclusao}}\nSituação em relação ao prazo: {{situacao_prazo}}",
+            botao="Ver item",
+        ),
+        DefModelo(
+            "dependencia_liberada",
+            "Dependência liberada",
+            {**_VARIAVEIS_ITEM, "dependencias": "Pré-requisitos atendidos (do item e dos itens acima dele)."},
+            "[Planos de Ação] Liberado para iniciar: {{item}} — {{numero_pa}}",
+            "Olá, {{destinatario}}.\n\nTodos os pré-requisitos do item {{item}} do Plano de Ação {{numero_pa}} — {{titulo_pa}} "
+            "foram concluídos: ele já pode ser iniciado.\n\nItem liberado: {{item}} — {{descricao}}\nDependências atendidas: "
+            "{{dependencias}}\nPrazo inicial estimado: {{prazo_inicial}}\nPrazo de conclusão: {{prazo_conclusao}}\n\n"
+            "Este aviso não inicia o item nem altera as datas.",
+            botao="Ver item",
+        ),
+        DefModelo(
+            "plano_sem_atualizacao",
+            "Plano sem atualização",
+            {"destinatario": _VARIAVEIS_COMUNS["destinatario"], "numero_pa": _VARIAVEIS_COMUNS["numero_pa"],
+             "titulo_pa": _VARIAVEIS_COMUNS["titulo_pa"],
+             "ultima_movimentacao": "Última movimentação relevante (o quê, quem e quando).",
+             "dias_sem_atualizacao": "Dias desde a última movimentação relevante.",
+             "link_registro": "Endereço direto do plano (o botão “Ver plano” já usa este link)."},
+            "[Planos de Ação] Plano sem atualização há {{dias_sem_atualizacao}} dias: {{numero_pa}}",
+            "Olá, {{destinatario}}.\n\nO Plano de Ação {{numero_pa}} — {{titulo_pa}} está sem movimentações relevantes há "
+            "{{dias_sem_atualizacao}} dias.\n\nÚltima movimentação: {{ultima_movimentacao}}\n\nAtualize o andamento das ações "
+            "ou registre o que está pendente.",
+            botao="Ver plano",
+        ),
+        DefModelo(
+            "resumo_semanal",
+            "Resumo semanal do plano",
+            {"destinatario": _VARIAVEIS_COMUNS["destinatario"],
+             "periodo_inicio": "Primeiro dia do período coberto (dd/mm/aaaa).",
+             "periodo_fim": "Último dia do período coberto (dd/mm/aaaa).",
+             "quantidade_planos": "Quantos planos o resumo traz (ex.: 2 planos).",
+             "resumo": "Conteúdo montado pelo sistema: uma seção por plano, com o botão “Ver plano” (obrigatório)."},
+            "[Planos de Ação] Resumo semanal: {{periodo_inicio}} a {{periodo_fim}}",
+            "Olá, {{destinatario}}.\n\nEste é o resumo semanal dos planos sob sua responsabilidade, de {{periodo_inicio}} a "
+            "{{periodo_fim}} ({{quantidade_planos}}).\n\n{{resumo}}",
+            obrigatorias=("resumo",),
+            blocos=("resumo",),
+        ),
     )
 }
 
@@ -135,11 +242,46 @@ DADOS_FICTICIOS = {
     "criado_por": "João Exemplo",
     "item_pai": "Ação 2 — Revisar o processo de injeção",
     "link_registro": "",  # preenchido com WEB_URL
+    # avisos operacionais
+    "item": "Ação 2",
+    "responsavel_anterior": "João Exemplo",
+    "atribuido_por": "João Exemplo",
+    "dias_restantes": "3",
+    "vence": "em 3 dias",
+    "progresso": "40%",
+    "prazo_inicial_anterior": "10/10/2026",
+    "prazo_inicial_novo": "17/10/2026",
+    "prazo_conclusao_anterior": "31/10/2026",
+    "prazo_conclusao_novo": "14/11/2026",
+    "alterado_por": "João Exemplo",
+    "motivo": "Fornecedor adiou a entrega do termopar.",
+    "concluido_por": "Maria Exemplo",
+    "data_conclusao": "29/10/2026",
+    "situacao_prazo": "No prazo (2 dias antes do vencimento)",
+    "dependencias": "Ação 1 — Comprar o termopar novo",
+    "ultima_movimentacao": "Progresso da Ação 2 atualizado por Maria Exemplo em 01/10/2026",
+    "dias_sem_atualizacao": "8",
+    "periodo_inicio": "28/09/2026",
+    "periodo_fim": "04/10/2026",
+    "quantidade_planos": "1 plano",
 }
+
+
+def blocos_ficticios(evento: str) -> dict[str, tuple[str, str]]:
+    """Blocos montados pelo sistema, com dados fictícios (prévia e e-mail de teste)."""
+    if evento != "resumo_semanal":
+        return {}
+    from app.services.resumo_semanal import exemplo_bloco  # evita import circular
+
+    return {"resumo": exemplo_bloco(get_settings().WEB_URL.rstrip("/"))}
 
 
 def dados_ficticios(evento: str) -> dict[str, str]:
     d = {**DADOS_FICTICIOS, "link_registro": f"{get_settings().WEB_URL.rstrip('/')}/acoes/0"}
+    if evento == "plano_sem_atualizacao":
+        d["link_registro"] = f"{get_settings().WEB_URL.rstrip('/')}/planos/0"
+    if evento == "resumo_semanal":
+        d["link_registro"] = ""
     if evento == "subitem_criado":
         d["numero_item"] = "2.1"
     if evento == "convite_colaborador":
@@ -191,6 +333,9 @@ def validar_modelo(evento: str, assunto: str, corpo: str) -> tuple[str, str]:
         raise ModeloInvalido("O corpo pode ter no máximo 20.000 caracteres.")
     validar_texto(evento, assunto, "Assunto")
     validar_texto(evento, corpo, "Corpo")
+    presentes = {t.strip() for t in _TOKEN.findall(corpo)}
+    if faltam := [v for v in CATALOGO[evento].obrigatorias if v not in presentes]:
+        raise ModeloInvalido(f"Corpo: mantenha {', '.join('{{' + v + '}}' for v in faltam)} (conteúdo montado pelo sistema).")
     return assunto, corpo
 
 
@@ -238,20 +383,43 @@ class Renderizado:
 _COR = "#ff6600"  # laranja da marca (Mallory DS)
 
 
-def renderizar(assunto: str, corpo: str, valores: dict[str, str], evento: str | None = None) -> Renderizado:
+def renderizar(
+    assunto: str, corpo: str, valores: dict[str, str], evento: str | None = None,
+    blocos: dict[str, tuple[str, str]] | None = None,
+) -> Renderizado:
     """Mesma renderização na prévia, no teste e no envio real. `valores` sem chave/vazio → "—".
-    `evento` define o texto do botão (ex.: "Definir senha e acessar" no convite)."""
+    `evento` define o texto do botão (ex.: "Definir senha e acessar" no convite).
+    `blocos`: variáveis montadas pelo sistema como (html, texto) — o HTML vem do próprio sistema, com os
+    dados já escapados (ex.: as seções do resumo semanal); num parágrafo sozinho, entram sem <p> em volta."""
     d = CATALOGO.get(evento) if evento else None
     rotulo_botao = d.botao if d else "Acessar no sistema"
     nota_botao = d.nota_botao if d else "O acesso exige login e respeita as suas permissões."
     assunto_final = " ".join(_substituir(assunto, valores, html=False).split())[:255]
+    blocos = blocos or {}
+    marcas: dict[str, tuple[str, str]] = {}
+
+    def marcar(m: re.Match) -> str:
+        nome = m.group(1).strip()
+        if nome not in blocos:
+            return m.group(0)
+        marca = f"\x00{len(marcas)}\x00"  # não é afetada pelo escape do HTML
+        marcas[marca] = blocos[nome]
+        return marca
+
+    corpo = _TOKEN.sub(marcar, corpo)
     texto_corpo = _substituir(corpo, valores, html=False)
     corpo_html = _substituir(corpo, valores, html=True)
-    paragrafos = "".join(
-        f'<p style="margin:0 0 14px;font-size:14px;line-height:1.55;color:#3d3632">{p.replace(chr(10), "<br>")}</p>'
-        for p in re.split(r"\n\s*\n", corpo_html.strip())
-        if p.strip()
-    )
+    for marca, (_, texto_bloco) in marcas.items():
+        texto_corpo = texto_corpo.replace(marca, texto_bloco)
+
+    def paragrafo(p: str) -> str:
+        if p.strip() in marcas:
+            return marcas[p.strip()][0]
+        for marca, (html_bloco, _) in marcas.items():
+            p = p.replace(marca, html_bloco)
+        return f'<p style="margin:0 0 14px;font-size:14px;line-height:1.55;color:#3d3632">{p.replace(chr(10), "<br>")}</p>'
+
+    paragrafos = "".join(paragrafo(p) for p in re.split(r"\n\s*\n", corpo_html.strip()) if p.strip())
     link = valores.get("link_registro") or ""
     botao = (
         f'<p style="margin:22px 0 8px;text-align:center"><a href="{escape(link)}" style="display:inline-block;padding:12px 22px;'

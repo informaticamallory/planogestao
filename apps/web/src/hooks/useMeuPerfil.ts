@@ -1,5 +1,14 @@
-import type { AjusteFoto, CorDestaque, TamanhoFonte, TemaPreferido, TrocarSenha, UsuarioLogado, UsuarioSelfUpdate } from "@planogestao/shared-types";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import type {
+  AjusteFoto,
+  CorDestaque,
+  PreferenciaNotificacaoSalvar,
+  TamanhoFonte,
+  TemaPreferido,
+  TrocarSenha,
+  UsuarioLogado,
+  UsuarioSelfUpdate,
+} from "@planogestao/shared-types";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { api } from "../services/api";
 import { useAparencia } from "../store/aparenciaStore";
@@ -64,5 +73,20 @@ export function useSalvarAparencia() {
       const u = useAuthStore.getState().usuario;
       if (u) useAparencia.getState().aplicarDaConta(u.tema, u.cor_destaque, u.tamanho_fonte);
     },
+  });
+}
+
+const CHAVE_PREFERENCIAS_NOTIFICACAO = ["meu-perfil", "preferencias-notificacao"] as const;
+
+/** Canais (sistema/e-mail) de cada aviso operacional, do próprio usuário. */
+export function usePreferenciasNotificacao() {
+  return useQuery({ queryKey: CHAVE_PREFERENCIAS_NOTIFICACAO, queryFn: () => api.meuPerfil.preferenciasNotificacao() });
+}
+
+export function useSalvarPreferenciasNotificacao() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (itens: PreferenciaNotificacaoSalvar[]) => api.meuPerfil.salvarPreferenciasNotificacao(itens),
+    onSuccess: (lista) => qc.setQueryData(CHAVE_PREFERENCIAS_NOTIFICACAO, lista),
   });
 }
