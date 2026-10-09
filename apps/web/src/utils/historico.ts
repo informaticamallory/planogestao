@@ -34,6 +34,8 @@ const CAMPOS_ACAO: Record<string, string> = {
   responsavel: "o responsável",
   responsavel_id: "o responsável",
   observacao: "a observação",
+  descricao: "a descrição",
+  prioridade: "a prioridade",
 };
 
 const LIMITE_TEXTO = 80;

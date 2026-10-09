@@ -2501,6 +2501,12 @@ export interface components {
              * @description Motivo do cancelamento (obrigatório para subações).
              */
             justificativa?: string | null;
+            /**
+             * Descricao
+             * @description O que será feito.
+             */
+            descricao?: string | null;
+            prioridade?: components["schemas"]["Prioridade"] | null;
             /** Prazo Inicio */
             prazo_inicio?: string | null;
             /** Area Id */
@@ -2804,7 +2810,48 @@ export interface components {
              * @default false
              */
             arquivada: boolean;
+            /**
+             * Solicitacao Pendente
+             * @description Pedido de prazo aguardando resposta: prazo e responsável só mudam depois dela.
+             * @default false
+             */
+            solicitacao_pendente: boolean;
             operacoes: components["schemas"]["OperacoesAcao"];
+        };
+        /**
+         * AcaoEdicao
+         * @description Alteração do planejamento de um item JÁ cadastrado (ação ou sub-item), identificado pelo id — nunca recria.
+         *     Parcial: só os campos enviados contam. Status, progresso e cancelamento seguem o fluxo da própria ação (aceite,
+         *     execução, histórico e pontos), por isso não são aceitos aqui. Mesmas regras de PATCH /acoes/{id}.
+         */
+        AcaoEdicao: {
+            /** Id */
+            id: number;
+            /** Descricao */
+            descricao?: string | null;
+            /** Responsavel Id */
+            responsavel_id?: number | null;
+            /** Area Id */
+            area_id?: number | null;
+            /**
+             * Setor Id
+             * @description Enviar null (com a chave) remove a função/cargo.
+             */
+            setor_id?: number | null;
+            /** Prazo Inicio */
+            prazo_inicio?: string | null;
+            /** Prazo */
+            prazo?: string | null;
+            prioridade?: components["schemas"]["Prioridade"] | null;
+            /** Observacao */
+            observacao?: string | null;
+            /**
+             * Depende De
+             * @description Substitui os pré-requisitos.
+             */
+            depende_de?: number[] | null;
+            /** Motivo Alteracao Prazo */
+            motivo_alteracao_prazo?: string | null;
         };
         /** AcaoHistoricoItem */
         AcaoHistoricoItem: {
@@ -4421,6 +4468,12 @@ export interface components {
             desarquivar: boolean;
             /** Excluir */
             excluir: boolean;
+            /**
+             * Editar Planejamento
+             * @description Alterar descrição, responsável, área, prazos, prioridade e pré-requisitos (item em aberto, plano ativo).
+             * @default false
+             */
+            editar_planejamento: boolean;
         };
         /**
          * OrdenacaoPlano
@@ -4607,6 +4660,11 @@ export interface components {
             sem_area: components["schemas"]["PendenciaUsuario"][];
             /** Atribuicoes */
             atribuicoes: components["schemas"]["PendenciaAtribuicao"][];
+            /**
+             * Sem Permissao Ver
+             * @description Responsáveis por planos ativos cujo perfil não tem “Visualizar planos”.
+             */
+            sem_permissao_ver?: components["schemas"]["PendenciaUsuario"][];
         };
         /** PerfilItem */
         PerfilItem: {
@@ -4775,6 +4833,21 @@ export interface components {
             excluir: boolean;
         };
         /**
+         * PermissoesListaPlano
+         * @description O que o usuário logado pode fazer neste plano, a partir da listagem.
+         */
+        PermissoesListaPlano: {
+            /** Editar */
+            editar: boolean;
+            /**
+             * Arquivar
+             * @description Arquivar e desarquivar.
+             */
+            arquivar: boolean;
+            /** Excluir */
+            excluir: boolean;
+        };
+        /**
          * PermissoesPlano
          * @description O que o usuário logado pode fazer neste plano (o backend revalida em cada endpoint).
          */
@@ -4816,6 +4889,8 @@ export interface components {
          * PlanoAtualizar
          * @description Edição completa (PUT). O status não é editável (calculado pelas ações).
          *     `rascunho=false` num rascunho libera o plano (exige etapa 2 e ao menos uma ação).
+         *     Etapa "Ações e Responsável": `acoes` altera itens existentes (pelo id) e `novas_acoes` inclui ações principais,
+         *     na MESMA transação dos dados do plano — ou grava tudo, ou nada.
          */
         PlanoAtualizar: {
             /** Nome */
@@ -4865,6 +4940,16 @@ export interface components {
              * @description Opcional: motivo da mudança das datas estimadas (histórico e aviso).
              */
             motivo_alteracao_prazo?: string | null;
+            /**
+             * Acoes
+             * @description Itens existentes alterados.
+             */
+            acoes?: components["schemas"]["AcaoEdicao"][];
+            /**
+             * Novas Acoes
+             * @description Ações principais novas.
+             */
+            novas_acoes?: components["schemas"]["AcaoCriar"][];
         };
         /** PlanoCriado */
         PlanoCriado: {
@@ -5095,6 +5180,8 @@ export interface components {
             concluido_em: string | null;
             /** Arquivado */
             arquivado: boolean;
+            /** @description Mesmas regras do detalhe (o backend revalida em cada endpoint). */
+            permissoes?: components["schemas"]["PermissoesListaPlano"];
         };
         /** PlanoOpcaoEquipe */
         PlanoOpcaoEquipe: {
@@ -6321,6 +6408,11 @@ export interface components {
             setor: components["schemas"]["ReferenciaSimples"] | null;
             /** Permissoes */
             permissoes: string[];
+            /**
+             * Areas Acesso
+             * @description Áreas cujos planos o usuário acessa (áreas autorizadas, não a lotação). null = todas.
+             */
+            areas_acesso?: number[] | null;
             /**
              * Tema
              * @enum {string}

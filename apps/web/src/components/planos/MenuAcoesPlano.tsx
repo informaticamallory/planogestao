@@ -4,7 +4,6 @@ import { useNavigate } from "react-router-dom";
 
 import { useExcluirPlano } from "../../hooks/usePlano";
 import { useArquivarPlano } from "../../hooks/usePlanos";
-import { temPermissao, useAuthStore } from "../../store/authStore";
 import { Icon } from "../ui/Icon";
 import { classesDoBotao } from "../ui/Button";
 import { DropdownItem, DropdownMenu } from "../ui/DropdownMenu";
@@ -12,12 +11,14 @@ import { ConfirmarOperacao } from "./ConfirmarOperacao";
 
 /**
  * Ativo: Ver · Editar · Arquivar · Excluir plano. Arquivado: Ver · Desarquivar · Excluir plano.
- * A permissão aqui só esconde a opção; a API confere permissão, autoria e áreas autorizadas.
+ * As opções seguem as permissões que a API calcula para ESTE plano (as mesmas do detalhe: perfil + vínculo +
+ * áreas autorizadas); a API confere de novo em cada operação.
  */
 export function MenuAcoesPlano({ plano }: { plano: PlanoListaItem }) {
   const navigate = useNavigate();
-  const podeEditar = useAuthStore((s) => temPermissao(s.usuario, "planos:editar"));
-  const podeExcluir = useAuthStore((s) => temPermissao(s.usuario, "planos:excluir"));
+  const podeEditar = plano.permissoes?.editar ?? false;
+  const podeArquivar = plano.permissoes?.arquivar ?? false;
+  const podeExcluir = plano.permissoes?.excluir ?? false;
   const arquivar = useArquivarPlano();
   const excluir = useExcluirPlano(plano.id);
   const [excluindo, setExcluindo] = useState(false);
@@ -43,14 +44,12 @@ export function MenuAcoesPlano({ plano }: { plano: PlanoListaItem }) {
         {(fechar) => (
           <>
             <DropdownItem onClick={() => navigate(`/planos/${plano.id}`)}>Ver</DropdownItem>
-            {podeEditar && (
-              <>
-                {/* Arquivado é somente leitura: sem "Editar". */}
-                {!plano.arquivado && <DropdownItem onClick={() => navigate(`/planos/${plano.id}/editar`)}>Editar</DropdownItem>}
-                <DropdownItem onClick={() => alternarArquivamento(fechar)} disabled={arquivar.isPending}>
-                  {plano.arquivado ? "Desarquivar" : "Arquivar"}
-                </DropdownItem>
-              </>
+            {/* Arquivado é somente leitura: a API não devolve "editar" para ele. */}
+            {podeEditar && <DropdownItem onClick={() => navigate(`/planos/${plano.id}/editar`)}>Editar</DropdownItem>}
+            {podeArquivar && (
+              <DropdownItem onClick={() => alternarArquivamento(fechar)} disabled={arquivar.isPending}>
+                {plano.arquivado ? "Desarquivar" : "Arquivar"}
+              </DropdownItem>
             )}
             {podeExcluir && (
               <DropdownItem

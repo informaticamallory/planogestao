@@ -131,9 +131,12 @@ class UsuariosAdminService:
             usuario.areas_autorizadas = [self.db.get(Area, usuario.area_id)]
 
     def pendencias_areas(self) -> dict:
-        """Para o Administrador regularizar: usuários sem área autorizada e atribuições fora das áreas."""
+        """Para o Administrador regularizar (nada é corrigido sozinho): usuários sem área autorizada, vínculos com
+        planos de áreas não autorizadas (responsável, criador, ação, equipe) e quem responde por planos sem ter
+        "Visualizar planos" no perfil."""
         from app.models import Acao, Equipe, EquipeMembro, PlanoDeAcao
         from app.models.enums import STATUS_ACAO_DESCARTADOS
+        from app.services.escopo import PERMISSAO_VER
 
         restritos = [u for u in self.db.scalars(select(Usuario).where(Usuario.ativo.is_(True)).order_by(Usuario.nome))
                      if u.areas_de_acesso is not None]
@@ -146,6 +149,11 @@ class UsuariosAdminService:
                 PlanoDeAcao.responsavel_id == u.id, PlanoDeAcao.arquivado_em.is_(None), fora
             ).order_by(PlanoDeAcao.codigo)):
                 atribuicoes.append(dict(usuario=u, papel="Responsável pelo plano", plano=p, acao=None))
+            # Quem criou (e não é o responsável) também perde o acesso ao plano fora das áreas.
+            for p in self.db.scalars(select(PlanoDeAcao).where(
+                PlanoDeAcao.criado_por_id == u.id, PlanoDeAcao.responsavel_id != u.id, PlanoDeAcao.arquivado_em.is_(None), fora
+            ).order_by(PlanoDeAcao.codigo)):
+                atribuicoes.append(dict(usuario=u, papel="Criador do plano", plano=p, acao=None))
             for a in self.db.scalars(select(Acao).join(PlanoDeAcao, Acao.plano_id == PlanoDeAcao.id).where(
                 Acao.responsavel_id == u.id, Acao.status.not_in(STATUS_ACAO_DESCARTADOS), PlanoDeAcao.arquivado_em.is_(None), fora
             ).order_by(PlanoDeAcao.codigo, Acao.id)):
@@ -157,7 +165,14 @@ class UsuariosAdminService:
                 EquipeMembro.usuario_id == u.id, Equipe.ativo.is_(True), PlanoDeAcao.arquivado_em.is_(None), fora
             ).order_by(PlanoDeAcao.codigo, Equipe.nome)).unique():
                 atribuicoes.append(dict(usuario=u, papel=f"Participante da equipe “{e.nome}”", plano=e.plano, acao=None))
-        return dict(sem_area=sem_area, atribuicoes=atribuicoes)
+        # Perfil sem "Visualizar planos" (matriz ajustada em Perfis) para quem responde por um plano ativo.
+        sem_ver = [
+            u for u in self.db.scalars(select(Usuario).where(Usuario.ativo.is_(True)).order_by(Usuario.nome))
+            if PERMISSAO_VER not in u.codigos_permissao and self.db.scalar(
+                select(PlanoDeAcao.id).where(PlanoDeAcao.responsavel_id == u.id, PlanoDeAcao.arquivado_em.is_(None)).limit(1)
+            ) is not None
+        ]
+        return dict(sem_area=sem_area, atribuicoes=atribuicoes, sem_permissao_ver=sem_ver)
 
     def _commit(self) -> None:
         try:

@@ -1,8 +1,10 @@
-import type { PlanoDetalhe } from "@planogestao/shared-types";
+import type { AcaoDoPlano, PlanoDetalhe } from "@planogestao/shared-types";
 import { useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 
+import { EtapaAcoes } from "../../components/planos/novo/EtapaAcoes";
 import { EtapaIdentificacao } from "../../components/planos/novo/EtapaIdentificacao";
+import { EtapaItensExistentes } from "../../components/planos/novo/EtapaItensExistentes";
 import { EtapaProblema } from "../../components/planos/novo/EtapaProblema";
 import {
   focarPrimeiroErro,
@@ -11,8 +13,10 @@ import {
   paraAtualizacao,
   validarEtapa1,
   validarEtapa2,
+  validarEtapaAcoesEdicao,
   type PlanoForm,
 } from "../../components/planos/novo/formularioPlano";
+import stylesEtapas from "../../components/planos/novo/Etapas.module.css";
 import { SeletorModo, useModoFormularioPlano } from "../../components/planos/novo/SeletorModo";
 import { Button, ButtonLink } from "../../components/ui/Button";
 import { Field, fieldAria } from "../../components/ui/Field";
@@ -21,20 +25,22 @@ import { Modal } from "../../components/ui/Modal";
 import { Select } from "../../components/ui/Select";
 import { PlanStatusBadge } from "../../components/ui/StatusBadges";
 import { Wizard } from "../../components/ui/Wizard";
-import { useAtualizarPlano, usePlanoDetalhe } from "../../hooks/usePlano";
+import { useAcoesDoPlano, useAtualizarPlano, usePlanoDetalhe } from "../../hooks/usePlano";
 import { useOpcoesPlanos } from "../../hooks/usePlanos";
 import { useProtecaoSaida } from "../../hooks/useProtecaoSaida";
 import styles from "./NovoPlanoPage.module.css";
 
-// As ações têm aba própria no detalhe do plano; a edição cobre só estas duas seções.
-const ETAPAS = ["Identificação", "Problema/Oportunidade"];
+// As mesmas etapas da criação. Na 3ª, os itens já cadastrados são alterados pelo id (nunca recriados).
+const ETAPAS = ["Identificação", "Problema/Oportunidade", "Ações e Responsável"];
 
 export function EditarPlanoPage() {
   const planoId = Number(useParams().id);
   const detalhe = usePlanoDetalhe(planoId);
+  const acoes = useAcoesDoPlano(planoId);
 
   if (detalhe.error) return <p className={styles.alerta}>Não foi possível carregar o plano: {detalhe.error.message}</p>;
-  if (!detalhe.data) return <p>Carregando plano…</p>;
+  if (acoes.error) return <p className={styles.alerta}>Não foi possível carregar as ações do plano: {acoes.error.message}</p>;
+  if (!detalhe.data || !acoes.data) return <p>Carregando plano…</p>;
   if (!detalhe.data.permissoes.editar) {
     return (
       <div className={styles.novoPlanoPage}>
@@ -44,16 +50,16 @@ export function EditarPlanoPage() {
       </div>
     );
   }
-  // Monta o formulário só depois de ter o plano (estado inicial = dados atuais).
-  return <FormularioEdicao plano={detalhe.data} />;
+  // Monta o formulário só depois de ter o plano e as ações (estado inicial = dados atuais).
+  return <FormularioEdicao plano={detalhe.data} acoesDoPlano={acoes.data} />;
 }
 
-function FormularioEdicao({ plano }: { plano: PlanoDetalhe }) {
+function FormularioEdicao({ plano, acoesDoPlano }: { plano: PlanoDetalhe; acoesDoPlano: AcaoDoPlano[] }) {
   const navigate = useNavigate();
   const opcoes = useOpcoesPlanos();
   const atualizar = useAtualizarPlano(plano.id);
 
-  const [form, setForm] = useState<PlanoForm>(() => formularioDoPlano(plano));
+  const [form, setForm] = useState<PlanoForm>(() => formularioDoPlano(plano, acoesDoPlano));
   const inicial = useRef(form);
   const [mostrarErros, setMostrarErros] = useState(false);
   const [modo, setModo] = useModoFormularioPlano();
@@ -67,7 +73,12 @@ function FormularioEdicao({ plano }: { plano: PlanoDetalhe }) {
   const alterar = (parcial: Partial<PlanoForm>) => setForm((f) => ({ ...f, ...parcial }));
   // Plano liberado (ou sendo liberado agora) exige a etapa 2; o rascunho não.
   const exigeEtapa2 = !form.rascunho;
-  const errosPorEtapa = [validarEtapa1(form), validarEtapa2(form, !exigeEtapa2)];
+  const errosPorEtapa = [
+    validarEtapa1(form),
+    validarEtapa2(form, !exigeEtapa2),
+    validarEtapaAcoesEdicao(form, inicial.current.itens, plano.rascunho && !form.rascunho, acoesDoPlano),
+  ];
+  const arquivados = acoesDoPlano.filter((a) => a.arquivada).length;
   const pendente = errosPorEtapa.map((e) => Object.keys(e).length > 0);
   const erros = (i: number) => (mostrarErros ? errosPorEtapa[i]! : {});
 
@@ -86,7 +97,7 @@ function FormularioEdicao({ plano }: { plano: PlanoDetalhe }) {
       setEtapa(comErro);
       return focarPrimeiroErro();
     }
-    const dados = paraAtualizacao(form);
+    const dados = paraAtualizacao(form, inicial.current.itens);
     atualizar.mutate(mudouDatas && motivoPrazo.trim() ? { ...dados, motivo_alteracao_prazo: motivoPrazo.trim() } : dados, {
       onSuccess: (r) => {
         liberar();
@@ -160,6 +171,55 @@ function FormularioEdicao({ plano }: { plano: PlanoDetalhe }) {
           {
             titulo: ETAPAS[1]!,
             conteudo: <EtapaProblema form={form} alterar={alterar} erros={erros(1)} obrigatorio={exigeEtapa2} mostrarAnexos={false} />,
+          },
+          {
+            titulo: ETAPAS[2]!,
+            conteudo: (
+              <>
+                <section className={stylesEtapas.secaoEtapa} aria-labelledby="titulo-itens">
+                  <h2 id="titulo-itens" className={stylesEtapas.tituloSecao}>
+                    Ações e sub-itens cadastrados
+                  </h2>
+                  <p className={stylesEtapas.notaAcao}>
+                    Altere descrição, responsável, área, prazos, prioridade e pré-requisitos. Cada mudança vai para o histórico do item; status,
+                    progresso e pontos não mudam aqui (seguem o aceite, a execução e a conclusão). O responsável pelo plano fica em
+                    “Identificação”.
+                    {arquivados > 0 && ` ${arquivados} item(ns) arquivado(s) não aparecem: desarquive-os pela aba Ações para alterar.`}
+                  </p>
+                  {erros(2).acoes && (
+                    <p className={stylesEtapas.erroLista} role="alert">
+                      {erros(2).acoes}
+                    </p>
+                  )}
+                  <EtapaItensExistentes
+                    itens={form.itens}
+                    originais={inicial.current.itens}
+                    onAlterar={(itens) => alterar({ itens })}
+                    erros={erros(2)}
+                    fimEstimado={form.data_fim_estimado}
+                    acoesDoPlano={acoesDoPlano}
+                  />
+                </section>
+                {plano.permissoes.adicionar_acoes && (
+                  <section className={stylesEtapas.secaoEtapa} aria-labelledby="titulo-novas">
+                    <h2 id="titulo-novas" className={stylesEtapas.tituloSecao}>
+                      Novas ações
+                    </h2>
+                    <p className={stylesEtapas.notaAcao}>
+                      Gravadas junto com as alterações acima. Sub-itens são criados na tela da ação, depois do aceite.
+                    </p>
+                    <EtapaAcoes
+                      acoes={form.acoes}
+                      onAlterar={(novas) => alterar({ acoes: novas })}
+                      fimEstimado={form.data_fim_estimado}
+                      prioridadePadrao={form.prioridade}
+                      erros={{ ...erros(2), acoes: "" }}
+                      acoesExistentes={acoesDoPlano}
+                    />
+                  </section>
+                )}
+              </>
+            ),
           },
         ].map((s, i) => ({ ...s, pendente: pendente[i], comErro: mostrarErros }))}
         rodape={

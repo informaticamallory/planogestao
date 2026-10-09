@@ -12,6 +12,7 @@ import {
   paraApi,
   validarEtapa1,
   validarEtapa2,
+  erroAreaDoPlano,
   validarEtapa3,
   type Erros,
   type PlanoForm,
@@ -21,6 +22,7 @@ import { Button, ButtonLink } from "../../components/ui/Button";
 import { Modal } from "../../components/ui/Modal";
 import { Wizard } from "../../components/ui/Wizard";
 import { useCriarPlano, useOpcoesPlanos } from "../../hooks/usePlanos";
+import { useAuthStore } from "../../store/authStore";
 import { useProtecaoSaida } from "../../hooks/useProtecaoSaida";
 import styles from "./NovoPlanoPage.module.css";
 
@@ -30,6 +32,8 @@ export function NovoPlanoPage() {
   const navigate = useNavigate();
   const opcoes = useOpcoesPlanos();
   const criar = useCriarPlano();
+  // Áreas autorizadas de quem cria (não a lotação): a área do plano vem da 1ª ação e precisa estar entre elas.
+  const areasAcesso = useAuthStore((s) => s.usuario?.areas_acesso);
 
   const [form, setForm] = useState<PlanoForm>(formularioInicial);
   const inicial = useRef(form);
@@ -43,7 +47,7 @@ export function NovoPlanoPage() {
   // "Salvar Plano" libera o plano: etapas 2 e 3 obrigatórias. "Salvar rascunho" exige só a etapa 1.
   const rascunho = false;
   const validar = (i: number): Erros =>
-    [validarEtapa1, (f: PlanoForm) => validarEtapa2(f, rascunho), (f: PlanoForm) => validarEtapa3(f, rascunho)][i]!(form);
+    [validarEtapa1, (f: PlanoForm) => validarEtapa2(f, rascunho), (f: PlanoForm) => validarEtapa3(f, rascunho, areasAcesso)][i]!(form);
   // Validado sempre (para marcar as etapas pendentes); os erros só aparecem depois de tentar salvar.
   const errosPorEtapa = [0, 1, 2].map(validar);
   const pendente = errosPorEtapa.map((e) => Object.keys(e).length > 0);
@@ -101,6 +105,7 @@ export function NovoPlanoPage() {
 
   const salvarRascunho = (aoConcluir: (planoId: number) => void) => {
     if (!etapa1Valida) return barrar([0]);
+    if (Object.keys(erroAreaDoPlano(form, areasAcesso)).length) return barrar([2]);
     gravar(true, aoConcluir);
   };
 

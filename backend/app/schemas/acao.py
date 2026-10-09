@@ -139,6 +139,8 @@ class AcaoAtualizar(BaseModel):
         default=None, max_length=500, description="Motivo do cancelamento (obrigatório para subações)."
     )
     # Planejamento (só gestores).
+    descricao: str | None = Field(default=None, min_length=3, max_length=2000, description="O que será feito.")
+    prioridade: Prioridade | None = None
     prazo_inicio: date | None = None
     area_id: int | None = None
     setor_id: int | None = Field(default=None, description="Enviar null (com a chave) remove o setor.")
@@ -152,7 +154,7 @@ class AcaoAtualizar(BaseModel):
         default=None, max_length=500, description="Opcional: motivo da mudança de prazo (histórico e aviso aos envolvidos)."
     )
 
-    @field_validator("observacao", "motivo_bloqueio", "justificativa", "motivo_alteracao_prazo", mode="before")
+    @field_validator("descricao", "observacao", "motivo_bloqueio", "justificativa", "motivo_alteracao_prazo", mode="before")
     @classmethod
     def _aparar(cls, v: object) -> object:
         return v.strip() if isinstance(v, str) else v

@@ -64,6 +64,16 @@ export function PlanoDetalhePage() {
       </div>
     );
   }
+  if (detalhe.error instanceof ApiError && detalhe.error.status === 403) {
+    // Vínculo com o plano, mas acesso bloqueado (área não autorizada, perfil): a API explica o motivo.
+    return (
+      <div className={styles.estado}>
+        <h1>Acesso ao plano bloqueado</h1>
+        <p>{detalhe.error.message}</p>
+        <Link to="/planos">Voltar para Planos de Ação</Link>
+      </div>
+    );
+  }
   if (detalhe.error) return <p className={styles.erro}>Não foi possível carregar o plano: {detalhe.error.message}</p>;
   if (!detalhe.data) return <p className={styles.estado}>Carregando plano…</p>;
 

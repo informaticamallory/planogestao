@@ -2,7 +2,7 @@ import enum
 from datetime import date, datetime
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 from pydantic_core import PydanticCustomError
 
 from app.models.enums import Prioridade, StatusAcao, StatusPlano
@@ -44,6 +44,14 @@ class FormatoExportacao(str, enum.Enum):
     PDF = "pdf"
 
 
+class PermissoesListaPlano(BaseModel):
+    """O que o usuário logado pode fazer neste plano, a partir da listagem."""
+
+    editar: bool
+    arquivar: bool = Field(description="Arquivar e desarquivar.")
+    excluir: bool
+
+
 class PlanoListaItem(BaseModel):
     id: int
     codigo: str
@@ -66,6 +74,10 @@ class PlanoListaItem(BaseModel):
     criado_em: datetime
     concluido_em: datetime | None
     arquivado: bool
+    permissoes: PermissoesListaPlano = Field(
+        default_factory=lambda: PermissoesListaPlano(editar=False, arquivar=False, excluir=False),
+        description="Mesmas regras do detalhe (o backend revalida em cada endpoint).",
+    )
 
 
 class ContagemAcoes(BaseModel):
@@ -233,19 +245,51 @@ class PlanoCriar(PlanoDadosBase):
         return self
 
 
+class AcaoEdicao(BaseModel):
+    """Alteração do planejamento de um item JÁ cadastrado (ação ou sub-item), identificado pelo id — nunca recria.
+    Parcial: só os campos enviados contam. Status, progresso e cancelamento seguem o fluxo da própria ação (aceite,
+    execução, histórico e pontos), por isso não são aceitos aqui. Mesmas regras de PATCH /acoes/{id}."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    id: int
+    descricao: str | None = Field(default=None, min_length=3, max_length=2000)
+    responsavel_id: int | None = None
+    area_id: int | None = None
+    setor_id: int | None = Field(default=None, description="Enviar null (com a chave) remove a função/cargo.")
+    prazo_inicio: date | None = None
+    prazo: date | None = None
+    prioridade: Prioridade | None = None
+    observacao: str | None = Field(default=None, max_length=2000)
+    depende_de: list[int] | None = Field(default=None, max_length=50, description="Substitui os pré-requisitos.")
+    motivo_alteracao_prazo: str | None = Field(default=None, max_length=500)
+
+    @field_validator("descricao", "observacao", "motivo_alteracao_prazo", mode="before")
+    @classmethod
+    def _aparar(cls, v: object) -> object:
+        return v.strip() if isinstance(v, str) else v
+
+
 class PlanoAtualizar(PlanoDadosBase):
     """Edição completa (PUT). O status não é editável (calculado pelas ações).
-    `rascunho=false` num rascunho libera o plano (exige etapa 2 e ao menos uma ação)."""
+    `rascunho=false` num rascunho libera o plano (exige etapa 2 e ao menos uma ação).
+    Etapa "Ações e Responsável": `acoes` altera itens existentes (pelo id) e `novas_acoes` inclui ações principais,
+    na MESMA transação dos dados do plano — ou grava tudo, ou nada."""
 
     rascunho: bool = False
     motivo_alteracao_prazo: str | None = Field(
         default=None, max_length=200, description="Opcional: motivo da mudança das datas estimadas (histórico e aviso)."
     )
+    acoes: list[AcaoEdicao] = Field(default_factory=list, max_length=500, description="Itens existentes alterados.")
+    novas_acoes: list[AcaoCriar] = Field(default_factory=list, max_length=100, description="Ações principais novas.")
 
     @model_validator(mode="after")
     def _etapa2_para_plano_liberado(self) -> "PlanoAtualizar":
         if not self.rascunho:
             self.exigir_etapa2("liberar")
+        ids = [a.id for a in self.acoes]
+        if len(ids) != len(set(ids)):
+            raise PydanticCustomError("item_repetido", "O mesmo item foi enviado mais de uma vez.")
         return self
 
 
@@ -356,6 +400,9 @@ class AcaoDoPlano(AcaoResumo):
         description="Pré-requisitos ainda não concluídos (para subações, os da ação principal)."
     )
     arquivada: bool = Field(default=False, description="Arquivada individualmente: fora das listas e do cálculo do plano.")
+    solicitacao_pendente: bool = Field(
+        default=False, description="Pedido de prazo aguardando resposta: prazo e responsável só mudam depois dela."
+    )
     operacoes: "OperacoesAcao"
 
 
@@ -366,6 +413,10 @@ class OperacoesAcao(BaseModel):
     arquivar: bool
     desarquivar: bool
     excluir: bool
+    editar_planejamento: bool = Field(
+        default=False,
+        description="Alterar descrição, responsável, área, prazos, prioridade e pré-requisitos (item em aberto, plano ativo).",
+    )
 
 
 AcaoDoPlano.model_rebuild()

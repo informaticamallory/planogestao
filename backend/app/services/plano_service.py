@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from app.core.security import utcnow
 from app.core.tempo import como_utc, data_local
 from app.models import Area, Equipe, OrigemPlano, PlanoDeAcao, Setor, TipoPlano, Usuario
+from app.models.enums import STATUS_ACAO_ABERTOS
 from app.repositories.plano_repository import FiltrosPlanos, Ordenacao, PlanoRepository
 from app.schemas.comum import Opcao, Pagina
 from app.schemas.plano import (
@@ -17,6 +18,7 @@ from app.schemas.plano import (
     IndicadoresPlano,
     OpcoesPlanos,
     OperacoesAcao,
+    PermissoesListaPlano,
     PermissoesPlano,
     PlanoDetalhe,
     PlanoListaItem,
@@ -28,7 +30,15 @@ from app.services.escopo import filtro_planos_visiveis
 from app.services.exportacao import ArquivoGerado, Coluna
 from app.services.indicadores import IndicadoresAcoes, calcular_indicadores
 from app.services.ciclo_plano import apto_a_conclusao
-from app.services.permissoes_plano import acesso_direto, pode_arquivar, pode_concluir, pode_editar, pode_excluir, pode_gerenciar_equipes
+from app.services.erros import Proibido
+from app.services.permissoes_plano import (
+    acesso_direto,
+    ids_com_acesso_direto,
+    motivo_bloqueio,
+    operacoes,
+    operacoes_do_plano,
+    plano_existente,
+)
 from app.services.regras import (
     CategoriaAcao,
     acao_vencendo,
@@ -101,9 +111,17 @@ class PlanoService:
         linhas, total = self.repo.listar(
             filtros, ordenacao, self.usuario.id, self.hoje, offset=(page - 1) * page_size, limite=page_size
         )
-        return Pagina[PlanoListaItem](
-            items=[self._item(r) for r in linhas], total=total, page=page, page_size=page_size
-        )
+        # As mesmas regras do detalhe (permissoes_plano.operacoes), em lote: o menu de cada linha não oferece
+        # o que a API recusaria.
+        diretos = ids_com_acesso_direto(self.db, self.usuario, [r.id for r in linhas])
+        itens = []
+        for r in linhas:
+            ops = operacoes(self.usuario, criador_id=r.criado_por_id, responsavel_id=r.responsavel_id,
+                            arquivado=r.arquivado_em is not None, direto=r.id in diretos)
+            itens.append(self._item(r).model_copy(update={
+                "permissoes": PermissoesListaPlano(editar=ops["editar"], arquivar=ops["arquivar"], excluir=ops["excluir"])
+            }))
+        return Pagina[PlanoListaItem](items=itens, total=total, page=page, page_size=page_size)
 
     # ---- exportação --------------------------------------------------------------
 
@@ -183,7 +201,11 @@ class PlanoService:
     def _obter(self, plano_id: int) -> PlanoDeAcao:
         plano = self.repo.obter_visivel(plano_id)
         if plano is None:
-            # 404 também para planos fora do escopo: não revela que o id existe.
+            # Quem tem vínculo com o plano (responsável, criador, ação) mas está bloqueado (área não autorizada,
+            # perfil sem "Visualizar planos") recebe o motivo. Os demais: 404, sem revelar que o id existe.
+            existente = plano_existente(self.db, plano_id)
+            if existente is not None and (motivo := motivo_bloqueio(self.db, self.usuario, existente)):
+                raise Proibido(motivo)
             raise PlanoNaoEncontrado
         return plano
 
@@ -251,7 +273,8 @@ class PlanoService:
 
     def detalhe(self, plano_id: int) -> PlanoDetalhe:
         plano = self._obter(plano_id)
-        editavel = pode_editar(self.usuario, plano)
+        ops = operacoes_do_plano(self.usuario, plano)
+        editavel = ops["editar"]
         apto = plano.arquivado_em is None and not plano.rascunho and apto_a_conclusao(plano)
         return PlanoDetalhe(
             **self._montar_resumo(plano).model_dump(),
@@ -264,12 +287,12 @@ class PlanoService:
             atualizado_em=como_utc(plano.atualizado_em),
             permissoes=PermissoesPlano(
                 editar=editavel,
-                arquivar=pode_arquivar(self.usuario, plano),
+                arquivar=ops["arquivar"],
                 adicionar_acoes=editavel,
                 enviar_anexos=editavel,
-                excluir=pode_excluir(self.usuario, plano),
-                concluir=apto and pode_concluir(self.usuario, plano),
-                gerenciar_equipes=pode_gerenciar_equipes(self.usuario, plano),
+                excluir=ops["excluir"],
+                concluir=apto and ops["concluir"],
+                gerenciar_equipes=ops["gerenciar_equipes"],
             ),
             apto_conclusao=apto,
         )
@@ -287,7 +310,12 @@ class PlanoService:
         def operacoes(a) -> OperacoesAcao:
             fora = plano_arquivado or a.arquivado_em is not None
             pode_abrir = papeis._eh_gestor(a) or papeis._eh_responsavel(a) or edita_por_perfil
-            return OperacoesAcao(editar=not fora and pode_abrir, **papeis.operacoes(a))
+            return OperacoesAcao(
+                editar=not fora and pode_abrir,
+                # A mesma regra do detalhe da ação e da edição do plano (AcaoService.pode_planejar).
+                editar_planejamento=not fora and a.status in STATUS_ACAO_ABERTOS and papeis.pode_planejar(a),
+                **papeis.operacoes(a),
+            )
 
         return [
             AcaoDoPlano(
@@ -319,6 +347,7 @@ class PlanoService:
                 prazo_tag=None if (plano_arquivado or a.arquivado_em) else tag_prazo_acao(a.status, a.prazo, self.hoje),
                 revisar_prerequisito=dependencias.revisar_prerequisito(a),
                 arquivada=a.arquivado_em is not None,
+                solicitacao_pendente=papeis._pendente(a) is not None,
                 operacoes=operacoes(a),
             )
             for a, nome in self.repo.acoes_detalhadas(plano_id)

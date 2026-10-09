@@ -202,6 +202,9 @@ class PendenciaAtribuicao(BaseModel):
 class PendenciasAreas(BaseModel):
     sem_area: list[PendenciaUsuario]
     atribuicoes: list[PendenciaAtribuicao]
+    sem_permissao_ver: list[PendenciaUsuario] = Field(
+        default_factory=list, description="Responsáveis por planos ativos cujo perfil não tem “Visualizar planos”."
+    )
 
 
 def _pendente(u: Usuario) -> PendenciaUsuario:
@@ -214,6 +217,7 @@ def pendencias_areas(admin: UsuarioAdmin, db: Session = Depends(get_db)):
     p = UsuariosAdminService(db, admin).pendencias_areas()
     return PendenciasAreas(
         sem_area=[_pendente(u) for u in p["sem_area"]],
+        sem_permissao_ver=[_pendente(u) for u in p["sem_permissao_ver"]],
         atribuicoes=[
             PendenciaAtribuicao(
                 usuario=_pendente(x["usuario"]), papel=x["papel"], plano_id=x["plano"].id, plano_codigo=x["plano"].codigo,

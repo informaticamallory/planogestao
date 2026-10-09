@@ -54,6 +54,7 @@ def montar_usuario_logado(usuario: Usuario) -> UsuarioLogado:
         area=ReferenciaSimples.model_validate(usuario.area) if usuario.area else None,
         setor=ReferenciaSimples.model_validate(usuario.setor) if usuario.setor else None,
         permissoes=sorted(usuario.codigos_permissao),
+        areas_acesso=sorted(usuario.areas_de_acesso) if usuario.areas_de_acesso is not None else None,
         tema=usuario.tema,
         cor_destaque=usuario.cor_destaque,
         tamanho_fonte=usuario.tamanho_fonte,

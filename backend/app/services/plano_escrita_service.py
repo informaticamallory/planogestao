@@ -25,8 +25,10 @@ from app.models.enums import (
     StatusPlano,
 )
 from app.schemas.comum import Opcao
+from app.schemas.acao import AcaoAtualizar
 from app.schemas.plano import (
     AcaoCriar,
+    AcaoEdicao,
     AcaoResumo,
     AcoesAdicionadas,
     AnexoResumo,
@@ -46,7 +48,15 @@ from app.services.escopo import MENSAGEM_SEM_ACESSO_AREA, filtro_planos_visiveis
 from app.services.ciclo_plano import apto_a_conclusao, concluir_manualmente, recalcular_status
 from app.services.historico import registrar_historico, registrar_historico_plano
 from app.services.indicadores import calcular_indicadores
-from app.services.permissoes_plano import pode_arquivar, pode_concluir, pode_excluir, tem_autoria_ou_edicao
+from app.services.erros import Proibido
+from app.services.permissoes_plano import (
+    motivo_bloqueio,
+    pode_arquivar,
+    pode_concluir,
+    pode_excluir,
+    plano_existente,
+    tem_autoria_ou_edicao,
+)
 from app.services.plano_codigo import gerar_codigo_plano
 from app.services.pontuacao import creditar_conclusao_acao, creditar_conclusao_plano, reverter_por_reabertura
 from app.services.plano_service import PlanoNaoEncontrado, PlanoService
@@ -65,7 +75,7 @@ class RegraNegocio(Exception):
 
 
 class SemPermissao(Exception):
-    pass
+    """403. A mensagem (opcional) explica qual permissão ou papel falta."""
 
 
 def _formatar(d: date) -> str:
@@ -190,23 +200,39 @@ class PlanoEscritaService:
         if usuario is not None and not usuario.acessa_area(area_id):
             raise RegraNegocio(f"{usuario.nome}: {MENSAGEM_SEM_ACESSO_AREA}")
 
-    def _exigir_area_do_autor(self, area_id: int) -> None:
+    def _exigir_area_do_autor(self, area_id: int, origem: str = "") -> None:
         # Sem isso, quem cria/edita perderia o acesso ao próprio plano logo depois de salvar.
         if not self.usuario.acessa_area(area_id):
+            area = self.db.get(Area, area_id)
             raise RegraNegocio(
-                "Você não possui acesso à área do plano. Solicite ao Administrador a atualização das áreas autorizadas."
+                f"Você não possui acesso à área “{area.nome if area else area_id}”{origem}. Escolha uma das suas áreas "
+                "autorizadas ou solicite ao Administrador a atualização das áreas autorizadas."
             )
 
-    def _area_do_plano(self, dados: PlanoCriar) -> tuple[int, int | None]:
-        """A área/setor do plano (visibilidade e indicadores): a informada, a da 1ª ação ou a do responsável."""
+    def _area_do_plano(self, dados: PlanoCriar) -> tuple[int, int | None, str]:
+        """A área/setor do plano (visibilidade e indicadores) e de onde ela veio: a informada, a da 1ª ação ou, num
+        rascunho sem ações, uma área que o autor e o responsável acessam. A lotação só é usada se for área autorizada
+        dos dois: lotação e áreas autorizadas são coisas diferentes."""
         if dados.area_id is not None:
-            return dados.area_id, dados.setor_id
+            return dados.area_id, dados.setor_id, ", informada para o plano"
         if dados.acoes:
-            return dados.acoes[0].area_id, dados.acoes[0].setor_id
+            return dados.acoes[0].area_id, dados.acoes[0].setor_id, ", da 1ª ação (a área do plano vem dela)"
         responsavel = self.db.get(Usuario, dados.responsavel_id)
-        if responsavel is None or responsavel.area_id is None:
-            raise RegraNegocio("Cadastre ao menos uma ação com área (ou defina a área do responsável pelo plano).")
-        return responsavel.area_id, None
+        def serve(area_id: int) -> bool:
+            return self.usuario.acessa_area(area_id) and (responsavel is None or responsavel.acessa_area(area_id))
+
+        # Lotação do responsável, depois a do autor — só se for autorizada para os dois.
+        for area_id in (responsavel.area_id if responsavel else None, self.usuario.area_id):
+            if area_id is not None and serve(area_id):
+                return area_id, None, ""
+        # Senão, a única área autorizada em comum (com mais de uma, não há como escolher sem perguntar).
+        comuns = [a for a in sorted(self.usuario.areas_de_acesso or []) if serve(a)]
+        if len(comuns) == 1:
+            return comuns[0], None, ""
+        raise RegraNegocio(
+            "Não foi possível definir a área do plano: cadastre ao menos uma ação (a área do plano vem da 1ª ação), numa "
+            "área autorizada para você e para o responsável."
+        )
 
     def _historico_plano(self, plano: PlanoDeAcao, evento: EventoPlano, campo=None, anterior=None, novo=None, motivo=None):
         return registrar_historico_plano(self.db, plano, self.usuario.id, evento, campo, anterior, novo, motivo=motivo)
@@ -214,8 +240,8 @@ class PlanoEscritaService:
     def criar(self, dados: PlanoCriar) -> PlanoCriado:
         self._validar_identificacao(dados)
         avisos, _ = self._validar_acoes(dados.acoes, dados.data_fim_estimado)
-        area_id, setor_id = self._area_do_plano(dados)
-        self._exigir_area_do_autor(area_id)
+        area_id, setor_id, origem_area = self._area_do_plano(dados)
+        self._exigir_area_do_autor(area_id, origem_area)
         for responsavel_id in dict.fromkeys([dados.responsavel_id, *(a.responsavel_id for a in dados.acoes)]):
             self._exigir_acesso_area(responsavel_id, area_id)
 
@@ -355,13 +381,16 @@ class PlanoEscritaService:
             )
         )
         if plano is None:
+            existente = plano_existente(self.db, plano_id)
+            if existente is not None and (motivo := motivo_bloqueio(self.db, self.usuario, existente)):
+                raise Proibido(motivo)
             raise PlanoNaoEncontrado
         return plano
 
     def _plano_editavel(self, plano_id: int) -> PlanoDeAcao:
         plano = self._plano_visivel(plano_id)
         if not tem_autoria_ou_edicao(self.usuario, plano):
-            raise SemPermissao
+            raise SemPermissao("Para alterar este plano é preciso tê-lo criado ou ter a permissão “Editar planos” no perfil.")
         if plano.arquivado_em is not None:
             raise RegraNegocio("Plano arquivado (somente leitura): desarquive-o para alterar.")
         return plano
@@ -402,19 +431,48 @@ class PlanoEscritaService:
         registro = self.db.get(model, id_) if id_ is not None else None
         return registro.nome if registro else None
 
-    def _validar_rascunho(self, plano: PlanoDeAcao, rascunho: bool) -> None:
+    def _validar_rascunho(self, plano: PlanoDeAcao, rascunho: bool, novas: int = 0) -> None:
         """O status não é editável (calculado). Só se libera um rascunho; o contrário não existe."""
         if rascunho and not plano.rascunho:
             raise RegraNegocio("Um plano já liberado não volta a ser rascunho.")
-        if plano.rascunho and not rascunho:
+        if plano.rascunho and not rascunho and not novas:
             indicadores = calcular_indicadores(self.leitura.repo.dados_indicadores(plano.id), self.hoje)
             if indicadores.total == 0:
                 raise RegraNegocio("Para liberar o plano, cadastre pelo menos uma ação.")
 
+    def _editar_itens(self, plano: PlanoDeAcao, edicoes: list[AcaoEdicao]) -> None:
+        """Aplica, pelo id, as alterações de itens JÁ cadastrados (nada é recriado): as mesmas regras, histórico e
+        avisos de PATCH /acoes/{id} (AcaoService.aplicar), sem commit. Qualquer erro desfaz a edição inteira."""
+        from app.services.acao_service import AcaoService, RegraAcao, SemPermissaoAcao  # evita import circular
+
+        servico = AcaoService(self.db, self.usuario, self.hoje)
+        itens = {a.id: a for a in plano.acoes}
+        for edicao in edicoes:
+            acao = itens.get(edicao.id)
+            if acao is None:
+                raise RegraNegocio("Um dos itens enviados não pertence a este plano ou foi excluído. Recarregue a página.")
+            campos = edicao.model_dump(exclude_unset=True, exclude={"id"})
+            if not campos:
+                continue
+            rotulo = f"{'Sub-item' if acao.eh_subacao else 'Ação'} {acao.numero_exibicao}"
+            try:
+                # Os avisos de prazo saem na lista final (todas as ações abertas após o fim estimado).
+                servico.aplicar(acao, AcaoAtualizar(**campos))
+            except RegraAcao as exc:
+                raise RegraNegocio(f"{rotulo}: {exc}") from None
+            except SemPermissaoAcao:
+                raise SemPermissao(
+                    f"{rotulo}: alterar o planejamento do item exige ser o gestor do plano ou do item acima (responsável ou "
+                    "quem criou), aprovar prazos ou ter a permissão “Editar planos” no perfil."
+                ) from None
+
     def atualizar(self, plano_id: int, dados: PlanoAtualizar) -> PlanoAtualizado:
         plano = self._plano_editavel(plano_id)
+        if dados.acoes or dados.novas_acoes:
+            # Trava o plano: duas edições simultâneas dos itens não se sobrepõem nem repetem a numeração.
+            self.db.execute(select(PlanoDeAcao.id).where(PlanoDeAcao.id == plano.id).with_for_update())
         self._validar_identificacao(dados, plano)
-        self._validar_rascunho(plano, dados.rascunho)
+        self._validar_rascunho(plano, dados.rascunho, novas=len(dados.novas_acoes))
         responsavel_antes, area_antes = plano.responsavel_id, plano.area_id
         era_rascunho = plano.rascunho
         datas_antes = (plano.data_inicio_estimado, plano.data_fim_estimado)
@@ -439,6 +497,14 @@ class PlanoEscritaService:
                     plano, EventoPlano.ALTERACAO, campo.removesuffix("_id"), self._nome(model, anterior), self._nome(model, novo)
                 )
                 setattr(plano, campo, novo)
+
+        # Etapa "Ações e Responsável": itens existentes (pelo id) e ações novas, na mesma transação.
+        if dados.acoes:
+            self._editar_itens(plano, dados.acoes)
+        if dados.novas_acoes:
+            self.criar_itens(plano, dados.novas_acoes)
+            self.db.flush()
+            self.db.expire(plano, ["acoes"])
 
         # Responsável ou área trocados: quem responde pelo plano e pelas ações precisa acessar a área.
         if plano.responsavel_id != responsavel_antes or plano.area_id != area_antes:
@@ -469,7 +535,7 @@ class PlanoEscritaService:
         self.db.refresh(plano)
 
         avisos = [
-            f'Ação "{a.descricao}": prazo {_formatar(a.prazo)} é posterior ao novo fim estimado ({_formatar(plano.data_fim_estimado)}).'
+            f'Ação "{a.descricao}": prazo {_formatar(a.prazo)} é posterior ao fim estimado do plano ({_formatar(plano.data_fim_estimado)}).'
             for a in plano.acoes
             if a.status in STATUS_ACAO_ABERTOS and a.prazo > plano.data_fim_estimado
         ]
@@ -480,7 +546,7 @@ class PlanoEscritaService:
     def arquivar(self, plano_id: int, arquivar: bool) -> PlanoDetalhe:
         plano = self._plano_visivel(plano_id)
         if not pode_arquivar(self.usuario, plano):
-            raise SemPermissao
+            raise SemPermissao("Arquivar e desarquivar planos exigem a permissão “Editar planos” no perfil.")
         if arquivar and plano.arquivado_em is None:
             plano.arquivado_em = utcnow()
             plano.arquivado_por_id = self.usuario.id
@@ -498,7 +564,7 @@ class PlanoEscritaService:
         período de apuração estiver aberto, mantidos se encerrado."""
         plano = self._plano_visivel(plano_id)
         if not pode_excluir(self.usuario, plano):
-            raise SemPermissao
+            raise SemPermissao("Excluir planos exige a permissão “Excluir planos” no perfil (e ter criado o plano ou ter “Editar planos”).")
         instante = utcnow()
         acoes = list(plano.acoes)
         self._historico_plano(plano, EventoPlano.ALTERACAO, "excluido", "não", f"sim ({len(acoes)} ação(ões)/sub-item(ns) junto)")
@@ -516,7 +582,7 @@ class PlanoEscritaService:
         registra que o objetivo foi atingido e credita o gestor."""
         plano = self._plano_visivel(plano_id)
         if not pode_concluir(self.usuario, plano):
-            raise SemPermissao
+            raise SemPermissao("Confirmar a conclusão cabe ao responsável (gestor) do plano, a quem o criou ou a quem tem “Editar planos”.")
         if plano.rascunho or not apto_a_conclusao(plano):
             raise RegraNegocio("O plano não está apto à conclusão: ainda há ações válidas em aberto (ou nenhuma ação válida).")
         concluir_manualmente(self.db, plano, self.usuario.id, (observacao or "").strip() or None)

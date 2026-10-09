@@ -4,10 +4,13 @@
  */
 import type {
   AcaoCriar,
+  AcaoDoPlano,
+  AcaoEdicao,
   PlanoAtualizar,
   PlanoCriar,
   PlanoDetalhe,
   Prioridade,
+  StatusAcao,
   StatusInicialAcao,
   UsuarioOpcao,
 } from "@planogestao/shared-types";
@@ -53,7 +56,38 @@ export interface PlanoForm {
   evidencias: string;
   observacoes: string;
   anexos: File[];
+  /** Ações novas (na criação, todas; na edição, as incluídas agora). */
   acoes: AcaoForm[];
+  /** Edição: ações e sub-itens JÁ cadastrados, alterados pelo id (nunca recriados). */
+  itens: ItemForm[];
+}
+
+/**
+ * Item já cadastrado, na etapa "Ações e Responsável" da edição. Só o planejamento é editável aqui; status,
+ * progresso, aceite e conclusão seguem o fluxo de cada item (histórico e pontos).
+ */
+export interface ItemForm {
+  id: number;
+  numero: string;
+  nivel: number;
+  subitem: boolean;
+  status: StatusAcao;
+  /** Já iniciado: só aceita pré-requisitos já concluídos (mesma regra da API). */
+  iniciado: boolean;
+  /** A API permite alterar o planejamento deste item (perfil, papel, item em aberto, plano ativo). */
+  editavel: boolean;
+  /** Pedido de prazo aguardando resposta: prazo e responsável só mudam depois dele. */
+  solicitacaoPendente: boolean;
+  descricao: string;
+  responsavel: UsuarioOpcao | null;
+  area_id: string;
+  setor_id: string;
+  prazo_inicio: string;
+  prazo: string;
+  prioridade: Prioridade | "";
+  observacao: string;
+  depende_de_ids: number[];
+  motivo_prazo: string;
 }
 
 export type Erros = Record<string, string>;
@@ -101,6 +135,7 @@ export function formularioInicial(): PlanoForm {
     observacoes: "",
     anexos: [],
     acoes: [novaAcao("")],
+    itens: [],
   };
 }
 
@@ -159,10 +194,25 @@ export function dependeDe(acoes: AcaoForm[], chave: string, alvo: string, vistos
 }
 
 /** Erros da etapa 3 com chave "<chave da ação>.<campo>" (+ "acoes" para a lista). */
-export function validarEtapa3(f: PlanoForm, rascunho: boolean): Erros {
+export function validarEtapa3(f: PlanoForm, rascunho: boolean, areasAcesso?: number[] | null): Erros {
   const e = validarListaAcoes(f.acoes);
   if (!rascunho && f.acoes.length === 0) e.acoes = "Para liberar o plano, cadastre pelo menos uma ação.";
+  Object.assign(e, erroAreaDoPlano(f, areasAcesso));
   return e;
+}
+
+/**
+ * Na criação, a área do plano vem da 1ª ação (a mesma regra do backend). Fora das áreas autorizadas de quem cria,
+ * o backend recusa — o formulário avisa antes, no campo. `areasAcesso` null = todas (Administrador/"Todas as áreas").
+ */
+export function erroAreaDoPlano(f: PlanoForm, areasAcesso?: number[] | null): Erros {
+  const primeira = f.acoes.find((a) => a.area_id);
+  if (areasAcesso === undefined || areasAcesso === null || !primeira || areasAcesso.includes(Number(primeira.area_id))) return {};
+  return {
+    [`${primeira.chave}.area_id`]:
+      "A área do plano vem desta ação, e ela não está entre as suas áreas autorizadas: escolha uma área autorizada ou " +
+      "peça ao Administrador para incluí-la.",
+  };
 }
 
 /**
@@ -272,8 +322,97 @@ export function paraApi(f: PlanoForm, rascunho: boolean): { corpo: PlanoCriar } 
 
 // ---- edição ---------------------------------------------------------------------------
 
-/** Formulário preenchido com um plano existente (sem ações/anexos, que têm abas próprias). */
-export function formularioDoPlano(p: PlanoDetalhe): PlanoForm {
+/** Item cadastrado → formulário (estado inicial = dados atuais). */
+export function itemDoPlano(a: AcaoDoPlano): ItemForm {
+  return {
+    id: a.id,
+    numero: a.numero,
+    nivel: a.nivel,
+    subitem: a.acao_pai_id !== null,
+    status: a.status,
+    iniciado: a.iniciada_em !== null || STATUS_INICIADOS.includes(a.status as StatusInicialAcao),
+    editavel: a.operacoes.editar_planejamento ?? false,
+    solicitacaoPendente: a.solicitacao_pendente ?? false,
+    descricao: a.descricao,
+    responsavel: { id: a.responsavel.id, nome: a.responsavel.nome, area: null },
+    area_id: String(a.area.id),
+    setor_id: a.setor ? String(a.setor.id) : "",
+    prazo_inicio: a.prazo_inicio ?? "",
+    prazo: a.prazo,
+    prioridade: a.prioridade,
+    observacao: a.observacao ?? "",
+    depende_de_ids: a.depende_de.map((p) => p.id),
+    motivo_prazo: "",
+  };
+}
+
+const mesmoConjunto = (a: number[], b: number[]) => [...a].sort().join(",") === [...b].sort().join(",");
+
+/**
+ * Só o que mudou no item (null = nada): a API altera o registro existente pelo id, com histórico campo a campo.
+ * Área trocada leva a função/cargo junto (vazia = remove).
+ */
+export function alteracoesDoItem(item: ItemForm, original: ItemForm): AcaoEdicao | null {
+  const d: AcaoEdicao = { id: item.id };
+  if (item.descricao.trim() !== original.descricao) d.descricao = item.descricao.trim();
+  if (item.responsavel && item.responsavel.id !== original.responsavel?.id) d.responsavel_id = item.responsavel.id;
+  if (item.area_id !== original.area_id) d.area_id = Number(item.area_id);
+  if (item.area_id !== original.area_id || item.setor_id !== original.setor_id) d.setor_id = item.setor_id ? Number(item.setor_id) : null;
+  if (item.prazo_inicio && item.prazo_inicio !== original.prazo_inicio) d.prazo_inicio = item.prazo_inicio;
+  if (item.prazo && item.prazo !== original.prazo) d.prazo = item.prazo;
+  if (item.prioridade && item.prioridade !== original.prioridade) d.prioridade = item.prioridade;
+  if (item.observacao.trim() !== original.observacao.trim()) d.observacao = item.observacao.trim();
+  if (!mesmoConjunto(item.depende_de_ids, original.depende_de_ids)) d.depende_de = item.depende_de_ids;
+  if ((d.prazo || d.prazo_inicio) && item.motivo_prazo.trim()) d.motivo_alteracao_prazo = item.motivo_prazo.trim();
+  return Object.keys(d).length > 1 ? d : null;
+}
+
+export const chaveItem = (id: number) => `item-${id}`;
+
+/** Mesmas regras da API (PATCH /acoes/{id} e PUT /planos/{id}); erros com chave "item-<id>.<campo>". */
+export function validarItens(itens: ItemForm[], originais: ItemForm[], doPlano: Pick<AcaoDoPlano, "id" | "status">[] = []): Erros {
+  const e: Erros = {};
+  const porId = new Map(originais.map((o) => [o.id, o]));
+  // Status de todos os itens do plano (inclusive arquivados, que podem ser pré-requisito).
+  const statusDe = new Map([...doPlano.map((a) => [a.id, a.status] as const), ...itens.map((i) => [i.id, i.status] as const)]);
+  for (const item of itens) {
+    const original = porId.get(item.id);
+    if (!original || !item.editavel) continue;
+    const k = (campo: string) => `${chaveItem(item.id)}.${campo}`;
+    if (item.descricao.trim().length < 3) e[k("descricao")] = "Descreva o que será feito (mínimo 3 caracteres).";
+    if (!item.responsavel) e[k("responsavel")] = "Selecione o responsável.";
+    else if (item.solicitacaoPendente && item.responsavel.id !== original.responsavel?.id)
+      e[k("responsavel")] = "Há uma solicitação de prazo pendente: responda-a antes de trocar o responsável.";
+    if (!item.area_id) e[k("area_id")] = "Selecione a área.";
+    if (!item.prioridade) e[k("prioridade")] = "Selecione a prioridade.";
+    if (!item.prazo) e[k("prazo")] = "Informe o prazo de conclusão.";
+    else if (item.solicitacaoPendente && item.prazo !== original.prazo)
+      e[k("prazo")] = "Há uma solicitação de prazo pendente: responda-a antes de alterar o prazo.";
+    if (!item.prazo_inicio && original.prazo_inicio) e[k("prazo_inicio")] = "Informe o prazo inicial estimado.";
+    else if (item.prazo_inicio && item.prazo && item.prazo_inicio > item.prazo)
+      e[k("prazo_inicio")] = "O prazo inicial estimado não pode ser posterior ao prazo de conclusão.";
+    const novosPendentes = item.depende_de_ids.filter((d) => !original.depende_de_ids.includes(d) && statusDe.get(d) !== "concluida");
+    if (item.iniciado && novosPendentes.length)
+      e[k("depende_de")] = "O item já foi iniciado: só é possível vincular pré-requisitos já concluídos.";
+  }
+  return e;
+}
+
+/** Etapa "Ações e Responsável" da edição: itens existentes + ações novas (liberar o rascunho exige ao menos uma). */
+export function validarEtapaAcoesEdicao(
+  f: PlanoForm,
+  originais: ItemForm[],
+  liberando: boolean,
+  doPlano: Pick<AcaoDoPlano, "id" | "status">[] = [],
+): Erros {
+  const e = { ...validarItens(f.itens, originais, doPlano), ...validarListaAcoes(f.acoes) };
+  const validas = f.itens.filter((i) => i.status !== "cancelada" && i.status !== "recusada").length + f.acoes.length;
+  if (liberando && validas === 0) e.acoes = "Para liberar o plano, cadastre pelo menos uma ação.";
+  return e;
+}
+
+/** Formulário preenchido com um plano existente (anexos têm aba própria). `acoes`: itens já cadastrados. */
+export function formularioDoPlano(p: PlanoDetalhe, acoes: AcaoDoPlano[] = []): PlanoForm {
   return {
     ...formularioInicial(),
     nome: p.nome,
@@ -293,14 +432,25 @@ export function formularioDoPlano(p: PlanoDetalhe): PlanoForm {
     evidencias: p.evidencias ?? "",
     observacoes: p.observacoes ?? "",
     acoes: [],
+    // Arquivados ficam de fora: são somente leitura até serem desarquivados (aba Ações).
+    itens: acoes.filter((a) => !a.arquivada).map(itemDoPlano),
   };
 }
 
-/** `rascunho=false` num rascunho libera o plano; o status não é editável (calculado pelas ações). */
-export function paraAtualizacao(f: PlanoForm): PlanoAtualizar {
+/**
+ * `rascunho=false` num rascunho libera o plano; o status não é editável (calculado pelas ações).
+ * Itens existentes vão só com o que mudou (pelo id); as ações novas, completas. Tudo numa transação na API.
+ */
+export function paraAtualizacao(f: PlanoForm, originais: ItemForm[] = []): PlanoAtualizar {
   const { corpo } = paraApi(f, f.rascunho);
   const { acoes: _a, ...dados } = corpo;
-  return { ...dados, rascunho: f.rascunho };
+  const porId = new Map(originais.map((o) => [o.id, o]));
+  const acoes = f.itens.flatMap((i) => {
+    const original = porId.get(i.id);
+    const d = original && i.editavel ? alteracoesDoItem(i, original) : null;
+    return d ? [d] : [];
+  });
+  return { ...dados, rascunho: f.rascunho, acoes, novas_acoes: acoesParaApi(f.acoes) };
 }
 
 /** O formulário mudou em relação ao estado em que a página abriu? */

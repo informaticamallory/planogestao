@@ -1,7 +1,7 @@
-import type { AcaoHistoricoItem, StatusAcao } from "@planogestao/shared-types";
+import type { AcaoHistoricoItem, Prioridade, StatusAcao } from "@planogestao/shared-types";
 
 import { formatarData } from "./formatos";
-import { textoStatusAcao } from "./rotulos";
+import { ROTULO_PRIORIDADE, textoStatusAcao } from "./rotulos";
 
 /** Mesmas frases do web (apps/web/src/utils/historico.ts → descreverEventoAcao), sem o nome do autor. */
 const CAMPOS_ACAO: Record<string, string> = {
@@ -15,6 +15,8 @@ const CAMPOS_ACAO: Record<string, string> = {
   responsavel: "o responsável",
   responsavel_id: "o responsável",
   observacao: "a observação",
+  descricao: "a descrição",
+  prioridade: "a prioridade",
 };
 
 const LIMITE_TEXTO = 80;
@@ -24,6 +26,7 @@ function valorLegivel(campo: string | null, valor: string | null): string {
   if (valor === null || valor === "") return "vazio";
   // Status de execução + condição ("Não iniciado · Aguardando aceite"); valor desconhecido sai cru.
   if (campo === "status") return STATUS_ACAO.includes(valor as StatusAcao) ? textoStatusAcao(valor as StatusAcao) : valor;
+  if (campo === "prioridade") return ROTULO_PRIORIDADE[valor as Prioridade] ?? valor;
   if (campo === "progresso") return `${valor}%`;
   if (/^\d{4}-\d{2}-\d{2}$/.test(valor)) return formatarData(valor);
   return valor.length > LIMITE_TEXTO ? `“${valor.slice(0, LIMITE_TEXTO)}…”` : `“${valor}”`;

@@ -46,6 +46,7 @@ export type AnexoResumo = Schemas["AnexoResumo"];
 export type UsuarioOpcao = Schemas["UsuarioOpcao"];
 export type PlanoDetalhe = Schemas["PlanoDetalhe"];
 export type PlanoAtualizar = Schemas["PlanoAtualizar"];
+export type AcaoEdicao = Schemas["AcaoEdicao"];
 export type PlanoAtualizado = Schemas["PlanoAtualizado"];
 export type PermissoesPlano = Schemas["PermissoesPlano"];
 export type IndicadoresPlano = Schemas["IndicadoresPlano"];

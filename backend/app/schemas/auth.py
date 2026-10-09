@@ -56,6 +56,9 @@ class UsuarioLogado(BaseModel):
     area: ReferenciaSimples | None
     setor: ReferenciaSimples | None
     permissoes: list[str]
+    areas_acesso: list[int] | None = Field(
+        default=None, description="Áreas cujos planos o usuário acessa (áreas autorizadas, não a lotação). null = todas."
+    )
     tema: TemaPreferido
     cor_destaque: CorDestaque | None
     tamanho_fonte: TamanhoFonte

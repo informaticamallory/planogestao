@@ -219,6 +219,48 @@
   align-self: flex-start;
 }
 
+/* Edição: item cadastrado que o usuário só consulta (encerrado ou sem permissão de planejamento). */
+.cartaoLeitura {
+  background: var(--cor-fundo);
+}
+
+.cartaoLeitura .cabecalhoAcao {
+  cursor: default;
+}
+
+.cartaoLeitura .notaAcao {
+  padding-left: calc(16px + var(--espaco-2));
+}
+
+.seloAlterado {
+  padding: 0 var(--espaco-2);
+  border-radius: var(--r-pill);
+  background: var(--cor-info-fundo);
+  color: var(--cor-info-texto);
+  font-weight: 600;
+}
+
+.metaAcao > .seloAlterado::after {
+  content: none;
+}
+
+/* Edição: "Ações e sub-itens cadastrados" e "Novas ações" na mesma etapa. */
+.secaoEtapa {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-3);
+}
+
+.secaoEtapa + .secaoEtapa {
+  margin-top: var(--espaco-6);
+}
+
+.tituloSecao {
+  margin: 0;
+  font-size: var(--fonte-lg);
+  font-weight: 600;
+}
+
 .erroLista {
   margin: 0;
   color: var(--cor-erro-texto);

@@ -151,8 +151,8 @@ def _erros_de_servico():
         yield
     except PlanoNaoEncontrado:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Plano não encontrado.") from None
-    except SemPermissao:
-        raise HTTPException(status.HTTP_403_FORBIDDEN, "Você não pode alterar este plano.") from None
+    except SemPermissao as exc:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, str(exc) or "Você não pode alterar este plano.") from None
     except RegraNegocio as exc:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(exc)) from None
 

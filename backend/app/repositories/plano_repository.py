@@ -79,6 +79,7 @@ class PlanoRepository:
                 PlanoDeAcao.criado_em,
                 PlanoDeAcao.concluido_em,
                 PlanoDeAcao.arquivado_em,
+                PlanoDeAcao.criado_por_id,
                 responsavel.id.label("responsavel_id"),
                 colunas["responsavel_nome"].label("responsavel_nome"),
                 Area.id.label("area_id"),

@@ -37,7 +37,8 @@ from app.schemas.comum import Opcao
 from app.schemas.plano import AcaoCriar, AcoesAdicionadas
 from app.services import avisos, dependencias
 from app.services.escopo import MENSAGEM_SEM_ACESSO_AREA, filtro_planos_visiveis
-from app.services.permissoes_plano import acesso_direto
+from app.services.erros import Proibido
+from app.services.permissoes_plano import acesso_direto, motivo_bloqueio
 from app.services.historico import registrar_historico
 from app.services.alertas_prazo import verificar_acao
 from app.services.ciclo_plano import recalcular_status
@@ -48,6 +49,7 @@ from app.services.regras import acao_vencendo, categoria_acao, tag_prazo_acao
 PERMISSAO_APROVAR_PRAZO = "acoes:aprovar_prazo"
 PERMISSAO_ARQUIVAR = "acoes:arquivar"
 PERMISSAO_EXCLUIR = "acoes:excluir"
+PERM_EDITAR_PLANOS = "planos:editar"
 
 # Execução: transições que o responsável (e o gestor) podem fazer via PUT.
 TRANSICOES_EXECUCAO: dict[StatusAcao, set[StatusAcao]] = {
@@ -101,8 +103,13 @@ class AcaoService:
             # Evita duas respostas/solicitações simultâneas sobre a mesma ação.
             stmt = stmt.with_for_update(of=Acao)
         acao = self.db.scalar(stmt)
-        # 404 também fora do escopo: não revela que o id existe.
-        if acao is None or not self._acessivel(acao):
+        # 404 também fora do escopo: não revela que o id existe. Quem tem vínculo (responsável pelo item ou
+        # pelo plano, criador) mas está bloqueado pela área ou pelo perfil recebe o motivo.
+        if acao is None:
+            raise AcaoNaoEncontrada
+        if not self._acessivel(acao):
+            if motivo := motivo_bloqueio(self.db, self.usuario, acao.plano):
+                raise Proibido(motivo)
             raise AcaoNaoEncontrada
         return acao
 
@@ -118,6 +125,12 @@ class AcaoService:
             or (PERMISSAO_APROVAR_PRAZO in self.usuario.codigos_permissao and self._acesso_direto(plano))
             or any(a.responsavel_id == self.usuario.id for a in acao.ancestrais)
         )
+
+    def pode_planejar(self, acao: Acao) -> bool:
+        """Alterar o planejamento do item (descrição, responsável, área, prazos, prioridade, pré-requisitos): o gestor
+        do plano/item ou "Editar planos" com acesso direto — a mesma regra que arquivar/excluir o item e que editar
+        o plano. Item em aberto e plano ativo são conferidos à parte."""
+        return self._eh_gestor(acao) or (PERM_EDITAR_PLANOS in self.usuario.codigos_permissao and self._acesso_direto(acao.plano))
 
     def _acesso_direto(self, plano: PlanoDeAcao) -> bool:
         """Vê o plano sem contar equipes (a participação em equipe só dá leitura). Cache por plano."""
@@ -177,9 +190,10 @@ class AcaoService:
         ativo = self._plano_aceita_alteracoes(acao)
         aberta = acao.status in STATUS_ACAO_ABERTOS
         responsavel, gestor = self._eh_responsavel(acao), self._eh_gestor(acao)
+        planeja = ativo and aberta and self.pode_planejar(acao)
         pendente = self._pendente(acao)
         return PermissoesAcao(
-            editar_planejamento=ativo and aberta and gestor,
+            editar_planejamento=planeja,
             adicionar_subacao=(
                 # Qualquer nível pode ser desdobrado (subação da subação…).
                 ativo
@@ -193,7 +207,7 @@ class AcaoService:
             solicitar_alteracao=ativo and responsavel and aberta and pendente is None,
             responder_solicitacao=ativo and gestor and pendente is not None and pendente.solicitado_por_id != self.usuario.id,
             editar_execucao=ativo and aberta and (responsavel or gestor) and acao.status != StatusAcao.AGUARDANDO_ACEITE,
-            editar_prazo=ativo and aberta and gestor,
+            editar_prazo=planeja,
             reabrir=ativo and gestor and acao.status == StatusAcao.CONCLUIDA and self._erro_reabrir(acao) is None,
             transicoes=self._transicoes(acao),
             **self.operacoes(acao),
@@ -204,11 +218,7 @@ class AcaoService:
     def _pode(self, acao: Acao, codigo: str) -> bool:
         """Permissão do perfil + papel no item (gestor do plano/item ou "Editar planos"); plano ativo."""
         codigos = self.usuario.codigos_permissao
-        return (
-            codigo in codigos
-            and (self._eh_gestor(acao) or ("planos:editar" in codigos and self._acesso_direto(acao.plano)))
-            and acao.plano.arquivado_em is None
-        )
+        return codigo in codigos and self.pode_planejar(acao) and acao.plano.arquivado_em is None
 
     def operacoes(self, acao: Acao) -> dict[str, bool]:
         arquivada = acao.arquivado_em is not None
@@ -440,6 +450,15 @@ class AcaoService:
 
     def atualizar(self, acao_id: int, dados: AcaoAtualizar) -> AcaoAtualizada:
         acao = self._obter(acao_id)
+        avisos_tela = self.aplicar(acao, dados)
+        self.db.commit()
+        self.db.refresh(acao)
+        return AcaoAtualizada(acao=self._detalhe(acao), avisos=avisos_tela)
+
+    def aplicar(self, acao: Acao, dados: AcaoAtualizar) -> list[str]:
+        """Valida e aplica a alteração no item, com histórico e avisos, SEM commit: quem chama decide (PATCH da
+        ação, ou a edição do plano, que grava vários itens e os dados do plano numa transação só).
+        O acesso ao item é do chamador; papel e permissão são conferidos aqui. Devolve os avisos de tela."""
         self._exigir_plano_ativo(acao)
         perm = self._permissoes(acao)
         enviados = dados.model_fields_set
@@ -450,7 +469,7 @@ class AcaoService:
         self._troca = None
         motivo_prazo = (dados.motivo_alteracao_prazo or "").strip() or None
 
-        if not (perm.eh_responsavel or perm.eh_gestor):
+        if not (perm.eh_responsavel or perm.eh_gestor or self.pode_planejar(acao)):
             raise SemPermissaoAcao
         if acao.status not in STATUS_ACAO_ABERTOS:
             raise RegraAcao("Ação concluída, recusada ou cancelada não pode ser alterada.")
@@ -521,9 +540,7 @@ class AcaoService:
             if acao.prazo == prazo_anterior and acao.status == status_anterior:
                 verificar_acao(self.db, acao, self.hoje)
         self._apos_mudanca(acao, status_anterior, prazo_anterior)
-        self.db.commit()
-        self.db.refresh(acao)
-        return AcaoAtualizada(acao=self._detalhe(acao), avisos=avisos_tela)
+        return avisos_tela
 
     # ---- planejamento, cancelamento e subações ------------------------------------------------
 
@@ -541,13 +558,23 @@ class AcaoService:
     def _atualizar_planejamento(
         self, acao: Acao, dados: AcaoAtualizar, perm: PermissoesAcao, avisos_tela: list[str], motivo_prazo: str | None = None
     ) -> None:
-        """Prazo inicial estimado, responsável, área/função-cargo e pré-requisitos. Só gestores; cada mudança vai
-        para o histórico."""
+        """Descrição, prioridade, prazo inicial estimado, responsável, área/função-cargo e pré-requisitos. Só quem
+        planeja o item (pode_planejar); cada mudança vai para o histórico."""
         enviados = dados.model_fields_set
 
         def exigir_gestor() -> None:
             if not perm.editar_planejamento:
                 raise SemPermissaoAcao
+
+        if "descricao" in enviados and dados.descricao is not None and dados.descricao != acao.descricao:
+            exigir_gestor()
+            self._registrar(acao, "descricao", acao.descricao, dados.descricao)
+            acao.descricao = dados.descricao
+
+        if "prioridade" in enviados and dados.prioridade is not None and dados.prioridade != acao.prioridade:
+            exigir_gestor()
+            self._registrar(acao, "prioridade", acao.prioridade, dados.prioridade)
+            acao.prioridade = dados.prioridade
 
         if "prazo_inicio" in enviados and dados.prazo_inicio is not None and dados.prazo_inicio != acao.prazo_inicio:
             exigir_gestor()

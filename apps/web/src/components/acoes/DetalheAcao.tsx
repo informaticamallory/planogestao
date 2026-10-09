@@ -69,6 +69,14 @@ export function DetalheAcao({ acaoId, compacto = false }: DetalheAcaoProps) {
       </div>
     );
   }
+  if (error instanceof ApiError && error.status === 403) {
+    return (
+      <div className={styles.pagina}>
+        <Titulo>Acesso à ação bloqueado</Titulo>
+        <p>{error.message}</p>
+      </div>
+    );
+  }
   if (error) return <p className={styles.erro}>Não foi possível carregar a ação: {error.message}</p>;
   if (!acao) return <p>Carregando ação…</p>;
 

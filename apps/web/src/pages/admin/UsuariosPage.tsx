@@ -177,7 +177,8 @@ export function UsuariosPage() {
       : perfilEscolhido && !perfilEscolhido.permissoes.includes("planos:ver_todos")
         ? "Com este perfil, vê só os planos em que participa, dentro destas áreas."
         : "Vê os planos destas áreas. A lotação acima não dá acesso por si só.";
-  const totalPendencias = (pendencias.data?.sem_area.length ?? 0) + (pendencias.data?.atribuicoes.length ?? 0);
+  const totalPendencias =
+    (pendencias.data?.sem_area.length ?? 0) + (pendencias.data?.atribuicoes.length ?? 0) + (pendencias.data?.sem_permissao_ver?.length ?? 0);
 
   const setoresDaArea = (setores.data ?? []).filter((s) => String(s.area_id) === form.area_id && (s.ativo || String(s.id) === form.setor_id));
   const dados = lista.data;
@@ -257,7 +258,7 @@ export function UsuariosPage() {
           )}
           {pendencias.data.atribuicoes.length > 0 && (
             <>
-              <p className={styles.meta}>Responsáveis em planos de áreas não autorizadas (não conseguem abrir o item):</p>
+              <p className={styles.meta}>Vínculos com planos de áreas não autorizadas (essas pessoas não conseguem abrir o plano ou o item):</p>
               <ul>
                 {pendencias.data.atribuicoes.map((a, i) => (
                   <li key={i}>
@@ -268,7 +269,22 @@ export function UsuariosPage() {
               </ul>
             </>
           )}
-          <p className={styles.meta}>Ajuste as áreas autorizadas do usuário (Editar) ou troque o responsável no plano.</p>
+          {(pendencias.data.sem_permissao_ver?.length ?? 0) > 0 && (
+            <>
+              <p className={styles.meta}>Responsáveis por planos cujo perfil não tem “Visualizar planos” (ajuste em Perfis):</p>
+              <ul>
+                {pendencias.data.sem_permissao_ver!.map((u) => (
+                  <li key={u.id}>
+                    {u.nome} · perfil {u.perfil}
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+          <p className={styles.meta}>
+            Ajuste as áreas autorizadas do usuário (Editar), o perfil em Perfis ou troque o responsável no plano. Nada é alterado
+            automaticamente.
+          </p>
         </details>
       )}
       {(inativar.error || reativar.error) && <p className={styles.erro}>{(inativar.error ?? reativar.error)!.message}</p>}
