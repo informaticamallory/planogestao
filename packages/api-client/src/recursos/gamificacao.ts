@@ -36,7 +36,7 @@ export function criarGamificacao(http: HttpClient) {
   const periodo = (id: number) => ({ params: { path: { periodo_id: id } } });
   return {
     resumo: async (f: FiltrosGamificacao) => exigirDados(await http.GET("/gamificacao/resumo", q(f))),
-    /** Pódio (Top 5) da categoria, só com colaboradores suficientes pontuando. */
+    /** Pódio (“Top do período” do período consultado) da categoria, só com colaboradores suficientes pontuando. */
     podio: async (f: FiltrosGamificacao, categoria: CategoriaPontuacao) =>
       exigirDados(await http.GET("/gamificacao/podio", { params: { query: { ...f, categoria } } })),
     ranking: async (f: FiltrosGamificacao, categoria: CategoriaPontuacao, page = 1, page_size = 10) =>

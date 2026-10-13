@@ -35,8 +35,9 @@ from app.models.gamificacao import (
 )
 from app.services.configuracoes import valor_inteiro
 
-# Quantos colaboradores o pódio mostra (Top 5).
-TAMANHO_PODIO = 5
+# Limites do "Top do período" (o valor de cada período fica em gamificacao_periodos.tamanho_podio).
+TAMANHO_PODIO_PADRAO = 5
+TAMANHO_PODIO_MAXIMO = 10
 
 CLASSIFICACAO_ROTULO = {
     GatilhoPontuacao.PLANO_CONCLUIDO.value: "Plano concluído",
@@ -319,13 +320,15 @@ class GamificacaoService:
         return dict(items=linhas[inicio: inicio + page_size], total=len(linhas), page=page, page_size=page_size)
 
     def podio(self, f: FiltrosGamificacao, categoria: CategoriaPontuacao) -> dict:
-        """Top TAMANHO_PODIO (pela colocação; empatados no limite entram juntos), só com dados suficientes."""
+        """Top do período selecionado (pela colocação: empatados no limite entram juntos), só com dados
+        suficientes. `tamanho` vai sempre na resposta, para o título valer mesmo sem participantes."""
+        tamanho = self.obter_periodo(f.periodo_id).tamanho_podio
         _, linhas = self.classificacao(f, categoria)
         pontuaram = [l for l in linhas if l.pontos > 0]
         minimo = valor_inteiro("gamificacao_minimo_podio")
         suficiente = len(pontuaram) >= minimo
-        return dict(suficiente=suficiente, minimo=minimo, colaboradores_pontuando=len(pontuaram),
-                    items=[l for l in pontuaram if l.posicao <= TAMANHO_PODIO] if suficiente else [])
+        return dict(suficiente=suficiente, minimo=minimo, colaboradores_pontuando=len(pontuaram), tamanho=tamanho,
+                    items=[l for l in pontuaram if l.posicao <= tamanho] if suficiente else [])
 
     def resumo(self, f: FiltrosGamificacao) -> dict:
         periodo = self.obter_periodo(f.periodo_id)

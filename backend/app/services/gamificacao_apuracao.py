@@ -32,6 +32,8 @@ from app.models.gamificacao import (
 )
 from app.services.erros import Conflito, NaoEncontrado, RegraInvalida
 from app.services.gamificacao_service import (
+    TAMANHO_PODIO_MAXIMO,
+    TAMANHO_PODIO_PADRAO,
     CLASSIFICACAO_ROTULO,
     GamificacaoService,
     LinhaPontuacao,
@@ -139,30 +141,43 @@ class ApuracaoService:
             self.db.rollback()
             raise Conflito(f"Já existe um período chamado “{nome}”.") from None
 
-    def criar_periodo(self, nome: str, ano: int, inicio: date, fim: date, situacao: SituacaoPeriodo) -> GamificacaoPeriodo:
+    @staticmethod
+    def _validar_top(tamanho_podio: int) -> None:
+        if not 1 <= tamanho_podio <= TAMANHO_PODIO_MAXIMO:
+            raise RegraInvalida(f"O “Top do período” deve ficar entre 1 e {TAMANHO_PODIO_MAXIMO}.")
+
+    def criar_periodo(self, nome: str, ano: int, inicio: date, fim: date, situacao: SituacaoPeriodo,
+                      tamanho_podio: int = TAMANHO_PODIO_PADRAO) -> GamificacaoPeriodo:
         if situacao == SituacaoPeriodo.ENCERRADO:
             raise RegraInvalida("Um período é encerrado pela ação “Encerrar apuração”.")
+        self._validar_top(tamanho_podio)
         nome = " ".join(nome.split())
         self._validar_datas(nome, inicio, fim)
-        periodo = GamificacaoPeriodo(nome=nome, ano=ano, data_inicio=inicio, data_fim=fim, situacao=situacao)
+        periodo = GamificacaoPeriodo(nome=nome, ano=ano, data_inicio=inicio, data_fim=fim, situacao=situacao, tamanho_podio=tamanho_podio)
         self.db.add(periodo)
         self.db.flush()
-        auditar(self.db, EventoAuditoria.PERIODO, f"Período “{nome}” criado ({inicio:%d/%m/%Y} a {fim:%d/%m/%Y}, {situacao.value}).",
+        auditar(self.db, EventoAuditoria.PERIODO,
+                f"Período “{nome}” criado ({inicio:%d/%m/%Y} a {fim:%d/%m/%Y}, {situacao.value}, Top {tamanho_podio}).",
                 autor_id=self.autor.id, periodo_id=periodo.id)
         self._commit_nome(nome)
         return periodo
 
-    def atualizar_periodo(self, periodo_id: int, nome: str, ano: int, inicio: date, fim: date, situacao: SituacaoPeriodo) -> GamificacaoPeriodo:
+    def atualizar_periodo(self, periodo_id: int, nome: str, ano: int, inicio: date, fim: date, situacao: SituacaoPeriodo,
+                          tamanho_podio: int | None = None) -> GamificacaoPeriodo:
         periodo = self._periodo(periodo_id)
         self._exigir_nao_encerrado(periodo, "alterá-lo")
         if situacao == SituacaoPeriodo.ENCERRADO:
             raise RegraInvalida("Um período é encerrado pela ação “Encerrar apuração”.")
+        tamanho_podio = periodo.tamanho_podio if tamanho_podio is None else tamanho_podio
+        self._validar_top(tamanho_podio)
         nome = " ".join(nome.split())
         self._validar_datas(nome, inicio, fim, ignorar_id=periodo.id)
-        antes = f"{periodo.nome}, {periodo.data_inicio:%d/%m/%Y}–{periodo.data_fim:%d/%m/%Y}, {periodo.situacao.value}"
+        antes = (f"{periodo.nome}, {periodo.data_inicio:%d/%m/%Y}–{periodo.data_fim:%d/%m/%Y}, {periodo.situacao.value}, "
+                 f"Top {periodo.tamanho_podio}")
         periodo.nome, periodo.ano, periodo.data_inicio, periodo.data_fim, periodo.situacao = nome, ano, inicio, fim, situacao
+        periodo.tamanho_podio = tamanho_podio
         auditar(self.db, EventoAuditoria.PERIODO,
-                f"Período alterado: {antes} → {nome}, {inicio:%d/%m/%Y}–{fim:%d/%m/%Y}, {situacao.value}.",
+                f"Período alterado: {antes} → {nome}, {inicio:%d/%m/%Y}–{fim:%d/%m/%Y}, {situacao.value}, Top {tamanho_podio}.",
                 autor_id=self.autor.id, periodo_id=periodo.id)
         self._commit_nome(nome)
         return periodo

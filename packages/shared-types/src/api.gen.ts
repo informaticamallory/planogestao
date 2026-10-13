@@ -1021,7 +1021,8 @@ export interface paths {
         };
         /**
          * Podio
-         * @description Top 5 da categoria, só com dados suficientes (pelo menos `minimo` colaboradores com pontos).
+         * @description Top do período (colocações configuradas no período), só com dados suficientes (pelo menos `minimo`
+         *     colaboradores com pontos). Empatados no limite entram juntos.
          */
         get: operations["podio_gamificacao_podio_get"];
         put?: never;
@@ -4847,6 +4848,11 @@ export interface components {
              * @enum {string}
              */
             situacao: "planejado" | "aberto";
+            /**
+             * Tamanho Podio
+             * @description “Top do período”. Na criação, sem valor = 5; na edição, sem valor = mantém o atual.
+             */
+            tamanho_podio?: number | null;
         };
         /** PeriodoSaida */
         PeriodoSaida: {
@@ -4873,6 +4879,11 @@ export interface components {
             situacao: "planejado" | "aberto" | "encerrado";
             /** Encerrado Em */
             encerrado_em: string | null;
+            /**
+             * Tamanho Podio
+             * @description “Top do período”: colocações que o pódio mostra.
+             */
+            tamanho_podio: number;
             /** Premios */
             premios: components["schemas"]["PremioSaida"][];
         };
@@ -5429,6 +5440,11 @@ export interface components {
             minimo: number;
             /** Colaboradores Pontuando */
             colaboradores_pontuando: number;
+            /**
+             * Tamanho
+             * @description “Top do período” do período consultado (colocações exibidas).
+             */
+            tamanho: number;
             /** Items */
             items: components["schemas"]["ColaboradorRanking"][];
         };

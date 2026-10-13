@@ -151,6 +151,9 @@ class GamificacaoPeriodo(TimestampMixin, Base):
     )
     encerrado_em: Mapped[datetime | None] = mapped_column(DateTime)
     encerrado_por_id: Mapped[int | None] = mapped_column(BigIntPK, ForeignKey("usuarios.id"))
+    # "Top do período": quantas colocações o pódio mostra (Executores e Gestores). Pela colocação: empatados no
+    # limite entram juntos. Não muda pontos, colocações nem prêmios.
+    tamanho_podio: Mapped[int] = mapped_column(SmallInteger, server_default="5", default=5, nullable=False)
 
     premios: Mapped[list["GamificacaoPremio"]] = relationship(
         back_populates="periodo", cascade="all, delete-orphan", order_by="(GamificacaoPremio.categoria, GamificacaoPremio.colocacao)"
