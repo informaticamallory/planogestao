@@ -153,7 +153,7 @@ def _cco_padrao(db: Session) -> CcoPadrao:
 @router.get("", response_model=ConfigEmailTela)
 def obter(_: UsuarioAdmin, db: Session = Depends(get_db)):
     nomes = {**{e: d.nome for e, d in modelos.CATALOGO.items()}, modelos.CHAVE_CCO_PADRAO: "CCO padrão",
-             gestores_area.ESCOPO_HISTORICO: "Gestores por área"}
+             gestores_area.ESCOPO_HISTORICO: "Responsáveis por área"}
     return ConfigEmailTela(
         remetente=_remetente(),
         cco_padrao=_cco_padrao(db),
@@ -199,15 +199,18 @@ class OpcaoArea(BaseModel):
 
 
 class OpcaoGestor(BaseModel):
+    """Usuário responsável por área (perfil Administrador ou Gestor)."""
+
     id: int
     nome: str
     email: str
-    areas: list[int] | None = Field(description="Áreas autorizadas; null = todas as áreas.")
+    perfil: str = Field(description="Nome do perfil (Administrador | Gestor).")
+    areas: list[int] | None = Field(description="Áreas que pode visualizar; null = todas (Administrador ou “Todas as áreas”).")
 
 
 class OpcoesGestoresArea(BaseModel):
     areas: list[OpcaoArea] = Field(description="Áreas ativas.")
-    gestores: list[OpcaoGestor] = Field(description="Usuários ativos com perfil Gestor.")
+    gestores: list[OpcaoGestor] = Field(description="Usuários ativos com perfil Administrador ou Gestor.")
 
 
 class VinculoGestorArea(BaseModel):
@@ -228,7 +231,7 @@ class VinculoSalvar(BaseModel):
 
 def _gestor(u: Usuario) -> OpcaoGestor:
     areas = u.areas_de_acesso
-    return OpcaoGestor(id=u.id, nome=u.nome, email=u.email, areas=sorted(areas) if areas is not None else None)
+    return OpcaoGestor(id=u.id, nome=u.nome, email=u.email, perfil=u.perfil.nome, areas=sorted(areas) if areas is not None else None)
 
 
 def _vinculo(v) -> VinculoGestorArea:
@@ -258,7 +261,7 @@ def opcoes_gestores_area(_: UsuarioAdmin, db: Session = Depends(get_db)):
 
 @router.post("/gestores-area", response_model=VinculoGestorArea, status_code=status.HTTP_201_CREATED)
 def criar_gestor_area(corpo: VinculoSalvar, admin: UsuarioAdmin, db: Session = Depends(get_db)):
-    """Vincula um gestor a uma área (exige acesso à área; o par área × gestor é único). Não altera acessos."""
+    """Vincula um usuário responsável (Admin ou Gestor) a uma área (exige acesso à área; o par é único). Não altera acessos."""
     try:
         return _vinculo(gestores_area.criar(db, corpo.area_id, corpo.usuario_id, corpo.ativo, admin))
     except gestores_area.VinculoInvalido as exc:
@@ -273,8 +276,8 @@ class VinculosLoteSalvar(BaseModel):
 
 @router.post("/gestores-area/lote", response_model=list[VinculoGestorArea], status_code=status.HTTP_201_CREATED)
 def criar_gestor_areas(corpo: VinculosLoteSalvar, admin: UsuarioAdmin, db: Session = Depends(get_db)):
-    """Vincula o gestor a várias áreas de uma vez: valida todas antes; qualquer erro (sem acesso, já vinculada,
-    inativa) recusa o lote inteiro, sem salvar parte. Os vínculos existentes do gestor não mudam."""
+    """Vincula o usuário responsável (Admin ou Gestor) a várias áreas de uma vez: valida todas antes; qualquer erro
+    (sem acesso, já vinculada, inativa) recusa o lote inteiro, sem salvar parte. Os vínculos existentes não mudam."""
     try:
         return [_vinculo(v) for v in gestores_area.criar_lote(db, corpo.usuario_id, corpo.area_ids, corpo.ativo, admin)]
     except gestores_area.VinculoInvalido as exc:

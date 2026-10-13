@@ -2021,7 +2021,7 @@ export interface paths {
         put?: never;
         /**
          * Criar Gestor Area
-         * @description Vincula um gestor a uma área (exige acesso à área; o par área × gestor é único). Não altera acessos.
+         * @description Vincula um usuário responsável (Admin ou Gestor) a uma área (exige acesso à área; o par é único). Não altera acessos.
          */
         post: operations["criar_gestor_area_email_config_gestores_area_post"];
         delete?: never;
@@ -2058,8 +2058,8 @@ export interface paths {
         put?: never;
         /**
          * Criar Gestor Areas
-         * @description Vincula o gestor a várias áreas de uma vez: valida todas antes; qualquer erro (sem acesso, já vinculada,
-         *     inativa) recusa o lote inteiro, sem salvar parte. Os vínculos existentes do gestor não mudam.
+         * @description Vincula o usuário responsável (Admin ou Gestor) a várias áreas de uma vez: valida todas antes; qualquer erro
+         *     (sem acesso, já vinculada, inativa) recusa o lote inteiro, sem salvar parte. Os vínculos existentes não mudam.
          */
         post: operations["criar_gestor_areas_email_config_gestores_area_lote_post"];
         delete?: never;
@@ -4477,7 +4477,10 @@ export interface components {
             /** Area Id */
             area_id: number;
         };
-        /** OpcaoGestor */
+        /**
+         * OpcaoGestor
+         * @description Usuário responsável por área (perfil Administrador ou Gestor).
+         */
         OpcaoGestor: {
             /** Id */
             id: number;
@@ -4486,8 +4489,13 @@ export interface components {
             /** Email */
             email: string;
             /**
+             * Perfil
+             * @description Nome do perfil (Administrador | Gestor).
+             */
+            perfil: string;
+            /**
              * Areas
-             * @description Áreas autorizadas; null = todas as áreas.
+             * @description Áreas que pode visualizar; null = todas (Administrador ou “Todas as áreas”).
              */
             areas: number[] | null;
         };
@@ -4524,7 +4532,7 @@ export interface components {
             areas: components["schemas"]["OpcaoArea"][];
             /**
              * Gestores
-             * @description Usuários ativos com perfil Gestor.
+             * @description Usuários ativos com perfil Administrador ou Gestor.
              */
             gestores: components["schemas"]["OpcaoGestor"][];
         };

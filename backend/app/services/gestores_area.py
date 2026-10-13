@@ -1,7 +1,9 @@
-"""Gestores por área — cópia oculta (CCO) dos e-mails de notificação.
+"""Responsáveis por área — cópia oculta (CCO) dos e-mails de notificação.
 
-Configuração (Administração › Configurações de e-mail): vínculos área × gestor, com o recebimento ativado ou
-desativado. Só define QUEM RECEBE a cópia: nunca altera as áreas autorizadas do usuário.
+Configuração (Administração › Configurações de e-mail): vínculos área × usuário responsável (perfil Administrador
+— "Admin" na tela — ou Gestor), com o recebimento ativado ou desativado. Só define QUEM RECEBE a cópia: nunca
+altera as áreas autorizadas do usuário. Ser Administrador não faz receber tudo: só as áreas vinculadas aqui (ou o
+CCO padrão, que é outra configuração).
 
 Regra única do envio (usada por todos os fluxos, via email_notificacoes):
 1. A área do evento é resolvida pelos ids — Plano de Ação: a área do plano; ação ou sub-item: a área do próprio
@@ -9,7 +11,7 @@ Regra única do envio (usada por todos os fluxos, via email_notificacoes):
    toda ação e sub-item; a subida é a proteção para o caso de um item sem área.
 2. No enfileiramento, a regra (área do evento, área do plano e quem já é destinatário principal) fica gravada na
    linha da fila que leva a cópia oculta. Os ENDEREÇOS são resolvidos no envio (`enderecos_para`), com o cadastro
-   vigente: conta ativa (sem convite pendente), perfil Gestor com "Visualizar planos", e-mail válido, vínculo
+   vigente: conta ativa (sem convite pendente), perfil Admin ou Gestor com "Visualizar planos", e-mail válido, vínculo
    ativo e acesso à área do evento E à área do plano (o e-mail mostra o plano). Mudanças posteriores no e-mail,
    na conta ou nas áreas autorizadas valem.
 3. Sem repetição: quem já é destinatário principal do evento fica de fora (pelo id e pelo endereço), e o
@@ -26,10 +28,14 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.core.permissoes import PERFIL_ADMINISTRADOR
 from app.models import Acao, Area, GestorAreaEmail, HistoricoConfigEmail, PlanoDeAcao, Usuario
 from app.services.escopo import PERMISSAO_VER
 
 PERFIL_GESTOR = "Gestor"
+# Perfis que podem ser responsáveis por área (o Administrador acessa todas as áreas; o Gestor, as autorizadas).
+PERFIS_ELEGIVEIS = (PERFIL_ADMINISTRADOR, PERFIL_GESTOR)
+MENSAGEM_PERFIL = "Selecione um usuário com perfil Admin ou Gestor."
 ESCOPO_HISTORICO = "gestores_area"
 MENSAGEM_SEM_ACESSO = (
     "Este gestor não possui permissão de acesso à área selecionada. Ajuste as áreas autorizadas no cadastro do usuário "
@@ -95,8 +101,8 @@ def motivo_sem_recebimento(usuario: Usuario | None, area_id: int, plano_area_id:
         return "Usuário removido."
     if not usuario.ativo or usuario.convite_pendente:
         return "Usuário inativo ou com convite pendente."
-    if usuario.perfil.nome != PERFIL_GESTOR:
-        return f"O perfil do usuário ({usuario.perfil.nome}) não é Gestor."
+    if usuario.perfil.nome not in PERFIS_ELEGIVEIS:
+        return f"O perfil do usuário ({usuario.perfil.nome}) não é Admin nem Gestor."
     if PERMISSAO_VER not in usuario.codigos_permissao:
         return "O perfil do usuário não tem “Visualizar planos”."
     if not _EMAIL_VALIDO.match((usuario.email or "").strip()):
@@ -161,12 +167,12 @@ def listar(db: Session) -> list[GestorAreaEmail]:
 
 
 def gestores_elegiveis(db: Session) -> list[Usuario]:
-    """Usuários ativos com perfil Gestor (o seletor da tela)."""
+    """Usuários ativos com perfil Administrador ou Gestor (o seletor "Usuário responsável")."""
     from app.models import Perfil
 
     return list(db.scalars(
         select(Usuario).join(Perfil, Usuario.perfil_id == Perfil.id)
-        .where(Perfil.nome == PERFIL_GESTOR, Usuario.ativo.is_(True), Usuario.convite_pendente.is_(False))
+        .where(Perfil.nome.in_(PERFIS_ELEGIVEIS), Usuario.ativo.is_(True), Usuario.convite_pendente.is_(False))
         .order_by(Usuario.nome)
     ))
 
@@ -185,9 +191,9 @@ def _validar(db: Session, area_id: int, usuario_id: int, ativo: bool) -> tuple[A
         raise VinculoInvalido("Área inválida ou inativa.")
     usuario = db.get(Usuario, usuario_id)
     if usuario is None or not usuario.ativo or usuario.convite_pendente:
-        raise VinculoInvalido("Gestor inválido ou inativo.")
-    if usuario.perfil.nome != PERFIL_GESTOR:
-        raise VinculoInvalido("Selecione um usuário com perfil Gestor.")
+        raise VinculoInvalido("Usuário responsável inválido ou inativo.")
+    if usuario.perfil.nome not in PERFIS_ELEGIVEIS:
+        raise VinculoInvalido(MENSAGEM_PERFIL)
     # Desativar sempre pode (ex.: o gestor perdeu o acesso e o Administrador só quer parar o envio).
     if ativo and not usuario.acessa_area(area.id):
         raise VinculoInvalido(MENSAGEM_SEM_ACESSO)
@@ -201,7 +207,7 @@ def _duplicado(db: Session, area_id: int, usuario_id: int, exceto: int | None = 
     return db.scalar(stmt) is not None
 
 
-_DUPLICADO = "Este gestor já está vinculado a esta área."
+_DUPLICADO = "Este usuário já está vinculado a esta área."
 
 
 def criar(db: Session, area_id: int, usuario_id: int, ativo: bool, autor: Usuario) -> GestorAreaEmail:
@@ -231,9 +237,9 @@ def criar_lote(db: Session, usuario_id: int, area_ids: list[int], ativo: bool, a
         raise VinculoInvalido("Selecione ao menos uma área.")
     usuario = db.get(Usuario, usuario_id)
     if usuario is None or not usuario.ativo or usuario.convite_pendente:
-        raise VinculoInvalido("Gestor inválido ou inativo.")
-    if usuario.perfil.nome != PERFIL_GESTOR:
-        raise VinculoInvalido("Selecione um usuário com perfil Gestor.")
+        raise VinculoInvalido("Usuário responsável inválido ou inativo.")
+    if usuario.perfil.nome not in PERFIS_ELEGIVEIS:
+        raise VinculoInvalido(MENSAGEM_PERFIL)
     areas = {a.id: a for a in db.scalars(select(Area).where(Area.id.in_(ids)))}
     invalidas = [i for i in ids if i not in areas or not areas[i].ativo]
     if invalidas:
@@ -247,7 +253,7 @@ def criar_lote(db: Session, usuario_id: int, area_ids: list[int], ativo: bool, a
     ))
     if existentes:
         nomes = ", ".join(areas[i].nome for i in ids if i in existentes)
-        raise VinculoInvalido(f"Este gestor já está vinculado a: {nomes}. Desmarque essas áreas (nada foi salvo).", conflito=True)
+        raise VinculoInvalido(f"Este usuário já está vinculado a: {nomes}. Desmarque essas áreas (nada foi salvo).", conflito=True)
     novos = [GestorAreaEmail(area_id=i, usuario_id=usuario.id, ativo=ativo, atualizado_por_id=autor.id) for i in ids]
     db.add_all(novos)
     try:

@@ -161,11 +161,17 @@ function CartaoCcoPadrao({ d }: { d: ConfigEmailTela }) {
 const MENSAGEM_SEM_ACESSO =
   "Este gestor não possui permissão de acesso à área selecionada. Ajuste as áreas autorizadas no cadastro do usuário antes de criar o vínculo.";
 
+/** "Administrador" aparece como "Admin" neste bloco. */
+const rotuloPerfil = (perfil: string) => (perfil === "Administrador" ? "Admin" : perfil);
+// Sem o perfil na resposta (ex.: API de uma versão anterior), mostra só o nome — nunca "undefined".
+const comPerfil = (u: { nome: string; perfil?: string | null }) => (u.perfil ? `${u.nome} — ${rotuloPerfil(u.perfil)}` : u.nome);
+
 /**
- * Gestores por área — cópia oculta. Só define quem recebe a cópia dos e-mails da área (não altera acessos).
- * As regras de verdade são do backend (perfil Gestor, acesso à área, sem duplicados, tudo ou nada); aqui elas
- * aparecem antes de salvar. Primeiro o gestor; depois, as áreas que ele pode ver (todas, com "Todas as áreas").
- * Editar carrega UM vínculo no mesmo formulário (uma área só): os demais vínculos do gestor não mudam.
+ * Responsáveis por área — cópia oculta. Só define quem recebe a cópia dos e-mails da área (não altera acessos).
+ * Usuário responsável: perfil Admin (todas as áreas) ou Gestor (as autorizadas; todas, com "Todas as áreas").
+ * Ser Admin não faz receber tudo: só as áreas vinculadas aqui (ou o CCO padrão).
+ * As regras de verdade são do backend (perfil, acesso à área, sem duplicados, tudo ou nada); aqui elas aparecem
+ * antes de salvar. Editar carrega UM vínculo no mesmo formulário (uma área só): os demais não mudam.
  */
 function CartaoGestoresArea() {
   const vinculos = useGestoresArea();
@@ -249,28 +255,30 @@ function CartaoGestoresArea() {
   };
 
   return (
-    <Card titulo="Gestores por área — cópia oculta">
+    <Card titulo="Responsáveis por área — cópia oculta">
       <p className={styles.descricaoBloco}>
-        Vincule gestores às áreas para que recebam, em cópia oculta, as notificações relacionadas às áreas selecionadas.
+        Vincule usuários responsáveis (Admin ou Gestor) às áreas para que recebam, em cópia oculta, as notificações relacionadas às
+        áreas selecionadas.
       </p>
       <p className={styles.alerta} role="note">
         Vale para os e-mails de Planos de Ação, ações e sub-itens da área (criação, atribuição, prazos, conclusão, dependência liberada,
-        plano sem atualização e resumo semanal), somado ao CCO padrão. Convites e e-mails de acesso não incluem gestores. O vínculo não
-        altera as áreas autorizadas do usuário; quem perde o acesso à área deixa de receber.
+        plano sem atualização e resumo semanal), somado ao CCO padrão. Convites e e-mails de acesso não incluem estes responsáveis. Ser
+        Admin não faz receber todos os e-mails: só os das áreas vinculadas aqui (ou pelo CCO padrão). O vínculo não altera as áreas
+        autorizadas do usuário; quem perde o acesso à área deixa de receber.
       </p>
 
       <div className={styles.formVinculo}>
-        <Field id="vinculo-gestor" rotulo="Gestor" obrigatorio ajuda={gestor ? undefined : "Usuários ativos com perfil Gestor."}>
+        <Field id="vinculo-gestor" rotulo="Usuário responsável" obrigatorio ajuda={gestor ? undefined : "Usuários ativos com perfil Admin ou Gestor."}>
           <ComboboxBusca
             id="vinculo-gestor"
-            ariaLabel="Gestor"
+            ariaLabel="Usuário responsável"
             opcoes={opcoes.data?.gestores ?? []}
             valor={gestor}
             onSelecionar={escolherGestor}
-            texto={(g) => g.nome}
+            texto={comPerfil}
             detalhe={(g) => g.email}
-            placeholder={opcoes.isLoading ? "Carregando…" : "Buscar gestor pelo nome"}
-            mensagemVazia="Nenhum gestor ativo encontrado."
+            placeholder={opcoes.isLoading ? "Carregando…" : "Buscar usuário pelo nome"}
+            mensagemVazia="Nenhum usuário ativo com perfil Admin ou Gestor encontrado."
             disabled={salvando}
           />
         </Field>
@@ -285,7 +293,9 @@ function CartaoGestoresArea() {
               : editando
                 ? "Edição de um vínculo: só esta linha muda."
                 : gestor.areas === null
-                  ? "Este gestor tem acesso a todas as áreas: todas as cadastradas estão disponíveis."
+                  ? gestor.perfil === "Administrador"
+                    ? "Admin acessa todas as áreas: todas as cadastradas estão disponíveis."
+                    : "Este gestor tem acesso a todas as áreas: todas as cadastradas estão disponíveis."
                   : "Só as áreas que este gestor está autorizado a visualizar."
           }
         >
@@ -297,13 +307,13 @@ function CartaoGestoresArea() {
             onChange={setAreaIds}
             unica={!!editando}
             disabled={!gestor || opcoes.isLoading}
-            textoDesabilitado={opcoes.isLoading ? "Carregando…" : "Selecione o gestor primeiro"}
+            textoDesabilitado={opcoes.isLoading ? "Carregando…" : "Selecione o usuário responsável primeiro"}
             invalido={!!erroAreas}
             idErro={erroAreas ? "vinculo-areas-erro" : undefined}
           />
         </Field>
         <Field id="vinculo-email" rotulo="E-mail" ajuda="Obtido do cadastro do usuário (usado o atual em cada envio).">
-          <Input id="vinculo-email" value={gestor?.email ?? ""} placeholder="Selecione o gestor" readOnly />
+          <Input id="vinculo-email" value={gestor?.email ?? ""} placeholder="Selecione o usuário responsável" readOnly />
         </Field>
       </div>
       <div className={styles.rodape}>
@@ -342,7 +352,7 @@ function CartaoGestoresArea() {
             <thead>
               <tr>
                 <th scope="col">Área de permissão</th>
-                <th scope="col">Gestor</th>
+                <th scope="col">Usuário responsável</th>
                 <th scope="col">E-mail</th>
                 <th scope="col">Receber em CCO</th>
                 <th scope="col" data-acoes>
@@ -355,7 +365,7 @@ function CartaoGestoresArea() {
                 <tr key={v.id} data-inativo={!v.ativo || undefined}>
                   <td>{v.area.nome}</td>
                   <td>
-                    {v.gestor.nome}
+                    {comPerfil(v.gestor)}
                     {v.situacao && v.ativo && (
                       <span className={styles.situacao}>
                         <Badge tom="aviso" tamanho="sm">
