@@ -222,6 +222,48 @@ def criar(db: Session, area_id: int, usuario_id: int, ativo: bool, autor: Usuari
     return v
 
 
+def criar_lote(db: Session, usuario_id: int, area_ids: list[int], ativo: bool, autor: Usuario) -> list[GestorAreaEmail]:
+    """Um vínculo por área, para o mesmo gestor, numa operação só: TODAS as áreas são validadas antes de gravar
+    (ativa, acesso do gestor e não vinculada ainda); qualquer erro recusa o lote inteiro. Os vínculos que o gestor
+    já tem não mudam. A lista é a das áreas escolhidas agora (nenhuma área futura entra sozinha)."""
+    ids = list(dict.fromkeys(area_ids))
+    if not ids:
+        raise VinculoInvalido("Selecione ao menos uma área.")
+    usuario = db.get(Usuario, usuario_id)
+    if usuario is None or not usuario.ativo or usuario.convite_pendente:
+        raise VinculoInvalido("Gestor inválido ou inativo.")
+    if usuario.perfil.nome != PERFIL_GESTOR:
+        raise VinculoInvalido("Selecione um usuário com perfil Gestor.")
+    areas = {a.id: a for a in db.scalars(select(Area).where(Area.id.in_(ids)))}
+    invalidas = [i for i in ids if i not in areas or not areas[i].ativo]
+    if invalidas:
+        raise VinculoInvalido("Área inválida ou inativa na seleção. Recarregue a página e tente de novo.")
+    sem_acesso = [areas[i].nome for i in ids if ativo and not usuario.acessa_area(i)]
+    if sem_acesso:
+        extra = "" if len(ids) == 1 else f" Áreas sem acesso: {', '.join(sem_acesso)}."
+        raise VinculoInvalido(MENSAGEM_SEM_ACESSO + extra)
+    existentes = set(db.scalars(
+        select(GestorAreaEmail.area_id).where(GestorAreaEmail.usuario_id == usuario.id, GestorAreaEmail.area_id.in_(ids))
+    ))
+    if existentes:
+        nomes = ", ".join(areas[i].nome for i in ids if i in existentes)
+        raise VinculoInvalido(f"Este gestor já está vinculado a: {nomes}. Desmarque essas áreas (nada foi salvo).", conflito=True)
+    novos = [GestorAreaEmail(area_id=i, usuario_id=usuario.id, ativo=ativo, atualizado_por_id=autor.id) for i in ids]
+    db.add_all(novos)
+    try:
+        db.flush()
+    except IntegrityError:  # corrida com outro cadastro igual: nada do lote fica
+        db.rollback()
+        raise VinculoInvalido(_DUPLICADO, conflito=True) from None
+    for v in novos:
+        db.refresh(v)
+        _historico(db, "vinculo_criado", None, _descrever(v), autor)
+    db.commit()
+    for v in novos:
+        db.refresh(v)
+    return sorted(novos, key=lambda v: v.area.nome.casefold())
+
+
 def atualizar(db: Session, vinculo_id: int, area_id: int, usuario_id: int, ativo: bool, autor: Usuario) -> GestorAreaEmail:
     v = db.get(GestorAreaEmail, vinculo_id)
     if v is None:

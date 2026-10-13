@@ -2047,6 +2047,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/email-config/gestores-area/lote": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Criar Gestor Areas
+         * @description Vincula o gestor a várias áreas de uma vez: valida todas antes; qualquer erro (sem acesso, já vinculada,
+         *     inativa) recusa o lote inteiro, sem salvar parte. Os vínculos existentes do gestor não mudam.
+         */
+        post: operations["criar_gestor_areas_email_config_gestores_area_lote_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/email-config/gestores-area/{vinculo_id}": {
         parameters: {
             query?: never;
@@ -6602,6 +6623,21 @@ export interface components {
              */
             ativo: boolean;
         };
+        /** VinculosLoteSalvar */
+        VinculosLoteSalvar: {
+            /** Usuario Id */
+            usuario_id: number;
+            /**
+             * Area Ids
+             * @description Uma linha por área (repetidas são ignoradas).
+             */
+            area_ids: number[];
+            /**
+             * Ativo
+             * @default true
+             */
+            ativo: boolean;
+        };
         /**
          * Visualizacao
          * @enum {string}
@@ -10891,6 +10927,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["OpcoesGestoresArea"];
+                };
+            };
+        };
+    };
+    criar_gestor_areas_email_config_gestores_area_lote_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VinculosLoteSalvar"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VinculoGestorArea"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

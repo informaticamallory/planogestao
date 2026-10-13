@@ -8,6 +8,7 @@ import type {
   UsuarioAtualizar,
   UsuarioCriar,
   VinculoGestorAreaSalvar,
+  VinculosGestorAreaLote,
 } from "@planogestao/shared-types";
 
 import type { HttpClient } from "../client";
@@ -94,6 +95,8 @@ export function criarAdministracao(http: HttpClient) {
         listar: async () => exigirDados(await http.GET("/email-config/gestores-area")),
         opcoes: async () => exigirDados(await http.GET("/email-config/gestores-area/opcoes")),
         criar: async (body: VinculoGestorAreaSalvar) => exigirDados(await http.POST("/email-config/gestores-area", { body })),
+        /** Um vínculo por área para o mesmo gestor; tudo ou nada (validado antes de gravar). */
+        criarLote: async (body: VinculosGestorAreaLote) => exigirDados(await http.POST("/email-config/gestores-area/lote", { body })),
         atualizar: async (vinculoId: number, body: VinculoGestorAreaSalvar) =>
           exigirDados(await http.PUT("/email-config/gestores-area/{vinculo_id}", { ...id("vinculo_id", vinculoId), body })),
         remover: async (vinculoId: number) =>

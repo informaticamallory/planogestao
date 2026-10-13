@@ -3,15 +3,16 @@ import type {
   ConfigEmailTela,
   ModeloTela,
   OpcaoGestorArea,
-  OpcoesGestoresArea,
   PreviaEmail,
   VinculoGestorArea,
   VinculoGestorAreaSalvar,
+  VinculosGestorAreaLote,
 } from "@planogestao/shared-types";
 import { useMutation } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 
 import adminStyles from "../../components/admin/Admin.module.css";
+import { SeletorAreasMultiplo, type OpcaoAreaSelecao } from "../../components/admin/SeletorAreasMultiplo";
 import { Badge } from "../../components/ui/Badge";
 import { Button } from "../../components/ui/Button";
 import { Card } from "../../components/ui/Card";
@@ -159,19 +160,17 @@ function CartaoCcoPadrao({ d }: { d: ConfigEmailTela }) {
 
 const MENSAGEM_SEM_ACESSO =
   "Este gestor não possui permissão de acesso à área selecionada. Ajuste as áreas autorizadas no cadastro do usuário antes de criar o vínculo.";
-const MENSAGEM_DUPLICADO = "Este gestor já está vinculado a esta área.";
-
-type Area = OpcoesGestoresArea["areas"][number];
 
 /**
  * Gestores por área — cópia oculta. Só define quem recebe a cópia dos e-mails da área (não altera acessos).
- * As regras de verdade são do backend (perfil Gestor, acesso à área, sem duplicados); aqui elas aparecem antes de
- * salvar. Editar carrega o vínculo no mesmo formulário (as listas com busca não ficam cortadas dentro de um modal).
+ * As regras de verdade são do backend (perfil Gestor, acesso à área, sem duplicados, tudo ou nada); aqui elas
+ * aparecem antes de salvar. Primeiro o gestor; depois, as áreas que ele pode ver (todas, com "Todas as áreas").
+ * Editar carrega UM vínculo no mesmo formulário (uma área só): os demais vínculos do gestor não mudam.
  */
 function CartaoGestoresArea() {
   const vinculos = useGestoresArea();
   const opcoes = useOpcoesGestoresArea();
-  const [area, setArea] = useState<Area | null>(null);
+  const [areaIds, setAreaIds] = useState<number[]>([]);
   const [gestor, setGestor] = useState<OpcaoGestorArea | null>(null);
   const [ativo, setAtivo] = useState(true);
   const [editando, setEditando] = useState<VinculoGestorArea | null>(null);
@@ -179,19 +178,27 @@ function CartaoGestoresArea() {
   const [aviso, setAviso] = useState<string | null>(null);
   const [erroLinha, setErroLinha] = useState<{ id: number; mensagem: string } | null>(null);
 
-  const criar = useMutacaoAdmin((body: VinculoGestorAreaSalvar) => api.admin.email.gestoresArea.criar(body));
+  const criar = useMutacaoAdmin((body: VinculosGestorAreaLote) => api.admin.email.gestoresArea.criarLote(body));
   const atualizar = useMutacaoAdmin(({ id, body }: { id: number; body: VinculoGestorAreaSalvar }) => api.admin.email.gestoresArea.atualizar(id, body));
   const remover = useMutacaoAdmin((id: number) => api.admin.email.gestoresArea.remover(id));
 
   const lista = vinculos.data ?? [];
-  const semAcesso = !!(area && gestor && gestor.areas !== null && !gestor.areas.includes(area.id) && ativo);
-  const duplicado = !!(area && gestor && lista.some((v) => v.area.id === area.id && v.gestor.id === gestor.id && v.id !== editando?.id));
-  const erroGestor = semAcesso ? MENSAGEM_SEM_ACESSO : duplicado ? MENSAGEM_DUPLICADO : undefined;
+  const todasAreas = opcoes.data?.areas ?? [];
+  const autorizada = (g: OpcaoGestorArea | null, areaId: number) => !!g && (g.areas === null || g.areas.includes(areaId));
+  const jaVinculada = (areaId: number) => lista.some((v) => v.gestor.id === gestor?.id && v.area.id === areaId && v.id !== editando?.id);
+  // Só as áreas que o gestor pode ver (todas, com "Todas as áreas"); as já vinculadas aparecem bloqueadas.
+  const opcoesAreas: OpcaoAreaSelecao[] = todasAreas
+    .filter((a) => autorizada(gestor, a.id) || a.id === editando?.area.id)
+    .map((a) => ({ id: a.id, nome: a.nome, bloqueio: jaVinculada(a.id) ? "já vinculada" : undefined }));
+  // Na edição, a área atual aparece mesmo se o gestor perdeu o acesso ou ela ficou inativa (para poder desativar).
+  if (editando && !opcoesAreas.some((a) => a.id === editando.area.id)) opcoesAreas.push({ id: editando.area.id, nome: editando.area.nome });
+  const semAcesso = ativo && areaIds.some((id) => !autorizada(gestor, id));
+  const erroAreas = semAcesso ? MENSAGEM_SEM_ACESSO : undefined;
   const salvando = criar.isPending || atualizar.isPending;
   const erroSalvar = criar.isError ? mensagemErro(criar.error) : atualizar.isError && !erroLinha ? mensagemErro(atualizar.error) : null;
 
   const limpar = () => {
-    setArea(null);
+    setAreaIds([]);
     setGestor(null);
     setAtivo(true);
     setEditando(null);
@@ -199,15 +206,25 @@ function CartaoGestoresArea() {
     atualizar.reset();
   };
 
+  const escolherGestor = (g: OpcaoGestorArea | null) => {
+    setGestor(g);
+    criar.reset();
+    // Troca de gestor: ficam só as áreas que o novo gestor pode ver e que ele ainda não tem.
+    setAreaIds((ids) => ids.filter((id) => autorizada(g, id) && !lista.some((v) => v.gestor.id === g?.id && v.area.id === id && v.id !== editando?.id)));
+  };
+
   const salvar = () => {
-    if (!area || !gestor || erroGestor) return;
-    const body = { area_id: area.id, usuario_id: gestor.id, ativo };
+    if (!areaIds.length || !gestor || erroAreas) return;
     setAviso(null);
     setErroLinha(null);
     if (editando) {
+      const body = { area_id: areaIds[0]!, usuario_id: gestor.id, ativo };
       atualizar.mutate({ id: editando.id, body }, { onSuccess: () => (limpar(), setAviso("Vínculo atualizado.")) });
     } else {
-      criar.mutate(body, { onSuccess: () => (limpar(), setAviso("Vínculo adicionado.")) });
+      criar.mutate(
+        { usuario_id: gestor.id, area_ids: areaIds, ativo },
+        { onSuccess: (r) => (limpar(), setAviso(r.length === 1 ? "1 vínculo salvo." : `${r.length} vínculos salvos.`)) },
+      );
     }
   };
 
@@ -216,7 +233,7 @@ function CartaoGestoresArea() {
     atualizar.reset();
     setAviso(null);
     setEditando(v);
-    setArea(v.area);
+    setAreaIds([v.area.id]);
     // O gestor pode ter deixado de ser elegível (ex.: perfil alterado): mantém o atual para poder desativar.
     setGestor(opcoes.data?.gestores.find((g) => g.id === v.gestor.id) ?? v.gestor);
     setAtivo(v.ativo);
@@ -243,31 +260,46 @@ function CartaoGestoresArea() {
       </p>
 
       <div className={styles.formVinculo}>
-        <Field id="vinculo-area" rotulo="Área de permissão" obrigatorio>
-          <ComboboxBusca
-            id="vinculo-area"
-            ariaLabel="Área de permissão"
-            opcoes={opcoes.data?.areas ?? []}
-            valor={area}
-            onSelecionar={setArea}
-            texto={(a) => a.nome}
-            placeholder={opcoes.isLoading ? "Carregando…" : "Buscar área pelo nome"}
-            mensagemVazia="Nenhuma área encontrada."
-          />
-        </Field>
-        <Field id="vinculo-gestor" rotulo="Gestor" obrigatorio erro={erroGestor} ajuda={gestor ? undefined : "Usuários ativos com perfil Gestor."}>
+        <Field id="vinculo-gestor" rotulo="Gestor" obrigatorio ajuda={gestor ? undefined : "Usuários ativos com perfil Gestor."}>
           <ComboboxBusca
             id="vinculo-gestor"
             ariaLabel="Gestor"
             opcoes={opcoes.data?.gestores ?? []}
             valor={gestor}
-            onSelecionar={setGestor}
+            onSelecionar={escolherGestor}
             texto={(g) => g.nome}
             detalhe={(g) => g.email}
             placeholder={opcoes.isLoading ? "Carregando…" : "Buscar gestor pelo nome"}
             mensagemVazia="Nenhum gestor ativo encontrado."
-            invalido={!!erroGestor}
-            idErro={erroGestor ? "vinculo-gestor-erro" : undefined}
+            disabled={salvando}
+          />
+        </Field>
+        <Field
+          id="vinculo-areas"
+          rotulo={editando ? "Área de permissão" : "Áreas de permissão"}
+          obrigatorio
+          erro={erroAreas}
+          ajuda={
+            !gestor
+              ? undefined
+              : editando
+                ? "Edição de um vínculo: só esta linha muda."
+                : gestor.areas === null
+                  ? "Este gestor tem acesso a todas as áreas: todas as cadastradas estão disponíveis."
+                  : "Só as áreas que este gestor está autorizado a visualizar."
+          }
+        >
+          <SeletorAreasMultiplo
+            id="vinculo-areas"
+            rotulo="Áreas de permissão"
+            opcoes={opcoesAreas}
+            selecionadas={areaIds}
+            onChange={setAreaIds}
+            unica={!!editando}
+            disabled={!gestor || opcoes.isLoading}
+            textoDesabilitado={opcoes.isLoading ? "Carregando…" : "Selecione o gestor primeiro"}
+            invalido={!!erroAreas}
+            idErro={erroAreas ? "vinculo-areas-erro" : undefined}
           />
         </Field>
         <Field id="vinculo-email" rotulo="E-mail" ajuda="Obtido do cadastro do usuário (usado o atual em cada envio).">
@@ -282,8 +314,8 @@ function CartaoGestoresArea() {
               Cancelar edição
             </Button>
           )}
-          <Button variante="primaria" onClick={salvar} disabled={!area || !gestor || !!erroGestor || salvando}>
-            {salvando ? "Salvando…" : editando ? "Salvar alteração" : "Adicionar vínculo"}
+          <Button variante="primaria" onClick={salvar} disabled={!areaIds.length || !gestor || !!erroAreas || salvando}>
+            {salvando ? "Salvando…" : editando ? "Salvar alteração" : "Salvar vínculos"}
           </Button>
         </div>
       </div>

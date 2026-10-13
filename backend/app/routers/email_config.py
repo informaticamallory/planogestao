@@ -265,6 +265,22 @@ def criar_gestor_area(corpo: VinculoSalvar, admin: UsuarioAdmin, db: Session = D
         raise _erro_vinculo(exc) from None
 
 
+class VinculosLoteSalvar(BaseModel):
+    usuario_id: int
+    area_ids: list[int] = Field(min_length=1, max_length=500, description="Uma linha por área (repetidas são ignoradas).")
+    ativo: bool = True
+
+
+@router.post("/gestores-area/lote", response_model=list[VinculoGestorArea], status_code=status.HTTP_201_CREATED)
+def criar_gestor_areas(corpo: VinculosLoteSalvar, admin: UsuarioAdmin, db: Session = Depends(get_db)):
+    """Vincula o gestor a várias áreas de uma vez: valida todas antes; qualquer erro (sem acesso, já vinculada,
+    inativa) recusa o lote inteiro, sem salvar parte. Os vínculos existentes do gestor não mudam."""
+    try:
+        return [_vinculo(v) for v in gestores_area.criar_lote(db, corpo.usuario_id, corpo.area_ids, corpo.ativo, admin)]
+    except gestores_area.VinculoInvalido as exc:
+        raise _erro_vinculo(exc) from None
+
+
 @router.put("/gestores-area/{vinculo_id}", response_model=VinculoGestorArea)
 def atualizar_gestor_area(vinculo_id: int, corpo: VinculoSalvar, admin: UsuarioAdmin, db: Session = Depends(get_db)):
     """Troca área/gestor ou ativa/desativa o recebimento. Desativar sempre pode; ativar exige acesso à área."""

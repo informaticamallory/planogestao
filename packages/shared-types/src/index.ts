@@ -167,6 +167,7 @@ export type TentativaEnvioItem = Schemas["TentativaEnvioItem"];
 export type ConfigEmailTela = Schemas["ConfigEmailTela"];
 export type VinculoGestorArea = Schemas["VinculoGestorArea"];
 export type VinculoGestorAreaSalvar = Schemas["VinculoSalvar"];
+export type VinculosGestorAreaLote = Schemas["VinculosLoteSalvar"];
 export type OpcoesGestoresArea = Schemas["OpcoesGestoresArea"];
 export type OpcaoGestorArea = Schemas["OpcaoGestor"];
 export type ModeloTela = Schemas["ModeloTela"];
