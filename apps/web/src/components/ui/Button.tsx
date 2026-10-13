@@ -3,7 +3,7 @@ import { Link, type LinkProps } from "react-router-dom";
 
 import styles from "./Button.module.css";
 
-export type ButtonVariante = "primaria" | "secundaria" | "perigo" | "link" | "icone";
+export type ButtonVariante = "primaria" | "secundaria" | "perigo" | "perigoSolido" | "link" | "icone";
 export type ButtonTamanho = "md" | "sm";
 
 interface Aparencia {

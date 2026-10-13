@@ -9,15 +9,16 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
 from app.core.database import get_db
 from app.core.deps import require_admin
 from app.core.tempo import como_utc
-from app.models import ConfigEmail, ModeloEmail, Usuario
+from app.models import Area, ConfigEmail, ModeloEmail, Usuario
 from app.services import email_modelos as modelos
-from app.services import email_notificacoes
+from app.services import email_notificacoes, gestores_area
 
 router = APIRouter(prefix="/email-config", tags=["administracao"])
 UsuarioAdmin = Annotated[Usuario, Depends(require_admin)]
@@ -151,7 +152,8 @@ def _cco_padrao(db: Session) -> CcoPadrao:
 
 @router.get("", response_model=ConfigEmailTela)
 def obter(_: UsuarioAdmin, db: Session = Depends(get_db)):
-    nomes = {**{e: d.nome for e, d in modelos.CATALOGO.items()}, modelos.CHAVE_CCO_PADRAO: "CCO padrão"}
+    nomes = {**{e: d.nome for e, d in modelos.CATALOGO.items()}, modelos.CHAVE_CCO_PADRAO: "CCO padrão",
+             gestores_area.ESCOPO_HISTORICO: "Gestores por área"}
     return ConfigEmailTela(
         remetente=_remetente(),
         cco_padrao=_cco_padrao(db),
@@ -186,6 +188,100 @@ def salvar_cco_padrao(corpo: CcoSalvar, admin: UsuarioAdmin, db: Session = Depen
     except modelos.ModeloInvalido as exc:
         raise _invalido(exc) from None
     return _cco_padrao(db)
+
+
+# ---- gestores por área — cópia oculta ------------------------------------------------------------------------
+
+
+class OpcaoArea(BaseModel):
+    id: int
+    nome: str
+
+
+class OpcaoGestor(BaseModel):
+    id: int
+    nome: str
+    email: str
+    areas: list[int] | None = Field(description="Áreas autorizadas; null = todas as áreas.")
+
+
+class OpcoesGestoresArea(BaseModel):
+    areas: list[OpcaoArea] = Field(description="Áreas ativas.")
+    gestores: list[OpcaoGestor] = Field(description="Usuários ativos com perfil Gestor.")
+
+
+class VinculoGestorArea(BaseModel):
+    id: int
+    area: OpcaoArea
+    gestor: OpcaoGestor
+    ativo: bool = Field(description="Receber em CCO.")
+    situacao: str | None = Field(description="Por que não receberia agora (conta, perfil, e-mail ou acesso). Null = recebe.")
+    atualizado_por: str | None
+    atualizado_em: datetime
+
+
+class VinculoSalvar(BaseModel):
+    area_id: int
+    usuario_id: int
+    ativo: bool = True
+
+
+def _gestor(u: Usuario) -> OpcaoGestor:
+    areas = u.areas_de_acesso
+    return OpcaoGestor(id=u.id, nome=u.nome, email=u.email, areas=sorted(areas) if areas is not None else None)
+
+
+def _vinculo(v) -> VinculoGestorArea:
+    return VinculoGestorArea(
+        id=v.id, area=OpcaoArea(id=v.area.id, nome=v.area.nome), gestor=_gestor(v.usuario), ativo=v.ativo,
+        situacao=gestores_area.motivo_sem_recebimento(v.usuario, v.area_id),
+        atualizado_por=v.atualizado_por.nome if v.atualizado_por else None, atualizado_em=como_utc(v.atualizado_em),
+    )
+
+
+def _erro_vinculo(exc: gestores_area.VinculoInvalido) -> HTTPException:
+    return HTTPException(status.HTTP_409_CONFLICT if exc.conflito else status.HTTP_422_UNPROCESSABLE_ENTITY, str(exc))
+
+
+@router.get("/gestores-area", response_model=list[VinculoGestorArea])
+def listar_gestores_area(_: UsuarioAdmin, db: Session = Depends(get_db)):
+    return [_vinculo(v) for v in gestores_area.listar(db)]
+
+
+@router.get("/gestores-area/opcoes", response_model=OpcoesGestoresArea)
+def opcoes_gestores_area(_: UsuarioAdmin, db: Session = Depends(get_db)):
+    areas = db.scalars(select(Area).where(Area.ativo.is_(True)).order_by(Area.nome))
+    return OpcoesGestoresArea(
+        areas=[OpcaoArea(id=a.id, nome=a.nome) for a in areas], gestores=[_gestor(u) for u in gestores_area.gestores_elegiveis(db)]
+    )
+
+
+@router.post("/gestores-area", response_model=VinculoGestorArea, status_code=status.HTTP_201_CREATED)
+def criar_gestor_area(corpo: VinculoSalvar, admin: UsuarioAdmin, db: Session = Depends(get_db)):
+    """Vincula um gestor a uma área (exige acesso à área; o par área × gestor é único). Não altera acessos."""
+    try:
+        return _vinculo(gestores_area.criar(db, corpo.area_id, corpo.usuario_id, corpo.ativo, admin))
+    except gestores_area.VinculoInvalido as exc:
+        raise _erro_vinculo(exc) from None
+
+
+@router.put("/gestores-area/{vinculo_id}", response_model=VinculoGestorArea)
+def atualizar_gestor_area(vinculo_id: int, corpo: VinculoSalvar, admin: UsuarioAdmin, db: Session = Depends(get_db)):
+    """Troca área/gestor ou ativa/desativa o recebimento. Desativar sempre pode; ativar exige acesso à área."""
+    try:
+        return _vinculo(gestores_area.atualizar(db, vinculo_id, corpo.area_id, corpo.usuario_id, corpo.ativo, admin))
+    except gestores_area.VinculoNaoEncontrado:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Vínculo não encontrado.") from None
+    except gestores_area.VinculoInvalido as exc:
+        raise _erro_vinculo(exc) from None
+
+
+@router.delete("/gestores-area/{vinculo_id}", status_code=status.HTTP_204_NO_CONTENT)
+def remover_gestor_area(vinculo_id: int, admin: UsuarioAdmin, db: Session = Depends(get_db)):
+    try:
+        gestores_area.remover(db, vinculo_id, admin)
+    except gestores_area.VinculoNaoEncontrado:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Vínculo não encontrado.") from None
 
 
 @router.post("/previa", response_model=Previa)

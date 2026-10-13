@@ -5,6 +5,7 @@
   envio (ex.: envio na segunda 13/10 → de 06/10 a 12/10).
 - Para quem: SOMENTE o responsável pelo plano (o gestor do plano — um campo só para os dois papéis). Nunca
   todos os participantes de equipes nem os administradores. Conta ativa, sem convite pendente e com acesso.
+  Gestores por área (gestores_area.py): uma cópia à parte por área do plano, só com os planos dessa área, em CCO.
 - Quais planos: liberados (não rascunho), não arquivados nem excluídos, em execução — ou concluídos dentro do
   período (o último resumo).
 - Conteúdo por plano: ações e sub-itens concluídos no período (separados), itens com atualizações relevantes
@@ -34,7 +35,8 @@ from app.services import dependencias
 from app.services.avisos import acessa_plano, destinatario_valido, plano_operacional
 from app.services.configuracoes import valor_inteiro
 from app.services.email_modelos import modelo_efetivo, renderizar
-from app.services.email_notificacoes import enfileirar_aviso, registrar_validador
+from app.services.email_notificacoes import enfileirar_aviso, enfileirar_copia_area, registrar_validador
+from app.services.gestores_area import AreaDoEvento, tem_vinculo_ativo
 from app.services.eventos import Evento, TipoEvento, publicar
 from app.services.indicadores import calcular_indicadores
 from app.services.movimentacoes import relevante_acao
@@ -248,6 +250,28 @@ def _planos_elegiveis(db: Session, inicio: date, fim: date) -> list[PlanoDeAcao]
     ))
 
 
+def _copias_por_area(
+    db: Session, usuario: Usuario, planos: list[PlanoDeAcao], resumos: list[ResumoPlano], inicio: date, fim: date, periodo: dict,
+) -> None:
+    """Gestores por área: uma cópia por área DO PLANO (a que define quem acompanha o plano), só com os planos
+    daquela área, em cópia oculta para os gestores dela — nunca o resumo com planos de outras áreas."""
+    area_de = {p.id: p.area_id for p in planos}
+    grupos: dict[int, list[ResumoPlano]] = {}
+    for r in resumos:
+        grupos.setdefault(area_de[r.plano_id], []).append(r)
+    for area_id, grupo in grupos.items():
+        # Área sem vínculo ativo: nenhuma cópia na fila (quem recebe é resolvido de novo no envio).
+        if not tem_vinculo_ativo(db, area_id):
+            continue
+        enfileirar_copia_area(
+            db, EVENTO_EMAIL, "resumo", usuario.id, usuario, _valores(usuario, grupo, inicio, fim),
+            chave=f"{EVENTO_EMAIL}:usuario:{fim}:area:{area_id}:{usuario.id}",
+            area=AreaDoEvento(area_id=area_id, plano_area_id=area_id),
+            contexto={"planos": [r.plano_id for r in grupo], **periodo, "copia_area": area_id},
+            blocos={"resumo": bloco(grupo, inicio, fim)},
+        )
+
+
 def gerar_resumos_semanais(db: Session, agora_local: datetime | None = None) -> ResultadoResumo:
     agora_local = agora_local or datetime.now(fuso_local())
     data_envio, momento = ocorrencia(agora_local, valor_inteiro("resumo_semanal_dia"), valor_inteiro("resumo_semanal_horario"))
@@ -289,14 +313,17 @@ def gerar_resumos_semanais(db: Session, agora_local: datetime | None = None) -> 
                     referencia_tipo=ReferenciaNotificacao.PLANO, referencia_id=r.plano_id,
                     chave_deduplicacao=f"{TipoEvento.RESUMO_SEMANAL}:{r.plano_id}:{fim}",
                 ))
+            periodo = {"inicio": inicio.isoformat(), "fim": fim.isoformat(), "hoje": data_envio.isoformat()}
             if usuario_id in recebem(db, TipoEvento.RESUMO_SEMANAL, [usuario_id], "email"):
+                # O e-mail do responsável junta planos de várias áreas: os gestores por área NÃO vão em cópia dele.
                 enfileirar_aviso(
                     db, EVENTO_EMAIL, "resumo", usuario_id, [usuario], _valores(usuario, resumos, inicio, fim),
                     chave_evento=f"{EVENTO_EMAIL}:usuario:{fim}",
-                    contexto={"planos": [r.plano_id for r in resumos], "inicio": inicio.isoformat(), "fim": fim.isoformat(),
-                              "hoje": data_envio.isoformat()},
+                    contexto={"planos": [r.plano_id for r in resumos], **periodo},
                     blocos={"resumo": bloco(resumos, inicio, fim)},
                 )
+            # Cópias dos gestores por área: à parte, valem mesmo que o responsável tenha desligado o e-mail.
+            _copias_por_area(db, usuario, planos, resumos, inicio, fim, periodo)
             db.commit()
         except IntegrityError:  # outro processo gerou ao mesmo tempo: fica o dele
             db.rollback()
@@ -320,6 +347,9 @@ def revalidar(db: Session, envio: EnvioEmail) -> str | None:
     ids = list(ctx.get("planos", []))
     planos = [db.scalar(select(PlanoDeAcao).where(PlanoDeAcao.id == i).execution_options(populate_existing=True)) for i in ids]
     validos = [p for p in planos if plano_operacional(p) and acessa_plano(db, usuario, p)]
+    if (area := ctx.get("copia_area")) is not None:
+        # Cópia para os gestores de uma área: plano que mudou de área depois sai dela.
+        validos = [p for p in validos if p.area_id == area]
     if not validos:
         return "Destinatário sem acesso aos planos do resumo (ou planos arquivados/excluídos)."
     if len(validos) == len(ids):

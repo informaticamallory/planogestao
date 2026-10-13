@@ -5,6 +5,7 @@ import { useMenuRecolhido } from "../../hooks/useMenuRecolhido";
 import { useAuthStore } from "../../store/authStore";
 import { useFaixa } from "../../utils/breakpoints";
 import { useLembrarListaPlanos } from "../../utils/hierarquiaPlanos";
+import { AvisoFlutuante } from "../feedback/AvisoFlutuante";
 import { SinoNotificacoes } from "../notificacoes/SinoNotificacoes";
 import { Avatar } from "../ui/Avatar";
 import { Button } from "../ui/Button";
@@ -115,6 +116,7 @@ export function AppLayout() {
           <Outlet />
         </main>
       </div>
+      <AvisoFlutuante />
     </div>
   );
 }

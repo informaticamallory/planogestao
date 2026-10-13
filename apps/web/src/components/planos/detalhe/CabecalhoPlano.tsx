@@ -2,14 +2,14 @@ import type { PlanoDetalhe } from "@planogestao/shared-types";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-import { useArquivamentoPlano, useConcluirPlano, useExcluirPlano } from "../../../hooks/usePlano";
+import { useArquivamentoPlano, useConcluirPlano } from "../../../hooks/usePlano";
 import { formatarData, formatarDataDoInstante } from "../../../utils/datas";
 import { ROTULO_LISTA_PLANOS, caminhoListaPlanos } from "../../../utils/hierarquiaPlanos";
 import { Badge } from "../../ui/Badge";
 import { Button, ButtonLink } from "../../ui/Button";
 import { Input } from "../../ui/Input";
 import { Modal } from "../../ui/Modal";
-import { ConfirmarOperacao } from "../ConfirmarOperacao";
+import { ExcluirPlanoModal } from "../ExcluirPlanoModal";
 import { NavegacaoHierarquia } from "../NavegacaoHierarquia";
 import { PriorityBadge } from "../../ui/StatusBadges";
 import { PlanStatusBadge } from "../../ui/StatusBadges";
@@ -29,7 +29,6 @@ export function CabecalhoPlano({ plano }: { plano: PlanoDetalhe }) {
   const [concluindo, setConcluindo] = useState(false);
   const [observacao, setObservacao] = useState("");
   const arquivamento = useArquivamentoPlano(plano.id);
-  const excluir = useExcluirPlano(plano.id);
   const concluir = useConcluirPlano(plano.id);
   const arquivado = plano.arquivado_em !== null;
 
@@ -97,10 +96,7 @@ export function CabecalhoPlano({ plano }: { plano: PlanoDetalhe }) {
           {plano.permissoes.excluir && (
             <Button
               variante="perigo"
-              onClick={() => {
-                excluir.reset();
-                setExcluindo(true);
-              }}
+              onClick={() => setExcluindo(true)}
             >
               Excluir plano
             </Button>
@@ -155,23 +151,13 @@ export function CabecalhoPlano({ plano }: { plano: PlanoDetalhe }) {
         {arquivamento.isError && <p className={styles.erro}>Não foi possível concluir: {arquivamento.error.message}</p>}
       </Modal>
 
-      <ConfirmarOperacao
+      {/* Excluído, o plano deixa de abrir: volta para a listagem (já atualizada), com o aviso "Plano excluído". */}
+      <ExcluirPlanoModal
+        plano={plano}
         aberto={excluindo}
-        titulo="Excluir plano?"
-        identificacao={`${plano.codigo} — ${plano.nome}`}
-        rotuloBotao="Excluir plano"
-        destrutiva
-        pendente={excluir.isPending}
-        erro={excluir.error?.message}
         onFechar={() => setExcluindo(false)}
-        onConfirmar={() => excluir.mutate(undefined, { onSuccess: () => navigate("/planos", { replace: true }) })}
-      >
-        <p>
-          O plano e todas as suas ações ({plano.total_acoes}) e sub-itens também serão retirados das consultas comuns: listas, Minhas Ações,
-          calendário, dashboard, indicadores, relatórios e lembretes.
-        </p>
-        <p>O histórico e os anexos ficam guardados para auditoria, com quem excluiu e quando. Pontos de apurações já encerradas não mudam.</p>
-      </ConfirmarOperacao>
+        onExcluido={() => navigate(caminhoListaPlanos(), { replace: true })}
+      />
 
       <Modal
         aberto={concluindo}

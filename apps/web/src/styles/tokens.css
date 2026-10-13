@@ -190,6 +190,9 @@
 [data-accent="petroleo"] {
   --accent-h: 200;
 }
+[data-accent="rosa"] {
+  --accent-h: 340;
+}
 
 /* Densidade */
 [data-density="compact"] {

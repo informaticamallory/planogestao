@@ -53,6 +53,7 @@ const CORES: { id: CorDestaque | null; rotulo: string; amostra: string }[] = [
   { id: "verde", rotulo: "Verde", amostra: "oklch(0.52 0.14 155)" },
   { id: "roxo", rotulo: "Roxo", amostra: "oklch(0.52 0.14 300)" },
   { id: "petroleo", rotulo: "Petróleo", amostra: "oklch(0.52 0.14 200)" },
+  { id: "rosa", rotulo: "Rosa", amostra: "oklch(0.52 0.14 340)" },
 ];
 
 /**

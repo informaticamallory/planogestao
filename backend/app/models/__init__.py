@@ -5,7 +5,7 @@ from app.models.notificacao import Notificacao, ResumoSemanalPlano
 from app.models.base import Base
 from app.models.configuracao import Configuracao
 from app.models.dispositivo import DeviceToken
-from app.models.email_config import ConfigEmail, HistoricoConfigEmail, ModeloEmail
+from app.models.email_config import ConfigEmail, GestorAreaEmail, HistoricoConfigEmail, ModeloEmail
 from app.models.envio_email import EnvioEmail, EnvioEmailTentativa, ResultadoTentativa, SituacaoEnvio
 from app.models.equipe import Equipe, EquipeHistorico, EquipeMembro
 from app.models.estrutura import Area, Setor
@@ -43,6 +43,7 @@ __all__ = [
     "EnvioEmail",
     "EnvioEmailTentativa",
     "ResultadoTentativa",
+    "GestorAreaEmail",
     "HistoricoConfigEmail",
     "ModeloEmail",
     "SituacaoEnvio",

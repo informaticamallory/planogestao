@@ -68,6 +68,17 @@
   filter: brightness(0.97);
 }
 
+/* danger sólido: o botão que CONFIRMA uma exclusão (o que só abre a confirmação continua danger-soft).
+   O texto usa a mesma cor do texto do primário, que contrasta com o tom do tema (claro ou escuro). */
+.perigoSolido {
+  background: var(--danger);
+  color: var(--primary-fg);
+}
+
+.perigoSolido:hover:not(:disabled) {
+  filter: brightness(1.07);
+}
+
 /* link de texto */
 .link {
   min-height: 0;

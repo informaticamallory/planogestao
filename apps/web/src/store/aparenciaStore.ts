@@ -15,7 +15,7 @@ export type Densidade = "compact" | "comfortable" | "spacious";
 
 export const CHAVE_APARENCIA = "planogestao:aparencia";
 const PREFERENCIAS: TemaPreferido[] = ["claro", "escuro", "automatico"];
-const CORES: CorDestaque[] = ["azul", "verde", "roxo", "petroleo"];
+const CORES: CorDestaque[] = ["azul", "verde", "roxo", "petroleo", "rosa"];
 const FONTES: TamanhoFonte[] = ["pequeno", "padrao", "grande", "extra_grande"];
 const DENSIDADES: Densidade[] = ["compact", "comfortable", "spacious"];
 

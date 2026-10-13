@@ -1,5 +1,13 @@
 import { ApiError } from "@planogestao/api-client";
-import type { ConfigEmailTela, ModeloTela, PreviaEmail } from "@planogestao/shared-types";
+import type {
+  ConfigEmailTela,
+  ModeloTela,
+  OpcaoGestorArea,
+  OpcoesGestoresArea,
+  PreviaEmail,
+  VinculoGestorArea,
+  VinculoGestorAreaSalvar,
+} from "@planogestao/shared-types";
 import { useMutation } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 
@@ -7,13 +15,14 @@ import adminStyles from "../../components/admin/Admin.module.css";
 import { Badge } from "../../components/ui/Badge";
 import { Button } from "../../components/ui/Button";
 import { Card } from "../../components/ui/Card";
+import { ComboboxBusca } from "../../components/ui/ComboboxBusca";
 import { Drawer } from "../../components/ui/Drawer";
 import { Field, fieldAria } from "../../components/ui/Field";
 import { Checkbox, Input, Textarea } from "../../components/ui/Input";
 import { Modal } from "../../components/ui/Modal";
 import { Table } from "../../components/ui/Table";
 import { Tabs } from "../../components/ui/Tabs";
-import { useEmailConfig, useMutacaoAdmin } from "../../hooks/useAdministracao";
+import { useEmailConfig, useGestoresArea, useMutacaoAdmin, useOpcoesGestoresArea } from "../../hooks/useAdministracao";
 import { api } from "../../services/api";
 import { formatarDataHora } from "../../utils/datas";
 import styles from "./EmailConfig.module.css";
@@ -59,6 +68,7 @@ export function EmailConfigPage() {
         <>
           <CartaoRemetente d={d} />
           <CartaoCcoPadrao d={d} />
+          <CartaoGestoresArea />
           <Tabs rotulo="Modelos de e-mail" abas={d.modelos.map((m) => ({ id: m.evento, rotulo: m.nome }))} ativa={aba} onSelecionar={setAba}>
             {/* Os três ficam montados (só o da aba aparece): trocar de aba não perde o que foi editado. */}
             {d.modelos.map((m) => (
@@ -143,6 +153,260 @@ function CartaoCcoPadrao({ d }: { d: ConfigEmailTela }) {
           {salvar.isPending ? "Salvando…" : "Salvar CCO padrão"}
         </Button>
       </div>
+    </Card>
+  );
+}
+
+const MENSAGEM_SEM_ACESSO =
+  "Este gestor não possui permissão de acesso à área selecionada. Ajuste as áreas autorizadas no cadastro do usuário antes de criar o vínculo.";
+const MENSAGEM_DUPLICADO = "Este gestor já está vinculado a esta área.";
+
+type Area = OpcoesGestoresArea["areas"][number];
+
+/**
+ * Gestores por área — cópia oculta. Só define quem recebe a cópia dos e-mails da área (não altera acessos).
+ * As regras de verdade são do backend (perfil Gestor, acesso à área, sem duplicados); aqui elas aparecem antes de
+ * salvar. Editar carrega o vínculo no mesmo formulário (as listas com busca não ficam cortadas dentro de um modal).
+ */
+function CartaoGestoresArea() {
+  const vinculos = useGestoresArea();
+  const opcoes = useOpcoesGestoresArea();
+  const [area, setArea] = useState<Area | null>(null);
+  const [gestor, setGestor] = useState<OpcaoGestorArea | null>(null);
+  const [ativo, setAtivo] = useState(true);
+  const [editando, setEditando] = useState<VinculoGestorArea | null>(null);
+  const [removendo, setRemovendo] = useState<VinculoGestorArea | null>(null);
+  const [aviso, setAviso] = useState<string | null>(null);
+  const [erroLinha, setErroLinha] = useState<{ id: number; mensagem: string } | null>(null);
+
+  const criar = useMutacaoAdmin((body: VinculoGestorAreaSalvar) => api.admin.email.gestoresArea.criar(body));
+  const atualizar = useMutacaoAdmin(({ id, body }: { id: number; body: VinculoGestorAreaSalvar }) => api.admin.email.gestoresArea.atualizar(id, body));
+  const remover = useMutacaoAdmin((id: number) => api.admin.email.gestoresArea.remover(id));
+
+  const lista = vinculos.data ?? [];
+  const semAcesso = !!(area && gestor && gestor.areas !== null && !gestor.areas.includes(area.id) && ativo);
+  const duplicado = !!(area && gestor && lista.some((v) => v.area.id === area.id && v.gestor.id === gestor.id && v.id !== editando?.id));
+  const erroGestor = semAcesso ? MENSAGEM_SEM_ACESSO : duplicado ? MENSAGEM_DUPLICADO : undefined;
+  const salvando = criar.isPending || atualizar.isPending;
+  const erroSalvar = criar.isError ? mensagemErro(criar.error) : atualizar.isError && !erroLinha ? mensagemErro(atualizar.error) : null;
+
+  const limpar = () => {
+    setArea(null);
+    setGestor(null);
+    setAtivo(true);
+    setEditando(null);
+    criar.reset();
+    atualizar.reset();
+  };
+
+  const salvar = () => {
+    if (!area || !gestor || erroGestor) return;
+    const body = { area_id: area.id, usuario_id: gestor.id, ativo };
+    setAviso(null);
+    setErroLinha(null);
+    if (editando) {
+      atualizar.mutate({ id: editando.id, body }, { onSuccess: () => (limpar(), setAviso("Vínculo atualizado.")) });
+    } else {
+      criar.mutate(body, { onSuccess: () => (limpar(), setAviso("Vínculo adicionado.")) });
+    }
+  };
+
+  const editar = (v: VinculoGestorArea) => {
+    criar.reset();
+    atualizar.reset();
+    setAviso(null);
+    setEditando(v);
+    setArea(v.area);
+    // O gestor pode ter deixado de ser elegível (ex.: perfil alterado): mantém o atual para poder desativar.
+    setGestor(opcoes.data?.gestores.find((g) => g.id === v.gestor.id) ?? v.gestor);
+    setAtivo(v.ativo);
+  };
+
+  const alternar = (v: VinculoGestorArea) => {
+    setAviso(null);
+    setErroLinha(null);
+    atualizar.mutate(
+      { id: v.id, body: { area_id: v.area.id, usuario_id: v.gestor.id, ativo: !v.ativo } },
+      { onError: (e) => setErroLinha({ id: v.id, mensagem: mensagemErro(e) }) },
+    );
+  };
+
+  return (
+    <Card titulo="Gestores por área — cópia oculta">
+      <p className={styles.descricaoBloco}>
+        Vincule gestores às áreas para que recebam, em cópia oculta, as notificações relacionadas às áreas selecionadas.
+      </p>
+      <p className={styles.alerta} role="note">
+        Vale para os e-mails de Planos de Ação, ações e sub-itens da área (criação, atribuição, prazos, conclusão, dependência liberada,
+        plano sem atualização e resumo semanal), somado ao CCO padrão. Convites e e-mails de acesso não incluem gestores. O vínculo não
+        altera as áreas autorizadas do usuário; quem perde o acesso à área deixa de receber.
+      </p>
+
+      <div className={styles.formVinculo}>
+        <Field id="vinculo-area" rotulo="Área de permissão" obrigatorio>
+          <ComboboxBusca
+            id="vinculo-area"
+            ariaLabel="Área de permissão"
+            opcoes={opcoes.data?.areas ?? []}
+            valor={area}
+            onSelecionar={setArea}
+            texto={(a) => a.nome}
+            placeholder={opcoes.isLoading ? "Carregando…" : "Buscar área pelo nome"}
+            mensagemVazia="Nenhuma área encontrada."
+          />
+        </Field>
+        <Field id="vinculo-gestor" rotulo="Gestor" obrigatorio erro={erroGestor} ajuda={gestor ? undefined : "Usuários ativos com perfil Gestor."}>
+          <ComboboxBusca
+            id="vinculo-gestor"
+            ariaLabel="Gestor"
+            opcoes={opcoes.data?.gestores ?? []}
+            valor={gestor}
+            onSelecionar={setGestor}
+            texto={(g) => g.nome}
+            detalhe={(g) => g.email}
+            placeholder={opcoes.isLoading ? "Carregando…" : "Buscar gestor pelo nome"}
+            mensagemVazia="Nenhum gestor ativo encontrado."
+            invalido={!!erroGestor}
+            idErro={erroGestor ? "vinculo-gestor-erro" : undefined}
+          />
+        </Field>
+        <Field id="vinculo-email" rotulo="E-mail" ajuda="Obtido do cadastro do usuário (usado o atual em cada envio).">
+          <Input id="vinculo-email" value={gestor?.email ?? ""} placeholder="Selecione o gestor" readOnly />
+        </Field>
+      </div>
+      <div className={styles.rodape}>
+        <Checkbox rotulo="Receber em CCO" checked={ativo} onChange={(e) => setAtivo(e.target.checked)} />
+        <div className={styles.botoes}>
+          {editando && (
+            <Button onClick={limpar} disabled={salvando}>
+              Cancelar edição
+            </Button>
+          )}
+          <Button variante="primaria" onClick={salvar} disabled={!area || !gestor || !!erroGestor || salvando}>
+            {salvando ? "Salvando…" : editando ? "Salvar alteração" : "Adicionar vínculo"}
+          </Button>
+        </div>
+      </div>
+      {erroSalvar && (
+        <p className={styles.erroBloco} role="alert">
+          {erroSalvar}
+        </p>
+      )}
+      {aviso && (
+        <p className={styles.nota} role="status">
+          {aviso}
+        </p>
+      )}
+
+      <div className={styles.tabelaVinculos}>
+        {vinculos.isLoading ? (
+          <p className={styles.nota}>Carregando vínculos…</p>
+        ) : vinculos.isError ? (
+          <p className={styles.erroBloco}>Não foi possível carregar os vínculos: {mensagemErro(vinculos.error)}</p>
+        ) : lista.length === 0 ? (
+          <p className={styles.nota}>Nenhum vínculo cadastrado. Sem vínculos, os e-mails seguem só para os destinatários normais e o CCO padrão.</p>
+        ) : (
+          <Table>
+            <thead>
+              <tr>
+                <th scope="col">Área de permissão</th>
+                <th scope="col">Gestor</th>
+                <th scope="col">E-mail</th>
+                <th scope="col">Receber em CCO</th>
+                <th scope="col" data-acoes>
+                  Ações
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {lista.map((v) => (
+                <tr key={v.id} data-inativo={!v.ativo || undefined}>
+                  <td>{v.area.nome}</td>
+                  <td>
+                    {v.gestor.nome}
+                    {v.situacao && v.ativo && (
+                      <span className={styles.situacao}>
+                        <Badge tom="aviso" tamanho="sm">
+                          Não recebe agora
+                        </Badge>{" "}
+                        {v.situacao}
+                      </span>
+                    )}
+                  </td>
+                  <td className={styles.colunaEmail}>{v.gestor.email}</td>
+                  <td>
+                    <Checkbox
+                      rotulo={v.ativo ? "Ativado" : "Desativado"}
+                      checked={v.ativo}
+                      disabled={atualizar.isPending}
+                      onChange={() => alternar(v)}
+                      aria-label={`Receber em CCO — ${v.gestor.nome}, ${v.area.nome}`}
+                    />
+                    {erroLinha?.id === v.id && (
+                      <span className={styles.erroBloco} role="alert">
+                        {erroLinha.mensagem}
+                      </span>
+                    )}
+                  </td>
+                  <td data-acoes>
+                    <span className={styles.botoes}>
+                      <Button tamanho="sm" onClick={() => editar(v)} aria-label={`Editar vínculo de ${v.gestor.nome} com ${v.area.nome}`}>
+                        Editar
+                      </Button>
+                      <Button tamanho="sm" variante="perigo" onClick={() => (remover.reset(), setRemovendo(v))}
+                        aria-label={`Remover vínculo de ${v.gestor.nome} com ${v.area.nome}`}>
+                        Remover
+                      </Button>
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </Table>
+        )}
+      </div>
+
+      <Modal
+        aberto={removendo !== null}
+        titulo="Remover vínculo?"
+        bloquearFechar={remover.isPending}
+        onFechar={() => !remover.isPending && setRemovendo(null)}
+        acoes={
+          <>
+            <Button onClick={() => setRemovendo(null)} disabled={remover.isPending}>
+              Cancelar
+            </Button>
+            <Button
+              variante="perigoSolido"
+              disabled={remover.isPending}
+              onClick={() =>
+                removendo &&
+                remover.mutate(removendo.id, {
+                  onSuccess: () => {
+                    if (editando?.id === removendo.id) limpar();
+                    setRemovendo(null);
+                    setAviso("Vínculo removido.");
+                  },
+                })
+              }
+            >
+              {remover.isPending ? "Removendo…" : "Remover"}
+            </Button>
+          </>
+        }
+      >
+        {removendo && (
+          <p>
+            {removendo.gestor.nome} ({removendo.gestor.email}) deixa de receber, em cópia oculta, as notificações da área “{removendo.area.nome}”.
+            O acesso do usuário não muda. Para só pausar o recebimento, desative “Receber em CCO”.
+          </p>
+        )}
+        {remover.isError && (
+          <p className={styles.erroBloco} role="alert">
+            {mensagemErro(remover.error)}
+          </p>
+        )}
+      </Modal>
     </Card>
   );
 }
@@ -422,7 +686,13 @@ function CartaoHistorico({ d }: { d: ConfigEmailTela }) {
                     : "Envio desativado"
                   : h.campo === "cco"
                     ? `CCO: ${h.valor_novo || "(vazio)"}`
-                    : `Alterou o ${ROTULO_CAMPO[h.campo] ?? h.campo}`}
+                    : h.campo === "vinculo_criado"
+                      ? `Vínculo criado: ${h.valor_novo}`
+                      : h.campo === "vinculo_alterado"
+                        ? `Vínculo alterado: ${h.valor_anterior} → ${h.valor_novo}`
+                        : h.campo === "vinculo_removido"
+                          ? `Vínculo removido: ${h.valor_anterior}`
+                          : `Alterou o ${ROTULO_CAMPO[h.campo] ?? h.campo}`}
               </td>
             </tr>
           ))}

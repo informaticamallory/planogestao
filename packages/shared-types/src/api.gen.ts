@@ -2009,6 +2009,65 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/email-config/gestores-area": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Listar Gestores Area */
+        get: operations["listar_gestores_area_email_config_gestores_area_get"];
+        put?: never;
+        /**
+         * Criar Gestor Area
+         * @description Vincula um gestor a uma área (exige acesso à área; o par área × gestor é único). Não altera acessos.
+         */
+        post: operations["criar_gestor_area_email_config_gestores_area_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/email-config/gestores-area/opcoes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Opcoes Gestores Area */
+        get: operations["opcoes_gestores_area_email_config_gestores_area_opcoes_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/email-config/gestores-area/{vinculo_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Atualizar Gestor Area
+         * @description Troca área/gestor ou ativa/desativa o recebimento. Desativar sempre pode; ativar exige acesso à área.
+         */
+        put: operations["atualizar_gestor_area_email_config_gestores_area__vinculo_id__put"];
+        post?: never;
+        /** Remover Gestor Area */
+        delete: operations["remover_gestor_area_email_config_gestores_area__vinculo_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/email-config/previa": {
         parameters: {
             query?: never;
@@ -4397,6 +4456,20 @@ export interface components {
             /** Area Id */
             area_id: number;
         };
+        /** OpcaoGestor */
+        OpcaoGestor: {
+            /** Id */
+            id: number;
+            /** Nome */
+            nome: string;
+            /** Email */
+            email: string;
+            /**
+             * Areas
+             * @description Áreas autorizadas; null = todas as áreas.
+             */
+            areas: number[] | null;
+        };
         /** OpcoesConvite */
         OpcoesConvite: {
             /**
@@ -4420,6 +4493,19 @@ export interface components {
             setores: components["schemas"]["OpcaoDaArea"][];
             /** Equipes */
             equipes: components["schemas"]["OpcaoDaArea"][];
+        };
+        /** OpcoesGestoresArea */
+        OpcoesGestoresArea: {
+            /**
+             * Areas
+             * @description Áreas ativas.
+             */
+            areas: components["schemas"]["OpcaoArea"][];
+            /**
+             * Gestores
+             * @description Usuários ativos com perfil Gestor.
+             */
+            gestores: components["schemas"]["OpcaoGestor"][];
         };
         /**
          * OpcoesPlanos
@@ -6419,7 +6505,7 @@ export interface components {
              */
             tema: "claro" | "escuro" | "automatico";
             /** Cor Destaque */
-            cor_destaque: ("azul" | "verde" | "roxo" | "petroleo") | null;
+            cor_destaque: ("azul" | "verde" | "roxo" | "petroleo" | "rosa") | null;
             /**
              * Tamanho Fonte
              * @enum {string}
@@ -6453,7 +6539,7 @@ export interface components {
              */
             tamanho_fonte?: ("pequeno" | "padrao" | "grande" | "extra_grande") | null;
             /** Cor Destaque */
-            cor_destaque?: ("azul" | "verde" | "roxo" | "petroleo") | null;
+            cor_destaque?: ("azul" | "verde" | "roxo" | "petroleo" | "rosa") | null;
         };
         /** ValidationError */
         ValidationError: {
@@ -6479,6 +6565,42 @@ export interface components {
             bloqueios: components["schemas"]["BloqueioSaida"][];
             /** Avisos */
             avisos: string[];
+        };
+        /** VinculoGestorArea */
+        VinculoGestorArea: {
+            /** Id */
+            id: number;
+            area: components["schemas"]["OpcaoArea"];
+            gestor: components["schemas"]["OpcaoGestor"];
+            /**
+             * Ativo
+             * @description Receber em CCO.
+             */
+            ativo: boolean;
+            /**
+             * Situacao
+             * @description Por que não receberia agora (conta, perfil, e-mail ou acesso). Null = recebe.
+             */
+            situacao: string | null;
+            /** Atualizado Por */
+            atualizado_por: string | null;
+            /**
+             * Atualizado Em
+             * Format: date-time
+             */
+            atualizado_em: string;
+        };
+        /** VinculoSalvar */
+        VinculoSalvar: {
+            /** Area Id */
+            area_id: number;
+            /** Usuario Id */
+            usuario_id: number;
+            /**
+             * Ativo
+             * @default true
+             */
+            ativo: boolean;
         };
         /**
          * Visualizacao
@@ -10688,6 +10810,143 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["CcoPadrao"];
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    listar_gestores_area_email_config_gestores_area_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VinculoGestorArea"][];
+                };
+            };
+        };
+    };
+    criar_gestor_area_email_config_gestores_area_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VinculoSalvar"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VinculoGestorArea"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    opcoes_gestores_area_email_config_gestores_area_opcoes_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OpcoesGestoresArea"];
+                };
+            };
+        };
+    };
+    atualizar_gestor_area_email_config_gestores_area__vinculo_id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                vinculo_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VinculoSalvar"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VinculoGestorArea"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    remover_gestor_area_email_config_gestores_area__vinculo_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                vinculo_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {

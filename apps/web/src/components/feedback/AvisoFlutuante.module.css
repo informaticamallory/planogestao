@@ -1,0 +1,86 @@
+/* Canto inferior direito no desktop; no celular, embaixo com as margens laterais da tela. */
+.regiao {
+  position: fixed;
+  right: var(--space-4);
+  bottom: var(--space-4);
+  z-index: 1000;
+  max-width: calc(100vw - 2 * var(--space-4));
+  pointer-events: none;
+}
+
+.aviso {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 14rem;
+  max-width: 24rem;
+  padding: var(--space-3) var(--space-3) var(--space-3) var(--space-4);
+  border: var(--borda-fina) solid var(--border);
+  border-left: 4px solid var(--success);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  color: var(--fg);
+  box-shadow: var(--shadow-lg);
+  font-weight: var(--fw-semibold);
+  overflow-wrap: anywhere;
+  pointer-events: auto;
+  animation: entrar 0.2s ease-out;
+}
+
+.aviso > svg {
+  flex-shrink: 0;
+  color: var(--success);
+}
+
+.texto {
+  flex: 1;
+  min-width: 0;
+}
+
+.fechar {
+  display: inline-grid;
+  flex-shrink: 0;
+  place-items: center;
+  min-width: var(--alvo-toque);
+  min-height: var(--alvo-toque);
+  padding: 0;
+  border: 0;
+  border-radius: var(--r-md);
+  background: none;
+  color: var(--fg-muted);
+  cursor: pointer;
+}
+
+.fechar:hover {
+  background: var(--bg-2);
+  color: var(--fg);
+}
+
+.fechar:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+@media (--mobile) {
+  .regiao {
+    left: var(--space-4);
+    bottom: calc(var(--space-4) + env(safe-area-inset-bottom));
+  }
+
+  .aviso {
+    max-width: none;
+  }
+}
+
+@keyframes entrar {
+  from {
+    transform: translateY(0.5rem);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aviso {
+    animation: none;
+  }
+}

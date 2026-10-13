@@ -4,6 +4,9 @@
  * (a página nunca rola de lado). As sombras nas bordas indicam que há mais colunas.
  */
 .rolagem {
+  /* Contém também o que é posicionado dentro da tabela (ex.: o rótulo .sr-only da coluna de operações):
+     sem isto ele escapa da rolagem e alarga a página inteira. */
+  position: relative;
   overflow-x: auto;
   min-width: 0;
   max-width: 100%;

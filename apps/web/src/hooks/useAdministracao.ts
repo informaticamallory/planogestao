@@ -24,6 +24,11 @@ export const useOrigensAdmin = () => useQuery({ queryKey: ["admin", "origens"], 
 
 export const useEmailConfig = () => useQuery({ queryKey: ["admin", "email"], queryFn: api.admin.email.obter });
 
+/** Gestores por área (CCO): vínculos e as listas do formulário (áreas ativas e gestores ativos). */
+export const useGestoresArea = () => useQuery({ queryKey: ["admin", "email", "gestores-area"], queryFn: api.admin.email.gestoresArea.listar });
+export const useOpcoesGestoresArea = () =>
+  useQuery({ queryKey: ["admin", "email", "gestores-area", "opcoes"], queryFn: api.admin.email.gestoresArea.opcoes });
+
 export const useConfiguracoesAdmin = () => useQuery({ queryKey: ["admin", "configuracoes"], queryFn: api.admin.configuracoes.listar });
 
 /** Parâmetros globais para textos da interface (qualquer usuário logado). */

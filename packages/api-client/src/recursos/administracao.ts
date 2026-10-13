@@ -7,6 +7,7 @@ import type {
   TextoModeloEmail,
   UsuarioAtualizar,
   UsuarioCriar,
+  VinculoGestorAreaSalvar,
 } from "@planogestao/shared-types";
 
 import type { HttpClient } from "../client";
@@ -88,6 +89,16 @@ export function criarAdministracao(http: HttpClient) {
       previa: async (body: TextoModeloEmail) => exigirDados(await http.POST("/email-config/previa", { body })),
       /** Envia agora, só para `destinatario`, com dados fictícios (sem destinatários reais nem CCO). */
       teste: async (body: TesteEmailPedido) => exigirDados(await http.POST("/email-config/teste", { body })),
+      /** Gestores por área: recebem em CCO as notificações das áreas vinculadas (não altera acessos). */
+      gestoresArea: {
+        listar: async () => exigirDados(await http.GET("/email-config/gestores-area")),
+        opcoes: async () => exigirDados(await http.GET("/email-config/gestores-area/opcoes")),
+        criar: async (body: VinculoGestorAreaSalvar) => exigirDados(await http.POST("/email-config/gestores-area", { body })),
+        atualizar: async (vinculoId: number, body: VinculoGestorAreaSalvar) =>
+          exigirDados(await http.PUT("/email-config/gestores-area/{vinculo_id}", { ...id("vinculo_id", vinculoId), body })),
+        remover: async (vinculoId: number) =>
+          exigirSucesso(await http.DELETE("/email-config/gestores-area/{vinculo_id}", id("vinculo_id", vinculoId))),
+      },
     },
     configuracoes: {
       listar: async () => exigirDados(await http.GET("/configuracoes")),

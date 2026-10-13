@@ -128,6 +128,52 @@
   background: #faf7f5;
 }
 
+/* Gestores por área — cópia oculta. */
+.descricaoBloco {
+  margin: 0 0 var(--espaco-3);
+  color: var(--fg);
+  font-size: var(--fonte-md);
+}
+
+.formVinculo {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--espaco-3) var(--espaco-4);
+  align-items: start;
+  margin-top: var(--espaco-4);
+}
+
+.erroBloco {
+  display: block;
+  margin: var(--espaco-2) 0 0;
+  color: var(--danger);
+  font-size: var(--fonte-sm);
+  overflow-wrap: anywhere;
+}
+
+.tabelaVinculos {
+  margin-top: var(--espaco-4);
+}
+
+.situacao {
+  display: block;
+  margin-top: var(--espaco-1);
+  color: var(--cor-texto-suave);
+  font-size: var(--fonte-sm);
+}
+
+/* Endereço legível em tela estreita: a tabela rola dentro do card em vez de quebrar letra a letra. */
+.colunaEmail {
+  min-width: 12rem;
+  overflow-wrap: anywhere;
+}
+
+@media (--ate-tablet) {
+  .formVinculo {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 @media (--ate-tablet) {
   .modelo {
     grid-template-columns: minmax(0, 1fr);

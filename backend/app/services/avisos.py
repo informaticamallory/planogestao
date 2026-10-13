@@ -25,7 +25,7 @@ from sqlalchemy.orm import Session
 from app.core.tempo import data_local
 from app.models import Acao, EnvioEmail, PlanoDeAcao, Usuario
 from app.models.enums import STATUS_ACAO_ABERTOS, ReferenciaNotificacao, StatusPlano
-from app.services import dependencias
+from app.services import dependencias, gestores_area
 from app.services.email_notificacoes import _data, _link, enfileirar_aviso, registrar_validador
 from app.services.escopo import filtro_planos_visiveis
 from app.services.eventos import Evento, TipoEvento, publicar
@@ -118,10 +118,15 @@ def avisar(db: Session, aviso: Aviso) -> int:
     if aviso.email is not None:
         querem = recebem(db, aviso.tipo, [u.id for u in validos], "email")
         destinatarios = [u for u in validos if u.id in querem]
-        if destinatarios:
-            contexto = {("acao_id" if aviso.acao is not None else "plano_id"): ref_id, **aviso.contexto}
+        contexto = {("acao_id" if aviso.acao is not None else "plano_id"): ref_id, **aviso.contexto}
+        # Gestores da área do plano/item em CCO (gestores_area.py), resolvidos no envio. Mesmo sem nenhum
+        # destinatário com o e-mail ligado, eles recebem (numa cópia só deles); quem é destinatário do aviso mas
+        # desligou o e-mail deste tipo não o recebe em cópia.
+        area = gestores_area.area_do_evento(plano=aviso.plano, acao=aviso.acao)
+        if destinatarios or area is not None:
             enfileirar_aviso(db, POR_TIPO[aviso.tipo].evento_email, ref_tipo.value, ref_id, destinatarios, aviso.email,
-                             chave_evento=aviso.chave, contexto=contexto)
+                             chave_evento=aviso.chave, contexto=contexto, area=area, fora_da_copia=[u.id for u in validos],
+                             ref_copia=validos[0])
     return criadas
 
 

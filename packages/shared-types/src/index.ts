@@ -165,6 +165,10 @@ export type TentativaEnvioItem = Schemas["TentativaEnvioItem"];
 
 // Configurações de e-mail (Administração).
 export type ConfigEmailTela = Schemas["ConfigEmailTela"];
+export type VinculoGestorArea = Schemas["VinculoGestorArea"];
+export type VinculoGestorAreaSalvar = Schemas["VinculoSalvar"];
+export type OpcoesGestoresArea = Schemas["OpcoesGestoresArea"];
+export type OpcaoGestorArea = Schemas["OpcaoGestor"];
 export type ModeloTela = Schemas["ModeloTela"];
 export type ModeloEmailSalvar = Schemas["ModeloSalvar"];
 export type TextoModeloEmail = Schemas["TextoModelo"];

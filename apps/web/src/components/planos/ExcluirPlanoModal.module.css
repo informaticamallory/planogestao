@@ -1,0 +1,68 @@
+/* Caixa de identificação: código em destaque e o nome completo, quebrando em quantas linhas precisar. */
+.identificacao {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin: 0 0 var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border: var(--borda-fina) solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--bg-2);
+  overflow-wrap: anywhere;
+}
+
+.codigo {
+  color: var(--fg-muted);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  font-weight: var(--fw-semibold);
+}
+
+.nome {
+  color: var(--fg);
+  font-weight: var(--fw-semibold);
+}
+
+.explicacao {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+/* O espaçamento vem do gap (o Modal dá margem inferior aos parágrafos). */
+.explicacao p {
+  margin: 0;
+}
+
+.quantidade {
+  color: var(--fg);
+  font-weight: var(--fw-semibold);
+}
+
+/* Checkbox com texto em várias linhas: a caixa alinha com a 1ª linha e o texto quebra. */
+label.confirmacao {
+  display: flex;
+  align-items: flex-start;
+  margin-top: var(--space-4);
+  padding: var(--space-3);
+  border: var(--borda-fina) solid var(--border);
+  border-radius: var(--r-md);
+}
+
+label.confirmacao > input {
+  flex-shrink: 0;
+  margin-top: 0.2em;
+}
+
+label.confirmacao > span {
+  min-width: 0;
+}
+
+.erro {
+  margin: var(--space-3) 0 0;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--r-md);
+  background: var(--danger-soft);
+  color: var(--danger);
+  font-weight: var(--fw-semibold);
+}

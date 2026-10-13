@@ -1,12 +1,27 @@
 /* Mallory DS — modal: raio 2xl, sombra lg (elevação de modal). */
 .modal {
   width: min(30rem, calc(100vw - 2rem));
+  max-width: calc(100vw - 2rem);
   padding: var(--pad);
+  overflow-x: hidden;
   border: var(--borda-fina) solid var(--border);
   border-radius: var(--r-2xl);
   background: var(--surface);
   color: var(--fg);
   box-shadow: var(--shadow-lg);
+  /* O <dialog> herda o texto de onde foi montado (ex.: a célula de ações de uma tabela, com nowrap e alinhada à
+     direita): o modal sempre volta ao padrão, com quebra de linha e alinhado à esquerda. */
+  font-weight: var(--fw-normal);
+  letter-spacing: normal;
+  text-align: start;
+  text-transform: none;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+/* Confirmações com mais texto (ex.: excluir plano): ~520px. */
+.modal.media {
+  width: min(32.5rem, calc(100vw - 2rem));
 }
 
 .modal.larga {
@@ -56,7 +71,8 @@
     border-radius: var(--r-2xl) var(--r-2xl) 0 0;
   }
 
-  /* A folha também vale para o modal largo (a largura de desktop não pode vencer aqui). */
+  /* A folha também vale para os modais médio e largo (a largura de desktop não pode vencer aqui). */
+  .modal.media,
   .modal.larga {
     width: 100vw;
   }

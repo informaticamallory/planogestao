@@ -13,7 +13,7 @@
         var p = a.preferencia || (a.tema === "dark" ? "escuro" : a.tema === "light" ? "claro" : "automatico");
         var escuro = p === "escuro" || (p === "automatico" && window.matchMedia("(prefers-color-scheme: dark)").matches);
         h.dataset.theme = escuro ? "dark" : "light";
-        if (["azul", "verde", "roxo", "petroleo"].indexOf(a.cor) >= 0) h.dataset.accent = a.cor;
+        if (["azul", "verde", "roxo", "petroleo", "rosa"].indexOf(a.cor) >= 0) h.dataset.accent = a.cor;
         if (["pequeno", "padrao", "grande", "extra_grande"].indexOf(a.fonte) >= 0) h.dataset.fonte = a.fonte;
         if (["compact", "comfortable", "spacious"].indexOf(a.densidade) >= 0) h.dataset.density = a.densidade;
       } catch (e) {}

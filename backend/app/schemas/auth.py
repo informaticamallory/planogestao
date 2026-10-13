@@ -5,7 +5,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 # Preferências de aparência do próprio usuário (tela Meu Perfil).
 TemaPreferido = Literal["claro", "escuro", "automatico"]
 # Paleta fechada do DS (contraste validado nos dois temas); None = laranja Mallory padrão.
-CorDestaque = Literal["azul", "verde", "roxo", "petroleo"]
+CorDestaque = Literal["azul", "verde", "roxo", "petroleo", "rosa"]
 TamanhoFonte = Literal["pequeno", "padrao", "grande", "extra_grande"]
 
 

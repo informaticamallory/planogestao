@@ -41,6 +41,8 @@
 
 .colunaNome {
   white-space: normal !important;
+  /* Nome sem espaços (ex.: códigos colados) também quebra, em vez de alargar a tabela. */
+  overflow-wrap: anywhere;
   min-width: 15rem;
 }
 

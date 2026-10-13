@@ -54,6 +54,11 @@ class EnvioEmail(Base):
     # Avisos operacionais: o que conferir de novo antes do envio (plano/item, prazo e responsável vigentes;
     # no resumo semanal, os planos e o período). Nulo nos e-mails que não revalidam.
     contexto: Mapped[dict | None] = mapped_column(JSON)
+    # Gestores por área (services/gestores_area.py): a regra fica gravada e os endereços são resolvidos NO ENVIO
+    # (e-mail, conta e áreas autorizadas vigentes). {"area_id", "plano_area_id", "excluir": [ids dos destinatários
+    # principais do evento]}. `cco_area` guarda os endereços usados na última tentativa (auditoria).
+    cco_area_regra: Mapped[dict | None] = mapped_column(JSON)
+    cco_area: Mapped[str | None] = mapped_column(Text)
     criado_em: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), nullable=False)
     atualizado_em: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False)
 

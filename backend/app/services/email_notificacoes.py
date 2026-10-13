@@ -17,7 +17,7 @@ import logging
 import re
 import smtplib
 import ssl
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
@@ -33,7 +33,9 @@ from sqlalchemy.orm import Session
 from app.core.config import get_settings
 from app.core.security import utcnow
 from app.models import Acao, EnvioEmail, EnvioEmailTentativa, PlanoDeAcao, ResultadoTentativa, SituacaoEnvio, Usuario
+from app.services import gestores_area
 from app.services.email_modelos import ModeloEfetivo, cco_do_envio, modelo_efetivo, renderizar
+from app.services.gestores_area import AreaDoEvento
 
 logger = logging.getLogger("planogestao.email")
 
@@ -135,14 +137,19 @@ def _situacao(usuario: Usuario, modelo: ModeloEfetivo) -> tuple[str, str | None]
 def _enfileirar(
     db: Session, evento: str, ref_tipo: str, ref_id: int, destinatarios: list[Usuario], valores: dict,
     chave_evento: str | None = None, contexto: dict | None = None, blocos: dict[str, tuple[str, str]] | None = None,
+    area: AreaDoEvento | None = None, fora_da_copia: Iterable[int] = (), ref_copia: Usuario | None = None,
 ) -> list[EnvioEmail]:
     """Um e-mail por destinatário, com o modelo salvo e ativo do evento (ou o padrão). O CCO (padrão +
     modelo, sem repetidos e sem os destinatários principais) vai uma única vez por evento: no primeiro
-    e-mail que será de fato enviado. `chave_evento` identifica uma ocorrência (ex.: uma troca de prazo) quando
+    e-mail que será de fato enviado. Nesse mesmo e-mail fica a regra dos gestores por `area` (resolvidos no
+    envio, sem os destinatários principais). Se nenhum e-mail principal vai sair (ex.: o destinatário desligou
+    este tipo em Meu Perfil), os gestores recebem uma cópia só deles (`ref_copia`: o destinatário do aviso, cujo
+    nome e revalidação a cópia segue). `chave_evento` identifica uma ocorrência (ex.: uma troca de prazo) quando
     o mesmo registro pode gerar o mesmo tipo de e-mail mais de uma vez."""
     modelo = modelo_efetivo(db, evento)
     principais = [(u.email or "").strip() for u in destinatarios]
     cco = cco_do_envio(db, modelo, principais)
+    regra_area = gestores_area.regra(area, [*(u.id for u in destinatarios), *fora_da_copia])
     envios: list[EnvioEmail] = []
     for usuario in destinatarios:
         chave = f"{chave_evento}:{usuario.id}" if chave_evento else f"{evento}:{ref_tipo}:{ref_id}:{usuario.id}"
@@ -151,9 +158,11 @@ def _enfileirar(
         situacao, erro = _situacao(usuario, modelo)
         msg = renderizar(modelo.assunto, modelo.corpo, {**valores, "destinatario": usuario.nome}, evento, blocos=blocos)
         leva_cco = bool(cco) and situacao == SituacaoEnvio.PENDENTE
+        leva_area = regra_area is not None and situacao == SituacaoEnvio.PENDENTE
         envio = EnvioEmail(
             chave=chave, evento=evento, referencia_tipo=ref_tipo, referencia_id=ref_id, usuario_id=usuario.id,
             destinatario=(usuario.email or "").strip() or None, cco=", ".join(cco) if leva_cco else None,
+            cco_area_regra=regra_area if leva_area else None,
             assunto=msg.assunto, corpo_html=msg.html, corpo_texto=msg.texto, situacao=situacao, ultimo_erro=erro,
             contexto=contexto,
             # Truncado no segundo: o DATETIME do MySQL arredonda a fração e poderia jogar o envio para o segundo seguinte.
@@ -168,6 +177,8 @@ def _enfileirar(
             continue
         if leva_cco:
             cco = []  # já vai neste e-mail
+        if leva_area:
+            regra_area = None  # idem: os gestores da área vão uma vez só por evento
         if situacao == SituacaoEnvio.PENDENTE:
             db.info.setdefault(_CHAVE_SESSAO, []).append(envio.id)
         else:
@@ -175,13 +186,57 @@ def _enfileirar(
         envios.append(envio)
     if cco and get_settings().EMAIL_HABILITADO and modelo.ativo:
         logger.info("CCO de %s:%s não enviado: nenhum destinatário principal com envio.", evento, ref_id)
+    ref = ref_copia or (destinatarios[0] if destinatarios else None)
+    if regra_area is not None and area is not None and ref is not None and gestores_area.tem_vinculo_ativo(db, area.area_id):
+        base = chave_evento or f"{evento}:{ref_tipo}:{ref_id}"
+        copia = enfileirar_copia_area(db, evento, ref_tipo, ref_id, ref, valores, chave=f"{base}:copia_area", area=area,
+                                      contexto=contexto, blocos=blocos, excluir=regra_area["excluir"])
+        if copia is not None:
+            envios.append(copia)
     return envios
 
 
+def enfileirar_copia_area(
+    db: Session, evento: str, ref_tipo: str, ref_id: int, usuario_ref: Usuario, valores: dict, chave: str,
+    area: AreaDoEvento, contexto: dict | None = None, blocos: dict[str, tuple[str, str]] | None = None,
+    excluir: Iterable[int] = (),
+) -> EnvioEmail | None:
+    """Mensagem SÓ para os gestores de uma área, em cópia oculta (o "Para" fica oculto): quando nenhum e-mail
+    principal do evento vai sair, ou quando o e-mail do destinatário agrupa várias áreas (resumo semanal) e cada
+    gestor só pode ver a parte da sua. `usuario_ref` é o destinatário do aviso original (a revalidação confere o
+    acesso dele, como no original). Não leva o CCO padrão (esse continua só junto do e-mail principal)."""
+    modelo = modelo_efetivo(db, evento)
+    if db.scalar(select(EnvioEmail.id).where(EnvioEmail.chave == chave)) is not None:
+        return None
+    if not get_settings().EMAIL_HABILITADO:
+        situacao, erro = SituacaoEnvio.DESABILITADO, "Envio de e-mail desligado (EMAIL_HABILITADO=false)."
+    elif not modelo.ativo:
+        situacao, erro = SituacaoEnvio.MODELO_INATIVO, "Envio deste tipo de notificação desativado em Configurações de e-mail."
+    else:
+        situacao, erro = SituacaoEnvio.PENDENTE, None
+    msg = renderizar(modelo.assunto, modelo.corpo, {**valores, "destinatario": usuario_ref.nome}, evento, blocos=blocos)
+    envio = EnvioEmail(
+        chave=chave, evento=evento, referencia_tipo=ref_tipo, referencia_id=ref_id, usuario_id=usuario_ref.id,
+        destinatario=None, cco=None, cco_area_regra=gestores_area.regra(area, [usuario_ref.id, *excluir]),
+        assunto=msg.assunto, corpo_html=msg.html, corpo_texto=msg.texto, situacao=situacao, ultimo_erro=erro, contexto=contexto,
+        proxima_tentativa_em=utcnow().replace(microsecond=0) if situacao == SituacaoEnvio.PENDENTE else None,
+    )
+    try:
+        with db.begin_nested():
+            db.add(envio)
+            db.flush()
+    except IntegrityError:
+        return None
+    if situacao == SituacaoEnvio.PENDENTE:
+        db.info.setdefault(_CHAVE_SESSAO, []).append(envio.id)
+    return envio
+
+
 def enfileirar_criacao_plano(db: Session, plano: PlanoDeAcao, autor: Usuario) -> list[EnvioEmail]:
-    """Novo PA: e-mail para o responsável pelo plano."""
+    """Novo PA: e-mail para o responsável pelo plano (+ gestores da área do plano em CCO)."""
     db.flush()
-    return _enfileirar(db, EventoEmail.PLANO_CRIADO, "plano", plano.id, [plano.responsavel], variaveis_plano(plano, autor))
+    return _enfileirar(db, EventoEmail.PLANO_CRIADO, "plano", plano.id, [plano.responsavel], variaveis_plano(plano, autor),
+                       area=gestores_area.area_do_evento(plano=plano))
 
 
 def enfileirar_criacao_item(db: Session, acao: Acao, autor: Usuario) -> list[EnvioEmail]:
@@ -198,17 +253,20 @@ def enfileirar_criacao_item(db: Session, acao: Acao, autor: Usuario) -> list[Env
         pessoas.pop(acao.responsavel_id, None)
     evento = EventoEmail.SUBITEM_CRIADO if pai is not None else EventoEmail.ACAO_CRIADA
     return _enfileirar(db, evento, "acao", acao.id, list(pessoas.values()), variaveis_item(acao, autor),
-                       contexto={"acao_id": acao.id})
+                       contexto={"acao_id": acao.id}, area=gestores_area.area_do_evento(acao=acao),
+                       fora_da_copia=[acao.responsavel_id], ref_copia=acao.responsavel)
 
 
 def enfileirar_aviso(
     db: Session, evento: str, ref_tipo: str, ref_id: int, destinatarios: list[Usuario], valores: dict, chave_evento: str,
-    contexto: dict | None = None, blocos: dict[str, tuple[str, str]] | None = None,
+    contexto: dict | None = None, blocos: dict[str, tuple[str, str]] | None = None, area: AreaDoEvento | None = None,
+    fora_da_copia: Iterable[int] = (), ref_copia: Usuario | None = None,
 ) -> list[EnvioEmail]:
-    """Avisos operacionais (services/avisos.py): mesma fila, modelo editável, CCO e novas tentativas."""
+    """Avisos operacionais (services/avisos.py): mesma fila, modelo editável, CCO (padrão, modelo e gestores da
+    `area`) e novas tentativas. `fora_da_copia`: outros destinatários do aviso (ex.: desligaram este e-mail)."""
     db.flush()
     return _enfileirar(db, evento, ref_tipo, ref_id, destinatarios, valores, chave_evento=chave_evento,
-                       contexto=contexto, blocos=blocos)
+                       contexto=contexto, blocos=blocos, area=area, fora_da_copia=fora_da_copia, ref_copia=ref_copia)
 
 
 # ---- revalidação antes do envio ---------------------------------------------------------------------
@@ -290,7 +348,8 @@ def _mensagem(envio: EnvioEmail) -> EmailMessage:
     m = EmailMessage()
     m["Subject"] = envio.assunto
     m["From"] = formataddr((s.EMAIL_REMETENTE_NOME, s.EMAIL_REMETENTE or ""))
-    m["To"] = envio.destinatario or ""
+    # Cópia só para os gestores da área (resumo): ninguém no "Para"; os destinatários seguem só no envelope.
+    m["To"] = envio.destinatario or "undisclosed-recipients:;"
     # Message-ID estável por linha: uma reentrega após falha ambígua é reconhecida como a mesma mensagem.
     dominio = (s.EMAIL_REMETENTE or "planogestao.local").split("@")[-1]
     m["Message-ID"] = make_msgid(idstring=f"envio-{envio.id}", domain=dominio)
@@ -300,10 +359,10 @@ def _mensagem(envio: EnvioEmail) -> EmailMessage:
 
 
 def destinatarios_envelope(envio: EnvioEmail) -> list[str]:
-    """Para + CCO (sem repetir o principal)."""
-    principal = envio.destinatario or ""
-    cco = [e.strip() for e in (envio.cco or "").split(",") if e.strip() and e.strip().casefold() != principal.casefold()]
-    return [principal, *dict.fromkeys(cco)]
+    """Para + CCO (padrão/modelo) + CCO dos gestores da área, cada endereço uma vez só (sem diferenciar
+    maiúsculas e espaços). A cópia por área não tem "Para"."""
+    separar = lambda texto: (texto or "").split(",")  # noqa: E731
+    return gestores_area.sem_repetidos([envio.destinatario or "", *separar(envio.cco), *separar(envio.cco_area)])
 
 
 class RemetenteSmtp:
@@ -391,6 +450,12 @@ def processar_pendentes(
         # Avisos operacionais: acesso, prazo e responsável conferidos de novo, agora.
         validador = _validadores.get(envio.evento)
         motivo = validador(db, envio) if validador and envio.contexto is not None else None
+        if not motivo and envio.cco_area_regra:
+            # Gestores por área: resolvidos AGORA (e-mail, conta, perfil e áreas autorizadas vigentes).
+            ja = [envio.destinatario or "", *(envio.cco or "").split(",")]
+            envio.cco_area = ", ".join(gestores_area.sem_repetidos(gestores_area.enderecos_para(db, envio.cco_area_regra), ja)) or None
+            if not envio.destinatario and not envio.cco_area:
+                motivo = "Nenhum gestor com vínculo ativo e acesso à área para receber a cópia."
         if motivo:
             envio.situacao, envio.ultimo_erro = SituacaoEnvio.IGNORADO, motivo[:2000]
             envio.proxima_tentativa_em = envio.processando_desde = None
