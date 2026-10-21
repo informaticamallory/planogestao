@@ -35,9 +35,8 @@ from app.models.gamificacao import (
 )
 from app.services.configuracoes import valor_inteiro
 
-# Limites do "Top do período" (o valor de cada período fica em gamificacao_periodos.tamanho_podio).
-TAMANHO_PODIO_PADRAO = 5
-TAMANHO_PODIO_MAXIMO = 10
+# Quantas colocações o pódio mostra: Configurações › "Quantidade de colocações no pódio".
+CHAVE_COLOCACOES_PODIO = "gamificacao_colocacoes_podio"
 
 CLASSIFICACAO_ROTULO = {
     GatilhoPontuacao.PLANO_CONCLUIDO.value: "Plano concluído",
@@ -320,15 +319,13 @@ class GamificacaoService:
         return dict(items=linhas[inicio: inicio + page_size], total=len(linhas), page=page, page_size=page_size)
 
     def podio(self, f: FiltrosGamificacao, categoria: CategoriaPontuacao) -> dict:
-        """Top do período selecionado (pela colocação: empatados no limite entram juntos), só com dados
-        suficientes. `tamanho` vai sempre na resposta, para o título valer mesmo sem participantes."""
-        tamanho = self.obter_periodo(f.periodo_id).tamanho_podio
+        """Top N (Configurações › "Quantidade de colocações no pódio"): quem pontuou, pela colocação — empatados na
+        última colocação entram juntos; com menos participantes, só os disponíveis. Sem mínimo de participantes.
+        `tamanho` vai sempre na resposta, para o título valer mesmo sem ninguém pontuando."""
+        tamanho = valor_inteiro(CHAVE_COLOCACOES_PODIO)
         _, linhas = self.classificacao(f, categoria)
         pontuaram = [l for l in linhas if l.pontos > 0]
-        minimo = valor_inteiro("gamificacao_minimo_podio")
-        suficiente = len(pontuaram) >= minimo
-        return dict(suficiente=suficiente, minimo=minimo, colaboradores_pontuando=len(pontuaram), tamanho=tamanho,
-                    items=[l for l in pontuaram if l.posicao <= tamanho] if suficiente else [])
+        return dict(tamanho=tamanho, colaboradores_pontuando=len(pontuaram), items=[l for l in pontuaram if l.posicao <= tamanho])
 
     def resumo(self, f: FiltrosGamificacao) -> dict:
         periodo = self.obter_periodo(f.periodo_id)

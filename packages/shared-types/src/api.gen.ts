@@ -1021,8 +1021,8 @@ export interface paths {
         };
         /**
          * Podio
-         * @description Top do período (colocações configuradas no período), só com dados suficientes (pelo menos `minimo`
-         *     colaboradores com pontos). Empatados no limite entram juntos.
+         * @description Top N da categoria (N = Configurações › "Quantidade de colocações no pódio"). Empatados na última colocação
+         *     entram juntos; com menos participantes pontuados, só os disponíveis.
          */
         get: operations["podio_gamificacao_podio_get"];
         put?: never;
@@ -4848,11 +4848,6 @@ export interface components {
              * @enum {string}
              */
             situacao: "planejado" | "aberto";
-            /**
-             * Tamanho Podio
-             * @description “Top do período”. Na criação, sem valor = 5; na edição, sem valor = mantém o atual.
-             */
-            tamanho_podio?: number | null;
         };
         /** PeriodoSaida */
         PeriodoSaida: {
@@ -4879,11 +4874,6 @@ export interface components {
             situacao: "planejado" | "aberto" | "encerrado";
             /** Encerrado Em */
             encerrado_em: string | null;
-            /**
-             * Tamanho Podio
-             * @description “Top do período”: colocações que o pódio mostra.
-             */
-            tamanho_podio: number;
             /** Premios */
             premios: components["schemas"]["PremioSaida"][];
         };
@@ -5434,18 +5424,17 @@ export interface components {
         };
         /** Podio */
         Podio: {
-            /** Suficiente */
-            suficiente: boolean;
-            /** Minimo */
-            minimo: number;
+            /**
+             * Tamanho
+             * @description Quantidade de colocações no pódio (Configurações): o N do "Top N".
+             */
+            tamanho: number;
             /** Colaboradores Pontuando */
             colaboradores_pontuando: number;
             /**
-             * Tamanho
-             * @description “Top do período” do período consultado (colocações exibidas).
+             * Items
+             * @description Quem pontuou, com colocação até `tamanho` (empatados na última entram juntos), na ordem da classificação.
              */
-            tamanho: number;
-            /** Items */
             items: components["schemas"]["ColaboradorRanking"][];
         };
         /** PontoEvolucao */

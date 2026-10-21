@@ -35,16 +35,12 @@ const pct = (v: number | null | undefined) => (v === null || v === undefined ? "
 // Medalhas das três primeiras colocações: ícone do kit na cor da medalha (a posição continua escrita ao lado).
 const MEDALHAS: Record<number, string> = { 1: "--cor-medalha-ouro", 2: "--cor-medalha-prata", 3: "--cor-medalha-bronze" };
 /**
- * Ordem visual do pódio para qualquer quantidade: 1º no centro, 2º à esquerda, 3º à direita, 4º mais à esquerda,
- * 5º mais à direita… (com 5: 4º · 2º · 1º · 3º · 5º). A ordem de leitura continua a da classificação.
+ * Pódio tradicional com os três primeiros da classificação: 2º à esquerda, 1º ao centro, 3º à direita (coluna fixa,
+ * então com 1 ou 2 participantes o 1º continua no centro). Altura e cor do degrau seguem a COLOCAÇÃO: empatados
+ * ficam iguais. A ordem de leitura continua a da classificação.
  */
-function ordemVisual(total: number, i: number): number {
-  const esquerda = Math.floor(total / 2); // quantos ficam à esquerda do 1º
-  if (i === 0) return esquerda + 1;
-  const lado = Math.ceil(i / 2); // 1 = vizinho do centro
-  return i % 2 === 1 ? esquerda + 1 - lado : esquerda + 1 + lado;
-}
-const degrauDe = (posicao: number) => `lugar${Math.min(posicao, 5)}`; // a partir do 5º, o mesmo degrau
+const COLUNA_DESTAQUE = [2, 1, 3];
+const degrauDe = (posicao: number) => `lugar${Math.min(posicao, 3)}`;
 
 const ABAS: { id: CategoriaPontuacao; rotulo: string }[] = [
   { id: "executor", rotulo: "Executores" },
@@ -104,9 +100,10 @@ export function GamificacaoPage() {
   const buscando = resumo.isFetching || podio.isFetching || ranking.isFetching;
   const r = resumo.data;
   const gestores = categoria === "gestor";
-  // "Top do período": o do período selecionado (já vem na lista de períodos: o título vale antes do pódio carregar
-  // e mesmo sem participantes); o pódio confirma o valor do servidor.
-  const top = podio.data?.tamanho ?? periodo?.tamanho_podio;
+  // Configurações › "Quantidade de colocações no pódio" (vem sempre na resposta do pódio, mesmo sem participantes).
+  const top = podio.data?.tamanho;
+  const destaque = podio.data?.items.slice(0, 3) ?? [];
+  const demais = podio.data?.items.slice(3) ?? [];
   // O detalhamento mostra planos e ações: o próprio participante, ou quem tem a auditoria.
   const podeDetalhar = (c: ColaboradorRanking) => podeAuditar || c.usuario_id === usuario?.id;
 
@@ -260,30 +257,47 @@ export function GamificacaoPage() {
               <p className={styles.erro}>Não foi possível carregar o pódio.</p>
             ) : !podio.data ? (
               <p className={styles.vazio}>Carregando…</p>
-            ) : !podio.data.suficiente ? (
+            ) : !podio.data.items.length ? (
               <p className={styles.vazio}>
                 <strong>Ainda não há pódio para este período</strong>
-                {podio.data.colaboradores_pontuando === 0
-                  ? `Nenhum ${gestores ? "gestor" : "executor"} pontuou com esses filtros.`
-                  : `Só ${podio.data.colaboradores_pontuando} participante(s) pontuaram; o pódio aparece a partir de ${podio.data.minimo}. Veja a classificação abaixo.`}
+                {`Nenhum ${gestores ? "gestor" : "executor"} pontuou com esses filtros.`}
               </p>
             ) : (
-              <ol className={styles.podio}>
-                {/* O servidor já limita ao Top do período (pela colocação: empatados no limite entram juntos). Altura e cor
-                    do degrau seguem a COLOCAÇÃO (empatados ficam iguais); a ordem visual centraliza o 1º (CSS order). */}
-                {podio.data.items.map((c, i, todos) => (
-                  <li key={c.usuario_id} className={`${styles.degrau} ${styles[degrauDe(c.posicao)]}`} style={{ order: ordemVisual(todos.length, i) }}>
-                    <Avatar nome={c.nome} url={c.avatar_url} tamanho={c.posicao === 1 ? "xl" : c.posicao <= 3 ? "lg" : "md"} className={styles.avatarPodio} />
-                    <span className={styles.nomePodio}>{c.nome}</span>
-                    <span className={styles.pontosPodio}>{num(c.pontos)} pts</span>
-                    {c.premio && <span className={styles.premioPodio}>{textoPremio(c.premio)}</span>}
-                    {c.premio_pendente && <span className={styles.premioPodio}>Prêmio pendente (empate)</span>}
-                    <span className={styles.base} aria-label={`${c.posicao}º lugar${c.empatado ? ", empatado" : ""}`}>
-                      {c.posicao}º{c.empatado ? "*" : ""}
-                    </span>
-                  </li>
-                ))}
-              </ol>
+              <>
+                {/* O servidor já limita às N colocações de Configurações (empatados na última entram juntos; com menos
+                    participantes, só os disponíveis). Os três primeiros ficam no pódio; os demais, logo abaixo. */}
+                <ol className={styles.podio}>
+                  {destaque.map((c, i) => (
+                    <li key={c.usuario_id} className={`${styles.degrau} ${styles[degrauDe(c.posicao)]}`} style={{ gridColumn: COLUNA_DESTAQUE[i] }}>
+                      <Avatar nome={c.nome} url={c.avatar_url} tamanho={c.posicao === 1 ? "xl" : "lg"} className={styles.avatarPodio} />
+                      <span className={styles.nomePodio}>{c.nome}</span>
+                      <span className={styles.pontosPodio}>{num(c.pontos)} pts</span>
+                      {c.premio && <span className={styles.premioPodio}>{textoPremio(c.premio)}</span>}
+                      {c.premio_pendente && <span className={styles.premioPodio}>Prêmio pendente (empate)</span>}
+                      <span className={styles.base} aria-label={`${c.posicao}º lugar${c.empatado ? ", empatado" : ""}`}>
+                        {c.posicao}º{c.empatado ? "*" : ""}
+                      </span>
+                    </li>
+                  ))}
+                </ol>
+                {demais.length > 0 && (
+                  <ol className={styles.demaisPodio} aria-label="Demais colocações do pódio" start={4}>
+                    {demais.map((c) => (
+                      <li key={c.usuario_id} className={styles.linhaPodio}>
+                        <span className={styles.posicaoPodio} aria-label={`${c.posicao}º lugar${c.empatado ? ", empatado" : ""}`}>
+                          {c.posicao}º{c.empatado ? "*" : ""}
+                        </span>
+                        <Avatar nome={c.nome} url={c.avatar_url} tamanho="sm" />
+                        <span className={styles.nomeLinhaPodio}>{c.nome}</span>
+                        {(c.premio || c.premio_pendente) && (
+                          <span className={styles.premioPodio}>{c.premio ? textoPremio(c.premio) : "Prêmio pendente (empate)"}</span>
+                        )}
+                        <span className={styles.pontosLinhaPodio}>{num(c.pontos)} pts</span>
+                      </li>
+                    ))}
+                  </ol>
+                )}
+              </>
             )}
           </Card>
 

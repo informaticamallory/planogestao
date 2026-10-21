@@ -121,7 +121,6 @@ export function PeriodosApuracaoPage() {
                 <th scope="col">Período</th>
                 <th scope="col">Datas</th>
                 <th scope="col">Situação</th>
-                <th scope="col">Top do período</th>
                 <th scope="col">Prêmios</th>
                 <th scope="col">Ações</th>
               </tr>
@@ -141,7 +140,6 @@ export function PeriodosApuracaoPage() {
                     <td>
                       <Badge tom={TOM_SITUACAO[p.situacao]}>{ROTULO_SITUACAO[p.situacao]}</Badge>
                     </td>
-                    <td>Top {p.tamanho_podio}</td>
                     <td>
                       {p.premios.length ? (
                         <ul className={local.listaPremios}>
@@ -278,22 +276,16 @@ function Erro({ erro }: { erro: Error | null }) {
   ) : null;
 }
 
-// Mesmos limites do backend (gamificacao_service.TAMANHO_PODIO_PADRAO / _MAXIMO).
-const TOP_PADRAO = 5;
-const TOP_MAXIMO = 10;
-
 function FormPeriodo({ periodo, onFechar, onSalvo }: DialogoProps & { periodo: PeriodoApuracao | null }) {
   const [nome, setNome] = useState(periodo?.nome ?? "");
   const [inicio, setInicio] = useState(periodo?.data_inicio ?? "");
   const [fim, setFim] = useState(periodo?.data_fim ?? "");
   const [situacao, setSituacao] = useState<"planejado" | "aberto">(periodo?.situacao === "aberto" ? "aberto" : "planejado");
-  const [top, setTop] = useState(String(periodo?.tamanho_podio ?? TOP_PADRAO));
-  const topValido = /^\d+$/.test(top) && Number(top) >= 1 && Number(top) <= TOP_MAXIMO;
   const salvar = useMutacaoGamificacao(() => {
-    const corpo = { nome: nome.trim(), ano: Number(inicio.slice(0, 4)), data_inicio: inicio, data_fim: fim, situacao, tamanho_podio: Number(top) };
+    const corpo = { nome: nome.trim(), ano: Number(inicio.slice(0, 4)), data_inicio: inicio, data_fim: fim, situacao };
     return periodo ? api.gamificacao.periodos.atualizar(periodo.id, corpo) : api.gamificacao.periodos.criar(corpo);
   });
-  const valido = nome.trim().length >= 2 && inicio && fim && inicio <= fim && topValido;
+  const valido = nome.trim().length >= 2 && inicio && fim && inicio <= fim;
 
   return (
     <Modal
@@ -328,15 +320,6 @@ function FormPeriodo({ periodo, onFechar, onSalvo }: DialogoProps & { periodo: P
             <option value="planejado">Planejado</option>
             <option value="aberto">Aberto</option>
           </Select>
-        </Field>
-        <Field
-          id="per-top"
-          rotulo="Top do período"
-          obrigatorio
-          erro={topValido ? undefined : `Informe um número de 1 a ${TOP_MAXIMO}.`}
-          ajuda="Colocações mostradas no pódio de Executores e de Gestores. Empatados na última colocação entram juntos; pontos e prêmios não mudam."
-        >
-          <Input id="per-top" type="number" min={1} max={TOP_MAXIMO} step={1} value={top} onChange={(e) => setTop(e.target.value)} />
         </Field>
         <p className={styles.meta}>Ano do período: {inicio ? inicio.slice(0, 4) : "—"} (o da data inicial).</p>
       </div>

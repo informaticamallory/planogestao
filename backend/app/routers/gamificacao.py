@@ -17,13 +17,7 @@ from app.models.gamificacao import CategoriaPontuacao, GamificacaoPeriodo, Situa
 from app.routers.relatorios import _arquivo
 from app.services.exportacao import Aba, Coluna, gerar_arquivo
 from app.services.gamificacao_apuracao import ApuracaoService, linha_relatorio
-from app.services.gamificacao_service import (
-    TAMANHO_PODIO_MAXIMO,
-    TAMANHO_PODIO_PADRAO,
-    FiltrosGamificacao,
-    GamificacaoService,
-    PeriodoNaoEncontrado,
-)
+from app.services.gamificacao_service import FiltrosGamificacao, GamificacaoService, PeriodoNaoEncontrado
 from app.services.equipes_service import EquipesService
 
 router = APIRouter(prefix="/gamificacao", tags=["gamificacao"])
@@ -135,11 +129,11 @@ class PaginaRanking(BaseModel):
 
 
 class Podio(BaseModel):
-    suficiente: bool
-    minimo: int
+    tamanho: int = Field(description="Quantidade de colocações no pódio (Configurações): o N do \"Top N\".")
     colaboradores_pontuando: int
-    tamanho: int = Field(description="“Top do período” do período consultado (colocações exibidas).")
-    items: list[ColaboradorRanking]
+    items: list[ColaboradorRanking] = Field(
+        description="Quem pontuou, com colocação até `tamanho` (empatados na última entram juntos), na ordem da classificação."
+    )
 
 
 class ItemPontuacao(BaseModel):
@@ -205,7 +199,6 @@ class PeriodoSaida(BaseModel):
     data_fim: date
     situacao: Literal["planejado", "aberto", "encerrado"]
     encerrado_em: datetime | None
-    tamanho_podio: int = Field(description="“Top do período”: colocações que o pódio mostra.")
     premios: list[PremioSaida]
 
 
@@ -220,10 +213,6 @@ class PeriodoEntrada(BaseModel):
     data_inicio: date
     data_fim: date
     situacao: Literal["planejado", "aberto"] = "planejado"
-    tamanho_podio: int | None = Field(
-        default=None, ge=1, le=TAMANHO_PODIO_MAXIMO,
-        description=f"“Top do período”. Na criação, sem valor = {TAMANHO_PODIO_PADRAO}; na edição, sem valor = mantém o atual.",
-    )
 
 
 class PremioEntrada(BaseModel):
@@ -337,7 +326,7 @@ class RelatorioAuditoria(BaseModel):
 def _periodo_saida(p: GamificacaoPeriodo) -> PeriodoSaida:
     return PeriodoSaida(
         id=p.id, nome=p.nome, ano=p.ano, data_inicio=p.data_inicio, data_fim=p.data_fim, situacao=p.situacao.value,
-        encerrado_em=como_utc(p.encerrado_em) if p.encerrado_em else None, tamanho_podio=p.tamanho_podio,
+        encerrado_em=como_utc(p.encerrado_em) if p.encerrado_em else None,
         premios=[PremioSaida(categoria=x.categoria.value, colocacao=x.colocacao, nome=x.nome, descricao=x.descricao, valor=x.valor)
                  for x in p.premios],
     )
@@ -377,8 +366,8 @@ def ranking(
 @router.get("/podio", response_model=Podio)
 def podio(f: FiltrosDep, _: UsuarioGamificacao, categoria: CategoriaPontuacao = CategoriaPontuacao.EXECUTOR,
           db: Session = Depends(get_db)):
-    """Top do período (colocações configuradas no período), só com dados suficientes (pelo menos `minimo`
-    colaboradores com pontos). Empatados no limite entram juntos."""
+    """Top N da categoria (N = Configurações › "Quantidade de colocações no pódio"). Empatados na última colocação
+    entram juntos; com menos participantes pontuados, só os disponíveis."""
     try:
         return GamificacaoService(db).podio(f, categoria)
     except PeriodoNaoEncontrado:
@@ -433,15 +422,14 @@ def listar_periodos(_: UsuarioGamificacao, db: Session = Depends(get_db)):
 
 @router.post("/periodos", response_model=PeriodoSaida, status_code=status.HTTP_201_CREATED)
 def criar_periodo(corpo: PeriodoEntrada, usuario: UsuarioPeriodos, db: Session = Depends(get_db)):
-    p = ApuracaoService(db, usuario).criar_periodo(corpo.nome, corpo.ano, corpo.data_inicio, corpo.data_fim, SituacaoPeriodo(corpo.situacao),
-                                                   corpo.tamanho_podio or TAMANHO_PODIO_PADRAO)
+    p = ApuracaoService(db, usuario).criar_periodo(corpo.nome, corpo.ano, corpo.data_inicio, corpo.data_fim, SituacaoPeriodo(corpo.situacao))
     return _periodo_saida(p)
 
 
 @router.put("/periodos/{periodo_id}", response_model=PeriodoSaida)
 def atualizar_periodo(periodo_id: int, corpo: PeriodoEntrada, usuario: UsuarioPeriodos, db: Session = Depends(get_db)):
     p = ApuracaoService(db, usuario).atualizar_periodo(
-        periodo_id, corpo.nome, corpo.ano, corpo.data_inicio, corpo.data_fim, SituacaoPeriodo(corpo.situacao), corpo.tamanho_podio
+        periodo_id, corpo.nome, corpo.ano, corpo.data_inicio, corpo.data_fim, SituacaoPeriodo(corpo.situacao)
     )
     return _periodo_saida(p)
 

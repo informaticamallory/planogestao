@@ -50,10 +50,10 @@ CATALOGO: dict[str, DefParametro] = {
             padrao=7, minimo=0, maximo=60, unidade="dias", publico=True,
         ),
         DefParametro(
-            "gamificacao_minimo_podio", "Gamificação", "Mínimo de colaboradores para exibir o pódio",
-            "Abaixo disso o painel mostra um aviso em vez do pódio. Quantas colocações o pódio mostra é o "
-            "“Top do período”, no cadastro de cada período de apuração.",
-            padrao=3, minimo=1, maximo=5, unidade="colaboradores",
+            "gamificacao_colocacoes_podio", "Gamificação", "Quantidade de colocações no pódio",
+            "Quantas colocações o pódio mostra (\"Top N\"), em Executores e Gestores. Empatados na última colocação "
+            "entram juntos; com menos participantes pontuados, aparecem só os disponíveis. Pontos e prêmios não mudam.",
+            padrao=5, minimo=1, maximo=10, unidade="colocações",
         ),
         DefParametro(
             "resumo_semanal_dia", GRUPO_AVISOS, "Dia do resumo semanal",
