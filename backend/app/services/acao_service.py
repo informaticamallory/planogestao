@@ -10,12 +10,13 @@ from sqlalchemy.orm import Session
 
 from app.core.security import utcnow
 from app.core.tempo import como_utc
-from app.models import Acao, AcaoHistorico, AcaoSolicitacaoAlteracao, Area, PlanoDeAcao, Setor, Usuario
+from app.models import Acao, AcaoContraproposta, AcaoHistorico, AcaoSolicitacaoAlteracao, Area, PlanoDeAcao, Setor, Usuario
 from app.models.enums import (
     STATUS_ACAO_ABERTOS,
     EventoHistorico,
     ReferenciaNotificacao,
     StatusAcao,
+    StatusContraproposta,
     StatusPlano,
     StatusSolicitacao,
 )
@@ -24,9 +25,12 @@ from app.schemas.acao import (
     AcaoAtualizar,
     AcaoDetalhe,
     AcaoHistoricoItem,
+    ContrapropostaResumo,
+    EnviarContraproposta,
     PermissoesAcao,
     PlanoDaAcao,
     ReabrirAcao,
+    ResponderContraproposta,
     ResponderSolicitacao,
     SolicitacaoResumo,
     SolicitarAlteracao,
@@ -138,12 +142,6 @@ class AcaoService:
             self._cache_acesso_direto[plano.id] = acesso_direto(self.usuario, plano)
         return self._cache_acesso_direto[plano.id]
 
-    def _gestores_ids(self, acao: Acao) -> tuple[int, ...]:
-        """Quem responde a um pedido de prazo: o responsável pelo pai imediato (a conclusão usa avisos.py)."""
-        if acao.acao_pai is not None:
-            return tuple(i for i in (acao.acao_pai.responsavel_id, acao.criado_por_id) if i is not None)
-        return (acao.plano.responsavel_id, acao.plano.criado_por_id)
-
     def _plano_visivel(self, acao: Acao) -> bool:
         return (
             self.db.scalar(
@@ -206,6 +204,10 @@ class AcaoService:
             aceitar=ativo and responsavel and acao.status == StatusAcao.AGUARDANDO_ACEITE and pendente is None,
             solicitar_alteracao=ativo and responsavel and aberta and pendente is None,
             responder_solicitacao=ativo and gestor and pendente is not None and pendente.solicitado_por_id != self.usuario.id,
+            responder_contraproposta=(
+                ativo and pendente is not None and pendente.solicitado_por_id == self.usuario.id
+                and pendente.contraproposta_pendente is not None
+            ),
             editar_execucao=ativo and aberta and (responsavel or gestor) and acao.status != StatusAcao.AGUARDANDO_ACEITE,
             editar_prazo=planeja,
             reabrir=ativo and gestor and acao.status == StatusAcao.CONCLUIDA and self._erro_reabrir(acao) is None,
@@ -304,11 +306,35 @@ class AcaoService:
 
     # ---- leitura ------------------------------------------------------------------------
 
+    @staticmethod
+    def _contraproposta(c: AcaoContraproposta) -> ContrapropostaResumo:
+        return ContrapropostaResumo(
+            id=c.id, prazo_inicio_vigente=c.prazo_inicio_vigente, prazo_vigente=c.prazo_vigente,
+            novo_prazo_inicio=c.novo_prazo_inicio, novo_prazo=c.novo_prazo, altera_inicio=c.altera_inicio,
+            altera_conclusao=c.altera_conclusao, justificativa=c.justificativa, status=c.status,
+            proposto_por=Opcao(id=c.proposto_por.id, nome=c.proposto_por.nome), resposta_justificativa=c.resposta_justificativa,
+            respondido_em=como_utc(c.respondido_em) if c.respondido_em else None, criado_em=como_utc(c.criado_em),
+        )
+
+    @staticmethod
+    def _situacao(s: AcaoSolicitacaoAlteracao) -> str:
+        if s.status == StatusSolicitacao.PENDENTE:
+            return "aguardando_responsavel" if s.contraproposta_pendente is not None else "aguardando_gestor"
+        return {StatusSolicitacao.ACEITA: "aprovada", StatusSolicitacao.RECUSADA: "recusada"}.get(s.status, "acordo")
+
     def _solicitacao(self, s: AcaoSolicitacaoAlteracao) -> SolicitacaoResumo:
+        pendente = s.contraproposta_pendente
         return SolicitacaoResumo(
+            situacao=self._situacao(s),
+            contrapropostas=[self._contraproposta(c) for c in s.contrapropostas],
+            contraproposta_pendente=self._contraproposta(pendente) if pendente else None,
             id=s.id,
             prazo_anterior=s.prazo_anterior,
             novo_prazo_sugerido=s.novo_prazo_sugerido,
+            prazo_inicio_anterior=s.prazo_inicio_anterior,
+            novo_prazo_inicio_sugerido=s.novo_prazo_inicio_sugerido,
+            altera_inicio=s.altera_inicio,
+            altera_conclusao=s.altera_conclusao,
             motivo=s.motivo,
             status=s.status,
             feita_antes_do_aceite=s.feita_antes_do_aceite,
@@ -578,6 +604,8 @@ class AcaoService:
 
         if "prazo_inicio" in enviados and dados.prazo_inicio is not None and dados.prazo_inicio != acao.prazo_inicio:
             exigir_gestor()
+            if self._pendente(acao):
+                raise RegraAcao("Há uma solicitação de alteração de datas pendente: responda-a antes de alterar as datas.")
             if dados.prazo_inicio > acao.prazo:
                 raise RegraAcao("O prazo inicial estimado não pode ser posterior ao prazo de conclusão.")
             self._hist_datas = self._registrar(acao, "prazo_inicio", acao.prazo_inicio, dados.prazo_inicio, detalhe=motivo_prazo)
@@ -747,49 +775,62 @@ class AcaoService:
             raise RegraAcao("Só é possível solicitar alteração de ações em aberto.")
         if self._pendente(acao):
             raise RegraAcao("Já existe uma solicitação pendente para esta ação.")
-        if dados.novo_prazo_sugerido == acao.prazo:
-            raise RegraAcao("O prazo sugerido é igual ao prazo atual.")
-        if dados.novo_prazo_sugerido < self.hoje:
-            raise RegraAcao("O prazo sugerido não pode estar no passado.")
+        novo_inicio = dados.novo_prazo_inicio_sugerido
+        altera_inicio, altera_fim, inicio_final, fim_final = self._datas_propostas(
+            acao, novo_inicio, dados.novo_prazo_sugerido, "solicitada",
+            "Informe uma nova data de início ou de conclusão diferente da atual.",
+        )
 
         solicitacao = AcaoSolicitacaoAlteracao(
             acao=acao,
             prazo_anterior=acao.prazo,
-            novo_prazo_sugerido=dados.novo_prazo_sugerido,
+            novo_prazo_sugerido=fim_final,
+            prazo_inicio_anterior=acao.prazo_inicio,
+            novo_prazo_inicio_sugerido=novo_inicio if altera_inicio else None,
             motivo=dados.motivo,
             feita_antes_do_aceite=acao.status == StatusAcao.AGUARDANDO_ACEITE,
             solicitado_por_id=self.usuario.id,
+            # Explícito (não o default do banco): o aviso mostra o horário do pedido na mesma transação.
+            criado_em=utcnow().replace(microsecond=0),
         )
         self.db.add(solicitacao)
-        self._registrar(
-            acao, "prazo", acao.prazo, dados.novo_prazo_sugerido, evento=EventoHistorico.SOLICITACAO, detalhe=dados.motivo
-        )
-        plano = acao.plano
-        publicar(
-            self.db,
-            Evento(
-                tipo=TipoEvento.SOLICITACAO_PRAZO,
-                destinatarios=self._gestores_ids(acao),
-                autor_id=self.usuario.id,
-                titulo=f"Solicitação de alteração de prazo — {plano.codigo}",
-                mensagem=(
-                    f"{self.usuario.nome} sugeriu mudar o prazo da ação “{acao.descricao}” "
-                    f"de {_fmt(acao.prazo)} para {_fmt(dados.novo_prazo_sugerido)}. Motivo: {dados.motivo}"
-                ),
-                referencia_tipo=ReferenciaNotificacao.ACAO,
-                referencia_id=acao.id,
-            ),
-        )
+        # Pendente não muda as datas vigentes: só registra o pedido no histórico (um registro por data pedida).
+        if altera_inicio:
+            self._registrar(acao, "prazo_inicio", acao.prazo_inicio, novo_inicio, evento=EventoHistorico.SOLICITACAO,
+                            detalhe=dados.motivo)
+        if altera_fim:
+            self._registrar(acao, "prazo", acao.prazo, fim_final, evento=EventoHistorico.SOLICITACAO, detalhe=dados.motivo)
+        self.db.flush()
+        avisos.solicitacao_prazo(self.db, acao, solicitacao)
         self.db.commit()
         self.db.refresh(acao)
         return self._detalhe(acao)
 
-    def responder_solicitacao(self, acao_id: int, solicitacao_id: int, dados: ResponderSolicitacao) -> AcaoDetalhe:
-        acao = self._obter(acao_id, bloquear=True)
-        self._exigir_plano_ativo(acao)
+    def _datas_propostas(
+        self, acao: Acao, novo_inicio: date | None, novo_fim: date | None, quem: str, sem_mudanca: str
+    ) -> tuple[bool, bool, date | None, date]:
+        """Pedido ou contraproposta: o que muda em relação às datas vigentes e as datas resultantes, validadas
+        (conclusão não pode estar no passado; início não pode ficar depois da conclusão resultante)."""
+        altera_inicio = novo_inicio is not None and novo_inicio != acao.prazo_inicio
+        altera_fim = novo_fim is not None and novo_fim != acao.prazo
+        if not (altera_inicio or altera_fim):
+            raise RegraAcao(sem_mudanca)
+        if altera_fim and novo_fim < self.hoje:
+            raise RegraAcao(f"A data de conclusão {quem} não pode estar no passado.")
+        inicio_final = novo_inicio if altera_inicio else acao.prazo_inicio
+        fim_final = novo_fim if altera_fim else acao.prazo
+        if inicio_final is not None and inicio_final > fim_final:
+            raise RegraAcao("A data de início não pode ser posterior à data de conclusão (considerando as datas após a alteração).")
+        return altera_inicio, altera_fim, inicio_final, fim_final
+
+    def _solicitacao_do_item(self, acao: Acao, solicitacao_id: int) -> AcaoSolicitacaoAlteracao:
         solicitacao = self.db.get(AcaoSolicitacaoAlteracao, solicitacao_id)
         if solicitacao is None or solicitacao.acao_id != acao.id:
             raise AcaoNaoEncontrada
+        return solicitacao
+
+    def _exigir_avaliador(self, acao: Acao, solicitacao: AcaoSolicitacaoAlteracao) -> None:
+        """Quem decide o pedido (aprovar, recusar ou contrapor): o gestor do item, nunca o próprio solicitante."""
         if not self._eh_gestor(acao):
             raise SemPermissaoAcao
         if solicitacao.solicitado_por_id == self.usuario.id:
@@ -797,48 +838,162 @@ class AcaoService:
         if solicitacao.status != StatusSolicitacao.PENDENTE:
             raise RegraAcao("Esta solicitação já foi respondida.")
 
+    def _aplicar_datas(self, acao: Acao, inicio: date | None, fim: date, altera_inicio: bool, altera_fim: bool, detalhe: str):
+        """Aplica só as datas negociadas, com histórico. Devolve o último registro (chave do aviso de alteração)."""
+        hist = None
+        if altera_inicio and acao.prazo_inicio != inicio:
+            hist = self._registrar(acao, "prazo_inicio", acao.prazo_inicio, inicio, detalhe=detalhe)
+            acao.prazo_inicio = inicio
+        if altera_fim and acao.prazo != fim:
+            hist = self._registrar(acao, "prazo", acao.prazo, fim, detalhe=detalhe)
+            acao.prazo = fim
+        return hist
+
+    def responder_solicitacao(self, acao_id: int, solicitacao_id: int, dados: ResponderSolicitacao) -> AcaoDetalhe:
+        acao = self._obter(acao_id, bloquear=True)
+        self._exigir_plano_ativo(acao)
+        solicitacao = self._solicitacao_do_item(acao, solicitacao_id)
+        self._exigir_avaliador(acao, solicitacao)
+
         justificativa = (dados.justificativa or "").strip() or None
         status_anterior, prazo_anterior = acao.status, acao.prazo
-        solicitacao.status = StatusSolicitacao.ACEITA if dados.aprovado else StatusSolicitacao.RECUSADA
-        solicitacao.respondido_por_id = self.usuario.id
-        solicitacao.respondido_em = utcnow()
-        solicitacao.resposta_justificativa = justificativa
+        s = solicitacao
+        # Datas finais se aprovada: só as pedidas mudam; a outra fica como está vigente agora.
+        inicio_final = s.novo_prazo_inicio_sugerido if s.altera_inicio else acao.prazo_inicio
+        fim_final = s.novo_prazo_sugerido if s.altera_conclusao else acao.prazo
+        if dados.aprovado and inicio_final is not None and inicio_final > fim_final:
+            raise RegraAcao(
+                f"Com a aprovação, a data de início ({_fmt(inicio_final)}) ficaria depois da data de conclusão "
+                f"({_fmt(fim_final)}). Recuse a solicitação ou ajuste as datas antes."
+            )
+        s.status = StatusSolicitacao.ACEITA if dados.aprovado else StatusSolicitacao.RECUSADA
+        s.respondido_por_id = self.usuario.id
+        s.respondido_em = utcnow()
+        s.resposta_justificativa = justificativa
+        # Decidiu o pedido original com uma contraproposta aguardando: ela deixa de valer (links antigos inclusive).
+        if (aberta := s.contraproposta_pendente) is not None:
+            aberta.status, aberta.respondido_em = StatusContraproposta.ENCERRADA, s.respondido_em
 
-        self._registrar(
-            acao, "prazo", solicitacao.prazo_anterior, solicitacao.novo_prazo_sugerido,
-            evento=EventoHistorico.RESPOSTA_SOLICITACAO,
-            detalhe=("Aprovada" if dados.aprovado else "Recusada") + (f": {justificativa}" if justificativa else ""),
-        )
+        detalhe = ("Aprovada" if dados.aprovado else "Recusada") + (f": {justificativa}" if justificativa else "")
+        if s.altera_inicio:
+            self._registrar(acao, "prazo_inicio", s.prazo_inicio_anterior, s.novo_prazo_inicio_sugerido,
+                            evento=EventoHistorico.RESPOSTA_SOLICITACAO, detalhe=detalhe)
+        if s.altera_conclusao:
+            self._registrar(acao, "prazo", s.prazo_anterior, s.novo_prazo_sugerido,
+                            evento=EventoHistorico.RESPOSTA_SOLICITACAO, detalhe=detalhe)
         hist_prazo = None
         datas_antes = (acao.prazo_inicio, acao.prazo)
         if dados.aprovado:
-            hist_prazo = self._registrar(acao, "prazo", acao.prazo, solicitacao.novo_prazo_sugerido, detalhe=solicitacao.motivo)
-            acao.prazo = solicitacao.novo_prazo_sugerido
+            hist_prazo = self._aplicar_datas(acao, inicio_final, fim_final, s.altera_inicio, s.altera_conclusao, s.motivo)
             # Contraproposta feita antes do aceite: aprovada, a condição do responsável foi atendida.
-            if solicitacao.feita_antes_do_aceite and acao.status == StatusAcao.AGUARDANDO_ACEITE:
+            if s.feita_antes_do_aceite and acao.status == StatusAcao.AGUARDANDO_ACEITE:
                 self._mudar_status(acao, StatusAcao.ACEITA, detalhe="Aceite automático ao aprovar a contraproposta de prazo.")
 
-        resultado, verbo = ("aprovada", "aprovou") if dados.aprovado else ("recusada", "recusou")
-        publicar(
-            self.db,
-            Evento(
-                tipo=TipoEvento.RESPOSTA_SOLICITACAO_PRAZO,
-                destinatarios=(solicitacao.solicitado_por_id,),
-                autor_id=self.usuario.id,
-                titulo=f"Solicitação de prazo {resultado} — {acao.plano.codigo}",
-                mensagem=(
-                    f"{self.usuario.nome} {verbo} sua solicitação para a ação “{acao.descricao}”. "
-                    f"Prazo vigente: {_fmt(acao.prazo)}." + (f" Justificativa: {justificativa}" if justificativa else "")
-                ),
-                referencia_tipo=ReferenciaNotificacao.ACAO,
-                referencia_id=acao.id,
-            ),
-        )
+        self.db.flush()
+        avisos.resposta_solicitacao_prazo(self.db, acao, s, self.usuario)
         if hist_prazo is not None:
             self.db.flush()
             avisos.prazo_alterado_item(
                 self.db, acao, self.usuario, datas_antes, solicitacao.motivo, hist_prazo.id, excluir=(solicitacao.solicitado_por_id,)
             )
+        self._apos_mudanca(acao, status_anterior, prazo_anterior)
+        self.db.commit()
+        self.db.refresh(acao)
+        return self._detalhe(acao)
+
+    # ---- contraproposta do gestor -----------------------------------------------------------------
+
+    def contrapor(self, acao_id: int, solicitacao_id: int, dados: EnviarContraproposta) -> AcaoDetalhe:
+        """O gestor sugere outras datas. O pedido continua pendente (aguardando o responsável) e as datas vigentes não
+        mudam. Uma contraproposta pendente por vez: enviar outra substitui a anterior."""
+        acao = self._obter(acao_id, bloquear=True)
+        self._exigir_plano_ativo(acao)
+        s = self._solicitacao_do_item(acao, solicitacao_id)
+        self._exigir_avaliador(acao, s)
+        altera_inicio, altera_fim, inicio_final, fim_final = self._datas_propostas(
+            acao, dados.novo_prazo_inicio, dados.novo_prazo, "proposta",
+            "Proponha uma data de início ou de conclusão diferente da vigente.",
+        )
+        pedido = (s.novo_prazo_inicio_sugerido if s.altera_inicio else acao.prazo_inicio,
+                  s.novo_prazo_sugerido if s.altera_conclusao else acao.prazo)
+        if (inicio_final, fim_final) == pedido:
+            raise RegraAcao("As datas propostas são iguais às solicitadas: use “Aceitar alteração”.")
+
+        agora = utcnow().replace(microsecond=0)
+        if (anterior := s.contraproposta_pendente) is not None:
+            anterior.status, anterior.respondido_em = StatusContraproposta.SUBSTITUIDA, agora
+        cp = AcaoContraproposta(
+            solicitacao=s, prazo_inicio_vigente=acao.prazo_inicio, prazo_vigente=acao.prazo,
+            novo_prazo_inicio=inicio_final if altera_inicio else None, novo_prazo=fim_final,
+            justificativa=dados.justificativa, proposto_por_id=self.usuario.id, criado_em=agora,
+            status=StatusContraproposta.PENDENTE,
+        )
+        self.db.add(cp)
+        if altera_inicio:
+            self._registrar(acao, "prazo_inicio", acao.prazo_inicio, inicio_final, evento=EventoHistorico.CONTRAPROPOSTA,
+                            detalhe=dados.justificativa)
+        if altera_fim:
+            self._registrar(acao, "prazo", acao.prazo, fim_final, evento=EventoHistorico.CONTRAPROPOSTA, detalhe=dados.justificativa)
+        self.db.flush()
+        avisos.contraproposta_prazo(self.db, acao, s, cp, self.usuario)
+        self.db.commit()
+        self.db.refresh(acao)
+        return self._detalhe(acao)
+
+    def responder_contraproposta(
+        self, acao_id: int, solicitacao_id: int, contraproposta_id: int, dados: ResponderContraproposta
+    ) -> AcaoDetalhe:
+        """Só o solicitante. Aceita: aplica as datas propostas e encerra o pedido em acordo (com o aceite automático
+        da ação, se o pedido foi feito antes do aceite). Não aceita: volta para o gestor decidir, datas mantidas."""
+        acao = self._obter(acao_id, bloquear=True)
+        self._exigir_plano_ativo(acao)
+        s = self._solicitacao_do_item(acao, solicitacao_id)
+        cp = self.db.get(AcaoContraproposta, contraproposta_id)
+        if cp is None or cp.solicitacao_id != s.id:
+            raise AcaoNaoEncontrada
+        if s.solicitado_por_id != self.usuario.id:
+            raise SemPermissaoAcao
+        if cp.status != StatusContraproposta.PENDENTE or s.status != StatusSolicitacao.PENDENTE:
+            raise RegraAcao("Esta contraproposta não está mais aguardando resposta (já foi respondida, substituída ou encerrada).")
+        justificativa = (dados.justificativa or "").strip() or None
+        if not dados.aceita and (justificativa is None or len(justificativa) < 5):
+            raise RegraAcao("Explique por que não aceita a contraproposta (mínimo 5 caracteres).")
+
+        status_anterior, prazo_anterior = acao.status, acao.prazo
+        inicio_final = cp.novo_prazo_inicio if cp.altera_inicio else acao.prazo_inicio
+        fim_final = cp.novo_prazo if cp.altera_conclusao else acao.prazo
+        if dados.aceita and inicio_final is not None and inicio_final > fim_final:
+            raise RegraAcao(
+                f"Com a contraproposta, a data de início ({_fmt(inicio_final)}) ficaria depois da data de conclusão "
+                f"({_fmt(fim_final)}). Não aceite e explique ao gestor."
+            )
+        agora = utcnow().replace(microsecond=0)
+        cp.status = StatusContraproposta.ACEITA if dados.aceita else StatusContraproposta.NAO_ACEITA
+        cp.resposta_justificativa, cp.respondido_em = justificativa, agora
+        detalhe = ("Aceita" if dados.aceita else "Não aceita") + (f": {justificativa}" if justificativa else "")
+        if cp.altera_inicio:
+            self._registrar(acao, "prazo_inicio", cp.prazo_inicio_vigente, cp.novo_prazo_inicio,
+                            evento=EventoHistorico.RESPOSTA_CONTRAPROPOSTA, detalhe=detalhe)
+        if cp.altera_conclusao:
+            self._registrar(acao, "prazo", cp.prazo_vigente, cp.novo_prazo, evento=EventoHistorico.RESPOSTA_CONTRAPROPOSTA,
+                            detalhe=detalhe)
+
+        hist_prazo = None
+        datas_antes = (acao.prazo_inicio, acao.prazo)
+        if dados.aceita:
+            s.status, s.respondido_por_id, s.respondido_em = StatusSolicitacao.ACORDO, cp.proposto_por_id, agora
+            hist_prazo = self._aplicar_datas(acao, inicio_final, fim_final, cp.altera_inicio, cp.altera_conclusao,
+                                             f"Acordo de datas: {cp.justificativa}")
+            # A regra de aceite automático vale aqui, só depois do acordo; o status de execução não muda.
+            if s.feita_antes_do_aceite and acao.status == StatusAcao.AGUARDANDO_ACEITE:
+                self._mudar_status(acao, StatusAcao.ACEITA, detalhe="Aceite automático ao fechar o acordo de datas.")
+
+        self.db.flush()
+        avisos.resposta_contraproposta_prazo(self.db, acao, s, cp, self.usuario)
+        if hist_prazo is not None:
+            self.db.flush()
+            avisos.prazo_alterado_item(self.db, acao, self.usuario, datas_antes, f"Acordo de datas: {cp.justificativa}",
+                                       hist_prazo.id, excluir=(cp.proposto_por_id,))
         self._apos_mudanca(acao, status_anterior, prazo_anterior)
         self.db.commit()
         self.db.refresh(acao)

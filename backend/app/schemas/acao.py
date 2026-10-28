@@ -1,11 +1,16 @@
 from datetime import date, datetime
+from typing import Literal
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 from pydantic_core import PydanticCustomError
 
-from app.models.enums import EventoHistorico, Prioridade, StatusAcao, StatusPlano, StatusSolicitacao
+from app.models.enums import EventoHistorico, Prioridade, StatusAcao, StatusContraproposta, StatusPlano, StatusSolicitacao
 from app.schemas.comum import Opcao
 from app.services.regras import CategoriaAcao, TagPrazo
+
+# Negociação de datas: aguardando o gestor (pedido novo ou contraproposta não aceita), aguardando o responsável
+# (contraproposta enviada), ou encerrada (aprovada, recusada ou acordo).
+SituacaoNegociacao = Literal["aguardando_gestor", "aguardando_responsavel", "aprovada", "recusada", "acordo"]
 
 
 class RefAcao(BaseModel):
@@ -43,10 +48,32 @@ class ItemCaminho(RefAcao):
     acessivel: bool = Field(description="O usuário pode abrir este item.")
 
 
+class ContrapropostaResumo(BaseModel):
+    """Outras datas sugeridas pelo gestor (início e/ou conclusão), comparadas com as vigentes quando foi enviada."""
+
+    id: int
+    prazo_inicio_vigente: date | None
+    prazo_vigente: date
+    novo_prazo_inicio: date | None = Field(description="Início proposto (None = mantém o vigente).")
+    novo_prazo: date = Field(description="Conclusão proposta (igual à vigente se não muda).")
+    altera_inicio: bool
+    altera_conclusao: bool
+    justificativa: str
+    status: StatusContraproposta
+    proposto_por: Opcao
+    resposta_justificativa: str | None
+    respondido_em: datetime | None
+    criado_em: datetime
+
+
 class SolicitacaoResumo(BaseModel):
     id: int
-    prazo_anterior: date
-    novo_prazo_sugerido: date
+    prazo_anterior: date = Field(description="Prazo de conclusão vigente no pedido.")
+    novo_prazo_sugerido: date = Field(description="Prazo de conclusão resultante (igual ao anterior se só o início foi pedido).")
+    prazo_inicio_anterior: date | None = Field(default=None, description="Prazo inicial estimado vigente no pedido.")
+    novo_prazo_inicio_sugerido: date | None = Field(default=None, description="Prazo inicial estimado pedido (só se pedido).")
+    altera_inicio: bool
+    altera_conclusao: bool
     motivo: str
     status: StatusSolicitacao
     feita_antes_do_aceite: bool
@@ -55,6 +82,9 @@ class SolicitacaoResumo(BaseModel):
     resposta_justificativa: str | None
     respondido_em: datetime | None
     criado_em: datetime
+    situacao: SituacaoNegociacao = Field(description="Negociação (independente do status de execução da ação).")
+    contrapropostas: list[ContrapropostaResumo] = Field(description="Da mais antiga à mais recente.")
+    contraproposta_pendente: ContrapropostaResumo | None
 
 
 class PermissoesAcao(BaseModel):
@@ -64,7 +94,8 @@ class PermissoesAcao(BaseModel):
     eh_gestor: bool = Field(description="Responsável/criador do plano ou quem aprova prazos.")
     aceitar: bool
     solicitar_alteracao: bool
-    responder_solicitacao: bool
+    responder_solicitacao: bool = Field(description="Gestor: aprovar, recusar ou contrapor o pedido pendente.")
+    responder_contraproposta: bool = Field(description="Solicitante: aceitar ou não a contraproposta pendente.")
     editar_execucao: bool = Field(description="Status/progresso/observação.")
     editar_prazo: bool
     editar_planejamento: bool = Field(
@@ -175,7 +206,10 @@ class AcaoAtualizada(BaseModel):
 
 
 class SolicitarAlteracao(BaseModel):
-    novo_prazo_sugerido: date
+    """Pede a data de início, a de conclusão ou ambas (ao menos uma diferente da vigente)."""
+
+    novo_prazo_inicio_sugerido: date | None = Field(default=None, description="Novo prazo inicial estimado (omitir = mantém).")
+    novo_prazo_sugerido: date | None = Field(default=None, description="Novo prazo de conclusão (omitir = mantém).")
     motivo: str = Field(min_length=5, max_length=1000)
 
     @field_validator("motivo", mode="before")
@@ -187,6 +221,24 @@ class SolicitarAlteracao(BaseModel):
 class ResponderSolicitacao(BaseModel):
     aprovado: bool
     justificativa: str | None = Field(default=None, max_length=1000)
+
+
+class EnviarContraproposta(BaseModel):
+    """O gestor propõe outras datas. Campo omitido = mantém a data vigente; ao menos uma precisa mudar."""
+
+    novo_prazo_inicio: date | None = None
+    novo_prazo: date | None = None
+    justificativa: str = Field(min_length=5, max_length=1000)
+
+    @field_validator("justificativa", mode="before")
+    @classmethod
+    def _aparar(cls, v: object) -> object:
+        return v.strip() if isinstance(v, str) else v
+
+
+class ResponderContraproposta(BaseModel):
+    aceita: bool
+    justificativa: str | None = Field(default=None, max_length=1000, description="Obrigatória ao não aceitar.")
 
 
 class AcaoHistoricoItem(BaseModel):

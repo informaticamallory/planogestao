@@ -173,4 +173,5 @@ export const ROTULO_SOLICITACAO: Record<StatusSolicitacao, string> = {
   pendente: "Pendente",
   aceita: "Aprovada",
   recusada: "Recusada",
+  acordo: "Acordo concluído",
 };

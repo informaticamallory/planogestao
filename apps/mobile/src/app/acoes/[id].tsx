@@ -10,12 +10,13 @@ import { BarraProgresso } from "../../components/BarraProgresso";
 import { Icone } from "../../components/Icone";
 import { Pilula } from "../../components/Pilula";
 import { BlocoExecucao } from "../../components/acao/Execucao";
-import { BlocoAceite, BlocoRespostaSolicitacao, estilos as e } from "../../components/acao/FluxoPrazo";
+import { BlocoAceite, BlocoContraproposta, BlocoRespostaSolicitacao, estilos as e } from "../../components/acao/FluxoPrazo";
 import { ListaSolicitacoes, TimelineAcao } from "../../components/acao/Historico";
 import { useAcaoDetalhe } from "../../hooks/useAcao";
 import { cores, escalarTexto, espaco, estilosDinamicos, fonte, raio } from "../../theme";
 import { formatarData, formatarDataHora } from "../../utils/formatos";
 import { ROTULO_PRIORIDADE, acaoEmAberto, rotuloNumeroAcao, selosDaAcao, textoStatusAcao } from "../../utils/rotulos";
+import { camposSolicitacao, resumoMudancas } from "../../utils/solicitacaoDatas";
 
 /** "Ação 2 — descrição" (ou "Sub-item 2.1 — …"). */
 const nomeRef = (r: RefAcao) => `${rotuloNumeroAcao(r.numero)} — ${r.descricao}`;
@@ -189,11 +190,13 @@ export default function DetalheAcaoScreen() {
 
       {mostrarAceite && <BlocoAceite acao={acao} />}
       {p.responder_solicitacao && <BlocoRespostaSolicitacao acao={acao} />}
-      {!mostrarAceite && p.eh_responsavel && acao.solicitacao_pendente && (
+      {p.responder_contraproposta && <BlocoContraproposta acao={acao} />}
+      {!mostrarAceite && !p.responder_contraproposta && p.eh_responsavel && acao.solicitacao_pendente && (
         <View style={estilos.faixa} accessibilityRole="text">
           <Icone nome="clock" tamanho={18} cor={cores.info} />
           <Text style={estilos.textoFaixa}>
-            Sua solicitação para mudar o prazo para {formatarData(acao.solicitacao_pendente.novo_prazo_sugerido)} aguarda resposta do gestor.
+            Sua solicitação de alteração {camposSolicitacao(acao.solicitacao_pendente)} ({resumoMudancas(acao.solicitacao_pendente)})
+            aguarda resposta do gestor. Até lá, as datas atuais continuam valendo.
           </Text>
         </View>
       )}

@@ -71,6 +71,15 @@ _VARIAVEIS_ITEM = {
     "link_registro": "Endereço direto do item (o botão do e-mail já usa este link).",
 }
 
+_VARIAVEIS_SOLICITACAO = {
+    **_VARIAVEIS_ITEM,
+    "solicitado_por": "Quem pediu a alteração (o responsável pelo item).",
+    "solicitado_em": "Quando o pedido foi feito (dd/mm/aaaa às hh:mm).",
+    "resumo_solicitacao": "Frase do pedido (ex.: Maria solicitou a alteração da data de conclusão.).",
+    "datas_solicitadas": "Data atual e solicitada, só das datas pedidas (início e/ou conclusão), e o alerta do plano.",
+    "justificativa": "Justificativa informada por quem pediu.",
+}
+
 _RODAPE_DADOS = """Responsável: {{responsavel}}
 Área: {{area}}
 Função/Cargo: {{setor}}
@@ -175,6 +184,64 @@ CATALOGO: dict[str, DefModelo] = {
             botao="Ver registro",
         ),
         DefModelo(
+            "solicitacao_prazo",
+            "Solicitação de alteração de datas",
+            _VARIAVEIS_SOLICITACAO,
+            "[Planos de Ação] Solicitação de alteração de datas: {{item}} — {{numero_pa}}",
+            "Olá, {{destinatario}}.\n\n{{resumo_solicitacao}}\n\nPlano de Ação: {{numero_pa}} — {{titulo_pa}}\n"
+            "Item: {{item}} — {{descricao}}\nSolicitado por: {{solicitado_por}}\nSolicitado em: {{solicitado_em}}\n\n"
+            "{{datas_solicitadas}}\n\nJustificativa: {{justificativa}}\n\n"
+            "Acesse o item para aprovar ou recusar. Até a resposta, as datas atuais continuam valendo.",
+            botao="Avaliar solicitação",
+        ),
+        DefModelo(
+            "resposta_solicitacao_prazo",
+            "Resposta da solicitação de datas",
+            {**_VARIAVEIS_SOLICITACAO,
+             "resultado": "aprovada ou recusada.",
+             "respondido_por": "Quem respondeu ao pedido.",
+             "datas_vigentes": "Datas de início e conclusão que valem depois da resposta.",
+             "justificativa_resposta": f"Justificativa de quem respondeu ({VAZIO} quando não houver)."},
+            "[Planos de Ação] Solicitação de alteração de datas {{resultado}}: {{item}} — {{numero_pa}}",
+            "Olá, {{destinatario}}.\n\n{{respondido_por}} respondeu à sua solicitação de alteração de datas: {{resultado}}.\n\n"
+            "Plano de Ação: {{numero_pa}} — {{titulo_pa}}\nItem: {{item}} — {{descricao}}\nSolicitado em: {{solicitado_em}}\n\n"
+            "{{datas_solicitadas}}\n\nDatas vigentes:\n{{datas_vigentes}}\n\nJustificativa da resposta: {{justificativa_resposta}}",
+            botao="Ver item",
+        ),
+        DefModelo(
+            "contraproposta_prazo",
+            "Contraproposta de datas do gestor",
+            {**_VARIAVEIS_ITEM,
+             "proposto_por": "Gestor que sugeriu as outras datas.",
+             "resumo_contraproposta": "Frase da contraproposta (ex.: O gestor João sugeriu outra data para esta ação.).",
+             "comparacao_datas": "Datas vigentes, solicitadas e propostas pelo gestor (só as negociadas), com o alerta do plano.",
+             "justificativa_gestor": "Justificativa do gestor para a contraproposta.",
+             "solicitado_em": _VARIAVEIS_SOLICITACAO["solicitado_em"],
+             "justificativa": "Justificativa do pedido original."},
+            "[Planos de Ação] O gestor sugeriu outra data: {{item}} — {{numero_pa}}",
+            "Olá, {{destinatario}}.\n\n{{resumo_contraproposta}}\n\nPlano de Ação: {{numero_pa}} — {{titulo_pa}}\n"
+            "Item: {{item}} — {{descricao}}\nSeu pedido, de {{solicitado_em}}: {{justificativa}}\n\n{{comparacao_datas}}\n\n"
+            "Justificativa do gestor: {{justificativa_gestor}}\n\nAcesse o item para aceitar ou não a contraproposta. "
+            "Até a sua resposta, as datas vigentes continuam valendo.",
+            botao="Responder contraproposta",
+        ),
+        DefModelo(
+            "resposta_contraproposta_prazo",
+            "Resposta à contraproposta de datas",
+            {**_VARIAVEIS_ITEM,
+             "respondido_por": "Quem pediu a alteração e respondeu à contraproposta.",
+             "resultado": "aceita ou não aceita.",
+             "comparacao_datas": "Datas vigentes, solicitadas e propostas (só as negociadas), com o alerta do plano.",
+             "justificativa_resposta": f"Justificativa de quem respondeu ({VAZIO} quando não houver).",
+             "proximo_passo": "O que acontece agora (acordo concluído ou o pedido voltou para a análise do gestor).",
+             "datas_vigentes": "Datas de início e conclusão que valem depois da resposta."},
+            "[Planos de Ação] Contraproposta {{resultado}}: {{item}} — {{numero_pa}}",
+            "Olá, {{destinatario}}.\n\n{{respondido_por}} respondeu à sua contraproposta de datas: {{resultado}}.\n\n"
+            "Plano de Ação: {{numero_pa}} — {{titulo_pa}}\nItem: {{item}} — {{descricao}}\n\n{{comparacao_datas}}\n\n"
+            "Justificativa: {{justificativa_resposta}}\n\n{{proximo_passo}}\n\nDatas vigentes:\n{{datas_vigentes}}",
+            botao="Ver item",
+        ),
+        DefModelo(
             "acao_concluida",
             "Ação concluída",
             {**_VARIAVEIS_ITEM, "concluido_por": "Quem concluiu o item.", "data_conclusao": "Data da conclusão (dd/mm/aaaa).",
@@ -264,6 +331,22 @@ DADOS_FICTICIOS = {
     "periodo_inicio": "28/09/2026",
     "periodo_fim": "04/10/2026",
     "quantidade_planos": "1 plano",
+    "solicitado_por": "Maria Exemplo",
+    "solicitado_em": "28/10/2026 às 09:03",
+    "resumo_solicitacao": "Maria Exemplo solicitou a alteração da data de conclusão.",
+    "datas_solicitadas": "Data de conclusão atual: 31/10/2026\nData de conclusão solicitada: 14/11/2026\n"
+                         "Atenção: A data de conclusão solicitada ultrapassa o término estimado do plano, em 10/11/2026.",
+    "justificativa": "Fornecedor adiou a entrega do termopar.",
+    "resultado": "aprovada",
+    "respondido_por": "João Exemplo",
+    "datas_vigentes": "Data de início: 10/10/2026\nData de conclusão: 14/11/2026",
+    "justificativa_resposta": "De acordo com o novo cronograma do fornecedor.",
+    "proposto_por": "João Exemplo",
+    "resumo_contraproposta": "O gestor João Exemplo sugeriu outra data para esta ação.",
+    "comparacao_datas": "Data de conclusão vigente: 31/10/2026\nData de conclusão solicitada: 14/11/2026\n"
+                        "Data de conclusão proposta pelo gestor: 07/11/2026",
+    "justificativa_gestor": "O cliente precisa das peças até a primeira semana de novembro.",
+    "proximo_passo": "Acordo concluído: as datas propostas já valem para o item.",
 }
 
 
@@ -284,6 +367,8 @@ def dados_ficticios(evento: str) -> dict[str, str]:
         d["link_registro"] = ""
     if evento == "subitem_criado":
         d["numero_item"] = "2.1"
+    if evento == "resposta_contraproposta_prazo":
+        d["resultado"] = "aceita"
     if evento == "convite_colaborador":
         d.update(convidado_por="João Exemplo", validade="12/10/2026 14:00",
                  link_registro=f"{get_settings().WEB_URL.rstrip('/')}/primeiro-acesso")

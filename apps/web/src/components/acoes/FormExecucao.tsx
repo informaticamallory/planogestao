@@ -99,7 +99,7 @@ export function FormExecucao({ acao }: { acao: AcaoDetalhe }) {
             <span>{formatarData(acao.prazo)}</span>
             {p.solicitar_alteracao && acao.status !== "aguardando_aceite" && !solicitando && (
               <Button variante="link" className={styles.link} onClick={() => setSolicitando(true)}>
-                Solicitar alteração de prazo
+                Solicitar alteração de datas
               </Button>
             )}
           </div>

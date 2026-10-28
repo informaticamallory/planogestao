@@ -105,13 +105,23 @@ function fraseEventoAcao(
     return `alterou os pré-requisitos${sufixo} de ${e.valor_anterior ?? "nenhum"} para ${e.valor_novo ?? "nenhum"}`;
   }
   if (e.evento === "comentario") return `comentou${sufixo}${motivo}`;
+  // Um registro por data pedida: "prazo_inicio" = data de início; "prazo" (e os registros antigos) = conclusão.
+  const dataPedida = e.campo_alterado === "prazo_inicio" ? "a data de início" : "a data de conclusão";
   if (e.evento === "solicitacao") {
-    return `solicitou alterar o prazo${sufixo} de ${de(e.valor_anterior)} para ${de(e.valor_novo)}${motivo}`;
+    return `solicitou alterar ${dataPedida}${sufixo} de ${de(e.valor_anterior)} para ${de(e.valor_novo)}${motivo}`;
   }
   if (e.evento === "resposta_solicitacao") {
     const aprovada = e.detalhe?.startsWith("Aprovada");
     const justificativa = e.detalhe?.includes(":") ? ` — ${e.detalhe.slice(e.detalhe.indexOf(":") + 1).trim()}` : "";
-    return `${aprovada ? "aprovou" : "recusou"} a alteração de prazo${sufixo} para ${de(e.valor_novo)}${justificativa}`;
+    return `${aprovada ? "aprovou" : "recusou"} a alteração d${dataPedida}${sufixo} para ${de(e.valor_novo)}${justificativa}`;
+  }
+  if (e.evento === "contraproposta") {
+    return `sugeriu outra data: ${dataPedida}${sufixo} de ${de(e.valor_anterior)} para ${de(e.valor_novo)}${motivo}`;
+  }
+  if (e.evento === "resposta_contraproposta") {
+    const aceita = e.detalhe?.startsWith("Aceita");
+    const justificativa = e.detalhe?.includes(":") ? ` — ${e.detalhe.slice(e.detalhe.indexOf(":") + 1).trim()}` : "";
+    return `${aceita ? "aceitou" : "não aceitou"} a contraproposta para ${dataPedida}${sufixo} (${de(e.valor_novo)})${justificativa}`;
   }
   const campo = CAMPOS_ACAO[e.campo_alterado ?? ""] ?? e.campo_alterado;
   if (e.campo_alterado === "observacao") return `atualizou a observação${sufixo}: ${de(e.valor_novo)}`;

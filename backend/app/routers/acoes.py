@@ -13,7 +13,9 @@ from app.schemas.acao import (
     AcaoAtualizar,
     AcaoDetalhe,
     AcaoHistoricoItem,
+    EnviarContraproposta,
     ReabrirAcao,
+    ResponderContraproposta,
     ResponderSolicitacao,
     SolicitarAlteracao,
 )
@@ -105,6 +107,34 @@ def responder_solicitacao(
 ):
     with _erros():
         return _service(db, usuario).responder_solicitacao(acao_id, solicitacao_id, dados)
+
+
+@router.post("/{acao_id}/solicitacoes/{solicitacao_id}/contrapropostas", response_model=AcaoDetalhe,
+             status_code=status.HTTP_201_CREATED)
+def contrapor(
+    acao_id: int,
+    solicitacao_id: int,
+    dados: EnviarContraproposta,
+    usuario: UsuarioLeitura,
+    db: Session = Depends(get_db),
+):
+    """Gestor sugere outras datas para o pedido pendente (as vigentes não mudam; uma contraproposta pendente por vez)."""
+    with _erros():
+        return _service(db, usuario).contrapor(acao_id, solicitacao_id, dados)
+
+
+@router.post("/{acao_id}/solicitacoes/{solicitacao_id}/contrapropostas/{contraproposta_id}/responder", response_model=AcaoDetalhe)
+def responder_contraproposta(
+    acao_id: int,
+    solicitacao_id: int,
+    contraproposta_id: int,
+    dados: ResponderContraproposta,
+    usuario: UsuarioLeitura,
+    db: Session = Depends(get_db),
+):
+    """Só quem pediu: aceitar (aplica as datas, acordo) ou não aceitar (com justificativa; volta para o gestor)."""
+    with _erros():
+        return _service(db, usuario).responder_contraproposta(acao_id, solicitacao_id, contraproposta_id, dados)
 
 
 

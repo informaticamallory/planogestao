@@ -5,17 +5,17 @@ import { Link } from "react-router-dom";
 import { useAcaoDetalhe } from "../../hooks/useAcao";
 import { formatarData, formatarDataHora } from "../../utils/datas";
 import { ROTULO_LISTA_PLANOS, caminhoListaPlanos } from "../../utils/hierarquiaPlanos";
+import { ROTULO_SITUACAO, camposSolicitacao, comoPedido, resumoMudancas } from "../../utils/solicitacaoDatas";
 import { NavegacaoHierarquia, type NivelHierarquia } from "../planos/NavegacaoHierarquia";
 import { Icon } from "../ui/Icon";
 import { ProgressBar } from "../ui/ProgressBar";
 import { PriorityBadge, ActionStatusBadge } from "../ui/StatusBadges";
 import styles from "./Acao.module.css";
 import { BlocoPlanejamento, BlocoReabrir, BlocoSubacoes, FaixaAguardando } from "./BlocosEstrutura";
-import { BlocoAceite, BlocoRespostaSolicitacao } from "./BlocosFluxo";
+import { BlocoAceite, BlocoContraproposta, BlocoRespostaSolicitacao } from "./BlocosFluxo";
 import { FormExecucao } from "./FormExecucao";
 import { TimelineAcao } from "./TimelineAcao";
 
-const ROTULO_SOLICITACAO = { pendente: "Pendente", aceita: "Aprovada", recusada: "Recusada" } as const;
 
 function descreverPrazo(a: AcaoDetalhe): string {
   const data = formatarData(a.prazo);
@@ -173,9 +173,11 @@ export function DetalheAcao({ acaoId, compacto = false }: DetalheAcaoProps) {
       )}
       {mostrarAceite && <BlocoAceite acao={acao} />}
       {p.responder_solicitacao && <BlocoRespostaSolicitacao acao={acao} />}
-      {!mostrarAceite && p.eh_responsavel && acao.solicitacao_pendente && (
+      {p.responder_contraproposta && <BlocoContraproposta acao={acao} />}
+      {!mostrarAceite && !p.responder_contraproposta && p.eh_responsavel && acao.solicitacao_pendente && (
         <p className={styles.faixaInfo} role="status">
-          Sua solicitação para mudar o prazo para {formatarData(acao.solicitacao_pendente.novo_prazo_sugerido)} aguarda resposta do gestor.
+          Sua solicitação de alteração {camposSolicitacao(acao.solicitacao_pendente)} ({resumoMudancas(acao.solicitacao_pendente)}) aguarda
+          resposta do gestor. Até lá, as datas atuais continuam valendo.
         </p>
       )}
 
@@ -220,7 +222,7 @@ export function DetalheAcao({ acaoId, compacto = false }: DetalheAcaoProps) {
 
           <section className={styles.bloco} aria-labelledby="titulo-solicitacoes">
             <h2 id="titulo-solicitacoes" className={styles.tituloBloco}>
-              Solicitações de prazo
+              Solicitações de datas
             </h2>
             {acao.solicitacoes.length === 0 ? (
               <p className={styles.textoApoio}>Nenhuma solicitação.</p>
@@ -228,10 +230,14 @@ export function DetalheAcao({ acaoId, compacto = false }: DetalheAcaoProps) {
               <ul className={styles.listaSolicitacoes}>
                 {acao.solicitacoes.map((s) => (
                   <li key={s.id} className={styles.solicitacao}>
-                    <span className={styles.statusSolicitacao}>{ROTULO_SOLICITACAO[s.status]}</span>
-                    <span>
-                      {formatarData(s.prazo_anterior)} → {formatarData(s.novo_prazo_sugerido)}
-                    </span>
+                    <span className={styles.statusSolicitacao}>{ROTULO_SITUACAO[s.situacao]}</span>
+                    <span>{resumoMudancas(s)}</span>
+                    {s.contrapropostas.length > 0 && (
+                      <span className={styles.textoApoio}>
+                        {s.contrapropostas.length} contraproposta(s) do gestor
+                        {s.situacao === "acordo" && ` — acordo: ${resumoMudancas(comoPedido(s.contrapropostas.find((c) => c.status === "aceita")!))}`}
+                      </span>
+                    )}
                     <span className={styles.textoApoio}>
                       {s.solicitado_por.nome}, {formatarDataHora(s.criado_em)}
                     </span>

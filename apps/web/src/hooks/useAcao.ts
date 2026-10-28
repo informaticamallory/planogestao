@@ -1,4 +1,12 @@
-import type { AcaoAtualizar, AcaoCriar, AcaoDetalhe, ResponderSolicitacao, SolicitarAlteracao } from "@planogestao/shared-types";
+import type {
+  AcaoAtualizar,
+  AcaoCriar,
+  AcaoDetalhe,
+  EnviarContraproposta,
+  ResponderContraproposta,
+  ResponderSolicitacao,
+  SolicitarAlteracao,
+} from "@planogestao/shared-types";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { api } from "../services/api";
@@ -72,6 +80,24 @@ export function useResponderSolicitacao(acaoId: number) {
   return useMutation({
     mutationFn: ({ solicitacaoId, ...dados }: ResponderSolicitacao & { solicitacaoId: number }) =>
       api.acoes.responderSolicitacao(acaoId, solicitacaoId, dados),
+    onSuccess: aoAlterar,
+  });
+}
+
+export function useContrapor(acaoId: number) {
+  const aoAlterar = useAoAlterarAcao(acaoId);
+  return useMutation({
+    mutationFn: ({ solicitacaoId, ...dados }: EnviarContraproposta & { solicitacaoId: number }) =>
+      api.acoes.contrapor(acaoId, solicitacaoId, dados),
+    onSuccess: aoAlterar,
+  });
+}
+
+export function useResponderContraproposta(acaoId: number) {
+  const aoAlterar = useAoAlterarAcao(acaoId);
+  return useMutation({
+    mutationFn: ({ solicitacaoId, contrapropostaId, ...dados }: ResponderContraproposta & { solicitacaoId: number; contrapropostaId: number }) =>
+      api.acoes.responderContraproposta(acaoId, solicitacaoId, contrapropostaId, dados),
     onSuccess: aoAlterar,
   });
 }

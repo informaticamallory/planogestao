@@ -224,6 +224,161 @@
   font-style: italic;
 }
 
+/* Solicitação de alteração de datas: "Rótulo: valor", uma linha por informação. */
+.datasSolicitacao {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: var(--espaco-1) var(--espaco-3);
+  margin: 0;
+  font-size: var(--fonte-md);
+}
+
+.datasSolicitacao dt {
+  color: var(--cor-texto-suave);
+}
+
+.datasSolicitacao dd {
+  margin: 0;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.subtituloBloco {
+  margin: 0;
+  font-size: var(--fonte-md);
+  font-weight: 600;
+}
+
+.alertaSolicitacao {
+  margin: 0;
+  padding: var(--espaco-2) var(--espaco-3);
+  border-left: var(--borda-destaque) solid var(--cor-dado-vencendo);
+  border-radius: var(--raio-2);
+  background: var(--cor-fundo);
+  font-size: var(--fonte-md);
+}
+
+/* Contraproposta: título com a situação da negociação, tabela vigente × solicitada × proposta. */
+.cabecalhoSolicitacao {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--espaco-2);
+}
+
+.seloSituacao {
+  padding: var(--espaco-05) var(--espaco-2);
+  border-radius: var(--raio-2);
+  background: var(--cor-fundo);
+  font-size: var(--fonte-xs);
+  font-weight: 700;
+  color: var(--cor-texto-suave);
+}
+
+.seloSituacao_aguardando_responsavel {
+  color: var(--cor-dado-vencendo);
+}
+
+.caixaNegociacao {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-2);
+  padding: var(--espaco-3);
+  border: var(--borda-fina) solid var(--cor-borda);
+  border-radius: var(--raio-2);
+  background: var(--cor-fundo);
+}
+
+.tabelaDatas {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--fonte-md);
+  font-variant-numeric: tabular-nums;
+}
+
+.tabelaDatas th,
+.tabelaDatas td {
+  padding: var(--espaco-1) var(--espaco-2);
+  border-bottom: var(--borda-fina) solid var(--cor-borda);
+  text-align: left;
+}
+
+.tabelaDatas thead th {
+  font-size: var(--fonte-xs);
+  font-weight: 600;
+  color: var(--cor-texto-suave);
+}
+
+.tabelaDatas tbody th {
+  font-weight: 400;
+  color: var(--cor-texto-suave);
+}
+
+.tabelaDatas .destaqueProposta {
+  font-weight: 700;
+}
+
+.rolagemTabela {
+  overflow-x: auto;
+}
+
+.listaNegociacao {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--fonte-md);
+}
+
+/* Celular: cada data vira um cartão com "Vigente / Solicitada / Contraproposta" empilhados (nada some na rolagem). */
+@media (max-width: 40rem) {
+  .tabelaDatas thead {
+    display: none;
+  }
+
+  .tabelaDatas tr {
+    display: grid;
+    padding: var(--espaco-2) 0;
+    border-bottom: var(--borda-fina) solid var(--cor-borda);
+  }
+
+  .tabelaDatas th,
+  .tabelaDatas td {
+    padding: var(--espaco-05) 0;
+    border-bottom: 0;
+  }
+
+  .tabelaDatas tbody th {
+    font-weight: 600;
+    color: var(--cor-texto);
+  }
+
+  .tabelaDatas td {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--espaco-3);
+  }
+
+  .tabelaDatas td::before {
+    content: attr(data-rotulo);
+    font-weight: 400;
+    color: var(--cor-texto-suave);
+  }
+}
+
+@media (max-width: 30rem) {
+  .datasSolicitacao {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .datasSolicitacao dd {
+    margin-bottom: var(--espaco-1);
+  }
+}
+
 .formSolicitacao {
   display: flex;
   flex-direction: column;
@@ -304,7 +459,9 @@
 }
 
 .evento_solicitacao,
-.evento_resposta_solicitacao {
+.evento_resposta_solicitacao,
+.evento_contraproposta,
+.evento_resposta_contraproposta {
   background: var(--cor-fundo);
   border-radius: var(--raio-2);
 }

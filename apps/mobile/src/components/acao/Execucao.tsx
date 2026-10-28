@@ -273,7 +273,7 @@ export function BlocoExecucao({ acao }: { acao: AcaoDetalhe }) {
               <Text style={estilos.valorPrazo}>{formatarData(acao.prazo)}</Text>
             </View>
             {p.solicitar_alteracao && acao.status !== "aguardando_aceite" && (
-              <Botao texto="Pedir outro prazo" icone="calendar" onPress={() => setSolicitando(true)} compacto />
+              <Botao texto="Pedir outras datas" icone="calendar" onPress={() => setSolicitando(true)} compacto />
             )}
           </View>
         )}

@@ -17,14 +17,15 @@ Regras comuns (em `avisar`), para todos os tipos:
 
 from collections.abc import Iterable
 from dataclasses import dataclass, field
-from datetime import date, datetime
+from datetime import UTC, date, datetime
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.core.tempo import data_local
-from app.models import Acao, EnvioEmail, PlanoDeAcao, Usuario
-from app.models.enums import STATUS_ACAO_ABERTOS, ReferenciaNotificacao, StatusPlano
+from app.core.permissoes import PERFIL_ADMINISTRADOR
+from app.core.tempo import data_local, fuso_local
+from app.models import Acao, AcaoContraproposta, AcaoSolicitacaoAlteracao, EnvioEmail, Perfil, PlanoDeAcao, Usuario
+from app.models.enums import STATUS_ACAO_ABERTOS, ReferenciaNotificacao, StatusContraproposta, StatusPlano, StatusSolicitacao
 from app.services import dependencias, gestores_area
 from app.services.email_notificacoes import _data, _link, enfileirar_aviso, registrar_validador
 from app.services.escopo import filtro_planos_visiveis
@@ -90,6 +91,8 @@ class Aviso:
     # tem o e-mail de "Nova ação").
     email: dict | None = None
     contexto: dict = field(default_factory=dict)
+    # Modelo de e-mail de um tipo fora de Meu Perfil (ex.: solicitação de prazo); os configuráveis usam POR_TIPO.
+    evento_email: str | None = None
 
 
 def avisar(db: Session, aviso: Aviso) -> int:
@@ -124,7 +127,8 @@ def avisar(db: Session, aviso: Aviso) -> int:
         # desligou o e-mail deste tipo não o recebe em cópia.
         area = gestores_area.area_do_evento(plano=aviso.plano, acao=aviso.acao)
         if destinatarios or area is not None:
-            enfileirar_aviso(db, POR_TIPO[aviso.tipo].evento_email, ref_tipo.value, ref_id, destinatarios, aviso.email,
+            evento_email = aviso.evento_email or POR_TIPO[aviso.tipo].evento_email
+            enfileirar_aviso(db, evento_email, ref_tipo.value, ref_id, destinatarios, aviso.email,
                              chave_evento=aviso.chave, contexto=contexto, area=area, fora_da_copia=[u.id for u in validos],
                              ref_copia=validos[0])
     return criadas
@@ -357,6 +361,203 @@ def plano_sem_atualizacao(db: Session, plano: PlanoDeAcao, ultima: datetime, des
     ))
 
 
+# ---- 7. solicitação de alteração de datas (início e/ou conclusão) e a resposta ------------------------------
+
+
+def campos_solicitacao(s: AcaoSolicitacaoAlteracao) -> str:
+    if s.altera_inicio and s.altera_conclusao:
+        return "das datas de início e conclusão"
+    return "da data de início" if s.altera_inicio else "da data de conclusão"
+
+
+def linhas_datas_solicitacao(s: AcaoSolicitacaoAlteracao) -> list[str]:
+    """Atual e solicitada, só dos campos pedidos (datas planejadas; as reais não entram em solicitação)."""
+    linhas = []
+    if s.altera_inicio:
+        linhas += [f"Data de início atual: {_fmt(s.prazo_inicio_anterior)}",
+                   f"Data de início solicitada: {_fmt(s.novo_prazo_inicio_sugerido)}"]
+    if s.altera_conclusao:
+        linhas += [f"Data de conclusão atual: {_fmt(s.prazo_anterior)}",
+                   f"Data de conclusão solicitada: {_fmt(s.novo_prazo_sugerido)}"]
+    return linhas
+
+
+def alerta_solicitacao(s: AcaoSolicitacaoAlteracao, plano: PlanoDeAcao) -> str | None:
+    if s.altera_conclusao and s.novo_prazo_sugerido > plano.data_fim_estimado:
+        return f"A data de conclusão solicitada ultrapassa o término estimado do plano, em {_fmt(plano.data_fim_estimado)}."
+    return None
+
+
+def _do_item(acao: Acao) -> str:
+    return f"do sub-item {acao.numero_exibicao}" if acao.eh_subacao else f"da ação {acao.numero_exibicao}"
+
+
+def _momento(instante: datetime) -> str:
+    return instante.replace(tzinfo=UTC).astimezone(fuso_local()).strftime("%d/%m/%Y às %H:%M")
+
+
+def aprovadores_solicitacao(db: Session, acao: Acao, solicitante_id: int) -> list[int]:
+    """Quem avalia o pedido: o gestor do plano (responsável pelo plano), quem criou o plano e, no sub-item, o
+    responsável pelo item imediatamente acima — todos podem responder (AcaoService._eh_gestor). Só contas ativas,
+    com acesso ao item e diferentes do solicitante. Sem nenhum (ex.: quem pediu é o próprio gestor e criador do
+    plano), vão os Administradores ativos, que sempre podem responder."""
+    plano = acao.plano
+    candidatos = (plano.responsavel_id, plano.criado_por_id, acao.acao_pai.responsavel_id if acao.acao_pai else None)
+    ids = []
+    for usuario_id in dict.fromkeys(i for i in candidatos if i is not None and i != solicitante_id):
+        usuario = db.get(Usuario, usuario_id)
+        if destinatario_valido(usuario) and acessa_item(db, usuario, acao):
+            ids.append(usuario_id)
+    if ids:
+        return ids
+    admins = db.scalars(select(Usuario).join(Usuario.perfil).where(Perfil.nome == PERFIL_ADMINISTRADOR, Usuario.ativo.is_(True)))
+    return [u.id for u in admins if u.id != solicitante_id and destinatario_valido(u)]
+
+
+def _valores_solicitacao(acao: Acao, s: AcaoSolicitacaoAlteracao) -> dict[str, str | None]:
+    alerta = alerta_solicitacao(s, acao.plano)
+    return {
+        **_valores_item(acao),
+        "solicitado_por": s.solicitado_por.nome,
+        "solicitado_em": _momento(s.criado_em),
+        "resumo_solicitacao": f"{s.solicitado_por.nome} solicitou a alteração {campos_solicitacao(s)}.",
+        "datas_solicitadas": "\n".join(linhas_datas_solicitacao(s) + ([f"Atenção: {alerta}"] if alerta else [])),
+        "justificativa": s.motivo,
+    }
+
+
+def solicitacao_prazo(db: Session, acao: Acao, s: AcaoSolicitacaoAlteracao) -> int:
+    """Pedido criado: avisa quem avalia, no sistema e por e-mail (o tipo não é configurável em Meu Perfil)."""
+    nome = s.solicitado_por.nome
+    alerta = alerta_solicitacao(s, acao.plano)
+    return avisar(db, Aviso(
+        tipo=TipoEvento.SOLICITACAO_PRAZO,
+        chave=f"{TipoEvento.SOLICITACAO_PRAZO}:{s.id}",
+        titulo=f"Solicitação de alteração de datas: {rotulo_item(acao)} — {acao.plano.codigo}",
+        mensagem=(
+            f"{nome} solicitou a alteração {campos_solicitacao(s)} {_do_item(acao)} “{acao.descricao}”. "
+            + " · ".join(linhas_datas_solicitacao(s)) + "." + (f" {alerta}" if alerta else "") + f" Justificativa: {s.motivo}"
+        ),
+        plano=acao.plano, acao=acao, autor_id=s.solicitado_por_id,
+        destinatarios=aprovadores_solicitacao(db, acao, s.solicitado_por_id),
+        email=_valores_solicitacao(acao, s), evento_email="solicitacao_prazo",
+        contexto={"solicitacao_id": s.id},
+    ))
+
+
+def resposta_solicitacao_prazo(db: Session, acao: Acao, s: AcaoSolicitacaoAlteracao, autor: Usuario) -> int:
+    """Pedido aprovado ou recusado: avisa quem pediu, com as datas vigentes depois da resposta."""
+    aprovada = s.status == StatusSolicitacao.ACEITA
+    resultado = "aprovada" if aprovada else "recusada"
+    vigentes = f"Datas vigentes: início {_fmt(acao.prazo_inicio)}, conclusão {_fmt(acao.prazo)}."
+    justificativa = s.resposta_justificativa
+    return avisar(db, Aviso(
+        tipo=TipoEvento.RESPOSTA_SOLICITACAO_PRAZO,
+        chave=f"{TipoEvento.RESPOSTA_SOLICITACAO_PRAZO}:{s.id}",
+        titulo=f"Solicitação de alteração de datas {resultado}: {rotulo_item(acao)} — {acao.plano.codigo}",
+        mensagem=(
+            f"{autor.nome} {'aprovou' if aprovada else 'recusou'} a sua solicitação de alteração {campos_solicitacao(s)} "
+            f"{_do_item(acao)} “{acao.descricao}”. " + " · ".join(linhas_datas_solicitacao(s)) + f". {vigentes}"
+            + (f" Justificativa: {justificativa}" if justificativa else "")
+        ),
+        plano=acao.plano, acao=acao, autor_id=autor.id, destinatarios=(s.solicitado_por_id,),
+        email={
+            **_valores_solicitacao(acao, s),
+            "resultado": resultado,
+            "respondido_por": autor.nome,
+            "datas_vigentes": f"Data de início: {_fmt(acao.prazo_inicio)}\nData de conclusão: {_fmt(acao.prazo)}",
+            "justificativa_resposta": justificativa,
+        },
+        evento_email="resposta_solicitacao_prazo",
+    ))
+
+
+# ---- 8. contraproposta do gestor e a resposta do solicitante ------------------------------------------------
+
+
+def linhas_comparacao(s: AcaoSolicitacaoAlteracao, cp: AcaoContraproposta) -> list[str]:
+    """Vigente × solicitada × proposta, de cada data que o pedido ou a contraproposta mexe."""
+    linhas = []
+    if s.altera_inicio or cp.altera_inicio:
+        linhas += [
+            f"Data de início vigente: {_fmt(cp.prazo_inicio_vigente)}",
+            f"Data de início solicitada: {_fmt(s.novo_prazo_inicio_sugerido) if s.altera_inicio else 'sem alteração'}",
+            f"Data de início proposta pelo gestor: {_fmt(cp.novo_prazo_inicio) if cp.altera_inicio else 'sem alteração'}",
+        ]
+    if s.altera_conclusao or cp.altera_conclusao:
+        linhas += [
+            f"Data de conclusão vigente: {_fmt(cp.prazo_vigente)}",
+            f"Data de conclusão solicitada: {_fmt(s.novo_prazo_sugerido) if s.altera_conclusao else 'sem alteração'}",
+            f"Data de conclusão proposta pelo gestor: {_fmt(cp.novo_prazo) if cp.altera_conclusao else 'sem alteração'}",
+        ]
+    return linhas
+
+
+def alerta_contraproposta(cp: AcaoContraproposta, plano: PlanoDeAcao) -> str | None:
+    if cp.altera_conclusao and cp.novo_prazo > plano.data_fim_estimado:
+        return f"A data de conclusão proposta ultrapassa o término estimado do plano, em {_fmt(plano.data_fim_estimado)}."
+    return None
+
+
+def _comparacao(s: AcaoSolicitacaoAlteracao, cp: AcaoContraproposta, plano: PlanoDeAcao) -> str:
+    alerta = alerta_contraproposta(cp, plano)
+    return "\n".join(linhas_comparacao(s, cp) + ([f"Atenção: {alerta}"] if alerta else []))
+
+
+def contraproposta_prazo(db: Session, acao: Acao, s: AcaoSolicitacaoAlteracao, cp: AcaoContraproposta, autor: Usuario) -> int:
+    """O gestor sugeriu outras datas: avisa quem pediu, no sistema e por e-mail, para aceitar ou não."""
+    alerta = alerta_contraproposta(cp, acao.plano)
+    resumo = f"O gestor {autor.nome} sugeriu outra data para {'este sub-item' if acao.eh_subacao else 'esta ação'}."
+    return avisar(db, Aviso(
+        tipo=TipoEvento.CONTRAPROPOSTA_PRAZO,
+        chave=f"{TipoEvento.CONTRAPROPOSTA_PRAZO}:{cp.id}",
+        titulo=f"Contraproposta de datas: {rotulo_item(acao)} — {acao.plano.codigo}",
+        mensagem=(
+            f"O gestor {autor.nome} sugeriu outra data para {_artigo(acao)} “{acao.descricao}”, em resposta à sua solicitação. "
+            + " · ".join(linhas_comparacao(s, cp)) + "." + (f" {alerta}" if alerta else "")
+            + f" Justificativa do gestor: {cp.justificativa} Acesse o item para aceitar ou não a contraproposta."
+        ),
+        plano=acao.plano, acao=acao, autor_id=autor.id, destinatarios=(s.solicitado_por_id,),
+        email={
+            **_valores_item(acao), "proposto_por": autor.nome, "resumo_contraproposta": resumo,
+            "comparacao_datas": _comparacao(s, cp, acao.plano), "justificativa_gestor": cp.justificativa,
+            "solicitado_em": _momento(s.criado_em), "justificativa": s.motivo,
+        },
+        evento_email="contraproposta_prazo",
+        contexto={"contraproposta_id": cp.id},
+    ))
+
+
+def resposta_contraproposta_prazo(
+    db: Session, acao: Acao, s: AcaoSolicitacaoAlteracao, cp: AcaoContraproposta, autor: Usuario
+) -> int:
+    """O solicitante respondeu: avisa o gestor que propôs (acordo concluído, ou o pedido voltou para a análise dele)."""
+    aceita = cp.status == StatusContraproposta.ACEITA
+    resultado = "aceita" if aceita else "não aceita"
+    vigentes = f"Datas vigentes: início {_fmt(acao.prazo_inicio)}, conclusão {_fmt(acao.prazo)}."
+    if aceita:
+        proximo = "Acordo concluído: as datas propostas já valem para o item."
+    else:
+        proximo = "O pedido voltou para a sua análise: aprove o pedido original, recuse-o ou envie nova contraproposta."
+    return avisar(db, Aviso(
+        tipo=TipoEvento.RESPOSTA_CONTRAPROPOSTA_PRAZO,
+        chave=f"{TipoEvento.RESPOSTA_CONTRAPROPOSTA_PRAZO}:{cp.id}",
+        titulo=f"Contraproposta {resultado}: {rotulo_item(acao)} — {acao.plano.codigo}",
+        mensagem=(
+            f"{autor.nome} {'aceitou' if aceita else 'não aceitou'} a sua contraproposta {_do_item(acao)} “{acao.descricao}”. "
+            + (f"Justificativa: {cp.resposta_justificativa} " if cp.resposta_justificativa else "") + f"{proximo} {vigentes}"
+        ),
+        plano=acao.plano, acao=acao, autor_id=autor.id, destinatarios=(cp.proposto_por_id,),
+        email={
+            **_valores_item(acao), "respondido_por": autor.nome, "resultado": resultado,
+            "comparacao_datas": _comparacao(s, cp, acao.plano), "justificativa_resposta": cp.resposta_justificativa,
+            "proximo_passo": proximo,
+            "datas_vigentes": f"Data de início: {_fmt(acao.prazo_inicio)}\nData de conclusão: {_fmt(acao.prazo)}",
+        },
+        evento_email="resposta_contraproposta_prazo",
+    ))
+
+
 # ---- revalidação antes do envio do e-mail -----------------------------------------------------------------
 
 
@@ -385,6 +586,14 @@ def revalidar(db: Session, envio: EnvioEmail) -> str | None:
             or acao.status not in STATUS_ACAO_ABERTOS
         ):
             return "Prazo, responsável ou situação do item mudou depois do aviso."
+        if "solicitacao_id" in ctx:
+            s = _atual(db, AcaoSolicitacaoAlteracao, ctx["solicitacao_id"])
+            if s is None or s.status != StatusSolicitacao.PENDENTE:
+                return "A solicitação já foi respondida."
+        if "contraproposta_id" in ctx:
+            cp = _atual(db, AcaoContraproposta, ctx["contraproposta_id"])
+            if cp is None or cp.status != StatusContraproposta.PENDENTE:
+                return "A contraproposta já foi respondida, substituída ou encerrada."
     elif "plano_id" in ctx:
         plano = _atual(db, PlanoDeAcao, ctx["plano_id"])
         if not plano_operacional(plano):
@@ -397,5 +606,6 @@ def revalidar(db: Session, envio: EnvioEmail) -> str | None:
 
 
 for _evento in ("acao_criada", "subitem_criado", "acao_atribuida", "prazo_proximo", "prazo_alterado", "acao_concluida",
-                "dependencia_liberada", "plano_sem_atualizacao"):
+                "dependencia_liberada", "plano_sem_atualizacao", "solicitacao_prazo", "resposta_solicitacao_prazo",
+                "contraproposta_prazo", "resposta_contraproposta_prazo"):
     registrar_validador(_evento, revalidar)

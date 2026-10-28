@@ -797,6 +797,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/acoes/{acao_id}/solicitacoes/{solicitacao_id}/contrapropostas": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Contrapor
+         * @description Gestor sugere outras datas para o pedido pendente (as vigentes não mudam; uma contraproposta pendente por vez).
+         */
+        post: operations["contrapor_acoes__acao_id__solicitacoes__solicitacao_id__contrapropostas_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/acoes/{acao_id}/solicitacoes/{solicitacao_id}/contrapropostas/{contraproposta_id}/responder": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Responder Contraproposta
+         * @description Só quem pediu: aceitar (aplica as datas, acordo) ou não aceitar (com justificativa; volta para o gestor).
+         */
+        post: operations["responder_contraproposta_acoes__acao_id__solicitacoes__solicitacao_id__contrapropostas__contraproposta_id__responder_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/acoes/{acao_id}/arquivar": {
         parameters: {
             query?: never;
@@ -3391,6 +3431,49 @@ export interface components {
             /** Total */
             total: number;
         };
+        /**
+         * ContrapropostaResumo
+         * @description Outras datas sugeridas pelo gestor (início e/ou conclusão), comparadas com as vigentes quando foi enviada.
+         */
+        ContrapropostaResumo: {
+            /** Id */
+            id: number;
+            /** Prazo Inicio Vigente */
+            prazo_inicio_vigente: string | null;
+            /**
+             * Prazo Vigente
+             * Format: date
+             */
+            prazo_vigente: string;
+            /**
+             * Novo Prazo Inicio
+             * @description Início proposto (None = mantém o vigente).
+             */
+            novo_prazo_inicio: string | null;
+            /**
+             * Novo Prazo
+             * Format: date
+             * @description Conclusão proposta (igual à vigente se não muda).
+             */
+            novo_prazo: string;
+            /** Altera Inicio */
+            altera_inicio: boolean;
+            /** Altera Conclusao */
+            altera_conclusao: boolean;
+            /** Justificativa */
+            justificativa: string;
+            status: components["schemas"]["StatusContraproposta"];
+            proposto_por: components["schemas"]["Opcao"];
+            /** Resposta Justificativa */
+            resposta_justificativa: string | null;
+            /** Respondido Em */
+            respondido_em: string | null;
+            /**
+             * Criado Em
+             * Format: date-time
+             */
+            criado_em: string;
+        };
         /** ConviteItem */
         ConviteItem: {
             /** Id */
@@ -3590,6 +3673,18 @@ export interface components {
             /** Concluidas */
             concluidas: number;
         };
+        /**
+         * EnviarContraproposta
+         * @description O gestor propõe outras datas. Campo omitido = mantém a data vigente; ao menos uma precisa mudar.
+         */
+        EnviarContraproposta: {
+            /** Novo Prazo Inicio */
+            novo_prazo_inicio?: string | null;
+            /** Novo Prazo */
+            novo_prazo?: string | null;
+            /** Justificativa */
+            justificativa: string;
+        };
         /** EnvioEmailItem */
         EnvioEmailItem: {
             /** Id */
@@ -3757,7 +3852,7 @@ export interface components {
          * EventoHistorico
          * @enum {string}
          */
-        EventoHistorico: "criacao" | "alteracao" | "comentario" | "solicitacao" | "resposta_solicitacao";
+        EventoHistorico: "criacao" | "alteracao" | "comentario" | "solicitacao" | "resposta_solicitacao" | "contraproposta" | "resposta_contraproposta";
         /** EventoSaida */
         EventoSaida: {
             /** Id */
@@ -4904,8 +4999,16 @@ export interface components {
             aceitar: boolean;
             /** Solicitar Alteracao */
             solicitar_alteracao: boolean;
-            /** Responder Solicitacao */
+            /**
+             * Responder Solicitacao
+             * @description Gestor: aprovar, recusar ou contrapor o pedido pendente.
+             */
             responder_solicitacao: boolean;
+            /**
+             * Responder Contraproposta
+             * @description Solicitante: aceitar ou não a contraproposta pendente.
+             */
+            responder_contraproposta: boolean;
             /**
              * Editar Execucao
              * @description Status/progresso/observação.
@@ -5809,6 +5912,16 @@ export interface components {
             /** Token */
             token: string;
         };
+        /** ResponderContraproposta */
+        ResponderContraproposta: {
+            /** Aceita */
+            aceita: boolean;
+            /**
+             * Justificativa
+             * @description Obrigatória ao não aceitar.
+             */
+            justificativa?: string | null;
+        };
         /** ResponderSolicitacao */
         ResponderSolicitacao: {
             /** Aprovado */
@@ -6117,13 +6230,29 @@ export interface components {
             /**
              * Prazo Anterior
              * Format: date
+             * @description Prazo de conclusão vigente no pedido.
              */
             prazo_anterior: string;
             /**
              * Novo Prazo Sugerido
              * Format: date
+             * @description Prazo de conclusão resultante (igual ao anterior se só o início foi pedido).
              */
             novo_prazo_sugerido: string;
+            /**
+             * Prazo Inicio Anterior
+             * @description Prazo inicial estimado vigente no pedido.
+             */
+            prazo_inicio_anterior?: string | null;
+            /**
+             * Novo Prazo Inicio Sugerido
+             * @description Prazo inicial estimado pedido (só se pedido).
+             */
+            novo_prazo_inicio_sugerido?: string | null;
+            /** Altera Inicio */
+            altera_inicio: boolean;
+            /** Altera Conclusao */
+            altera_conclusao: boolean;
             /** Motivo */
             motivo: string;
             status: components["schemas"]["StatusSolicitacao"];
@@ -6140,14 +6269,34 @@ export interface components {
              * Format: date-time
              */
             criado_em: string;
+            /**
+             * Situacao
+             * @description Negociação (independente do status de execução da ação).
+             * @enum {string}
+             */
+            situacao: "aguardando_gestor" | "aguardando_responsavel" | "aprovada" | "recusada" | "acordo";
+            /**
+             * Contrapropostas
+             * @description Da mais antiga à mais recente.
+             */
+            contrapropostas: components["schemas"]["ContrapropostaResumo"][];
+            contraproposta_pendente: components["schemas"]["ContrapropostaResumo"] | null;
         };
-        /** SolicitarAlteracao */
+        /**
+         * SolicitarAlteracao
+         * @description Pede a data de início, a de conclusão ou ambas (ao menos uma diferente da vigente).
+         */
         SolicitarAlteracao: {
             /**
-             * Novo Prazo Sugerido
-             * Format: date
+             * Novo Prazo Inicio Sugerido
+             * @description Novo prazo inicial estimado (omitir = mantém).
              */
-            novo_prazo_sugerido: string;
+            novo_prazo_inicio_sugerido?: string | null;
+            /**
+             * Novo Prazo Sugerido
+             * @description Novo prazo de conclusão (omitir = mantém).
+             */
+            novo_prazo_sugerido?: string | null;
             /** Motivo */
             motivo: string;
         };
@@ -6164,6 +6313,11 @@ export interface components {
             /** Fatias */
             fatias: components["schemas"]["FatiaStatusAcoes"][];
         };
+        /**
+         * StatusContraproposta
+         * @enum {string}
+         */
+        StatusContraproposta: "pendente" | "aceita" | "nao_aceita" | "substituida" | "encerrada";
         /**
          * StatusDoGrupo
          * @description Status de execução dos registros de um grupo (cada registro uma vez).
@@ -6197,9 +6351,11 @@ export interface components {
         StatusPlano: "nao_iniciado" | "em_andamento" | "concluido";
         /**
          * StatusSolicitacao
+         * @description Desfecho do pedido. Enquanto negocia (com ou sem contraproposta) fica PENDENTE; ACORDO = o responsável
+         *     aceitou a contraproposta do gestor. A negociação é separada do status de execução da ação.
          * @enum {string}
          */
-        StatusSolicitacao: "pendente" | "aceita" | "recusada";
+        StatusSolicitacao: "pendente" | "aceita" | "recusada" | "acordo";
         /** SubacaoItem */
         SubacaoItem: {
             /** Id */
@@ -8434,6 +8590,79 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["ResponderSolicitacao"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcaoDetalhe"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    contrapor_acoes__acao_id__solicitacoes__solicitacao_id__contrapropostas_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                acao_id: number;
+                solicitacao_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EnviarContraproposta"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcaoDetalhe"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    responder_contraproposta_acoes__acao_id__solicitacoes__solicitacao_id__contrapropostas__contraproposta_id__responder_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                acao_id: number;
+                solicitacao_id: number;
+                contraproposta_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResponderContraproposta"];
             };
         };
         responses: {

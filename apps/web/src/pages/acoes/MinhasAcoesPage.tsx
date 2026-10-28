@@ -131,7 +131,7 @@ export function MinhasAcoesPage() {
                       </button>
                       {a.acao_origem && <span className={styles.legenda}>Origem: {a.acao_origem}</span>}
                       {a.status === "aguardando_aceite" && <Badge corToken="--cor-status-aguardando_aceite">Aguardando seu aceite</Badge>}
-                      {a.solicitacao_pendente && <Badge corToken="--cor-status-aguardando_aceite">Solicitação de prazo pendente</Badge>}
+                      {a.solicitacao_pendente && <Badge corToken="--cor-status-aguardando_aceite">Solicitação de datas pendente</Badge>}
                     </td>
                     <td>
                       {/* Subação não dá acesso ao plano: o código aparece sem link. */}

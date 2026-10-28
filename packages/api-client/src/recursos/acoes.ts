@@ -1,4 +1,11 @@
-import type { AcaoAtualizar, AcaoCriar, ResponderSolicitacao, SolicitarAlteracao } from "@planogestao/shared-types";
+import type {
+  AcaoAtualizar,
+  AcaoCriar,
+  EnviarContraproposta,
+  ResponderContraproposta,
+  ResponderSolicitacao,
+  SolicitarAlteracao,
+} from "@planogestao/shared-types";
 
 import type { HttpClient } from "../client";
 import { exigirDados, exigirSucesso } from "../errors";
@@ -41,6 +48,24 @@ export function criarAcoes(http: HttpClient) {
       exigirDados(
         await http.POST("/acoes/{acao_id}/solicitacoes/{solicitacao_id}/responder", {
           params: { path: { acao_id: acaoId, solicitacao_id: solicitacaoId } },
+          body: dados,
+        }),
+      ),
+
+    /** Gestor sugere outras datas para o pedido pendente (as vigentes não mudam até o solicitante aceitar). */
+    contrapor: async (acaoId: number, solicitacaoId: number, dados: EnviarContraproposta) =>
+      exigirDados(
+        await http.POST("/acoes/{acao_id}/solicitacoes/{solicitacao_id}/contrapropostas", {
+          params: { path: { acao_id: acaoId, solicitacao_id: solicitacaoId } },
+          body: dados,
+        }),
+      ),
+
+    /** Só quem pediu: aceitar (acordo, aplica as datas) ou não aceitar (com justificativa; volta ao gestor). */
+    responderContraproposta: async (acaoId: number, solicitacaoId: number, contrapropostaId: number, dados: ResponderContraproposta) =>
+      exigirDados(
+        await http.POST("/acoes/{acao_id}/solicitacoes/{solicitacao_id}/contrapropostas/{contraproposta_id}/responder", {
+          params: { path: { acao_id: acaoId, solicitacao_id: solicitacaoId, contraproposta_id: contrapropostaId } },
           body: dados,
         }),
       ),

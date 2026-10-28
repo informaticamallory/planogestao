@@ -24,6 +24,7 @@ from app.models.enums import EventoHistorico, EventoPlano
 CAMPOS_ACAO = ("status", "progresso", "prazo", "prazo_inicio", "responsavel", "observacao", "subacao")
 EVENTOS_ACAO = (
     EventoHistorico.CRIACAO, EventoHistorico.SOLICITACAO, EventoHistorico.RESPOSTA_SOLICITACAO, EventoHistorico.COMENTARIO,
+    EventoHistorico.CONTRAPROPOSTA, EventoHistorico.RESPOSTA_CONTRAPROPOSTA,
 )
 CAMPOS_PLANO = ("data_inicio_estimado", "data_fim_estimado", "responsavel", "status", "rascunho")
 EVENTOS_PLANO = (EventoPlano.CRIACAO, EventoPlano.DESARQUIVAMENTO)
@@ -101,6 +102,10 @@ def descrever_ultima(db: Session, plano: PlanoDeAcao) -> tuple[datetime, str]:
             texto = f"Solicitação de prazo em {item} {quando}"
         elif h.evento == EventoHistorico.RESPOSTA_SOLICITACAO:
             texto = f"Resposta à solicitação de prazo em {item} {quando}"
+        elif h.evento == EventoHistorico.CONTRAPROPOSTA:
+            texto = f"Contraproposta de datas em {item} {quando}"
+        elif h.evento == EventoHistorico.RESPOSTA_CONTRAPROPOSTA:
+            texto = f"Resposta à contraproposta de datas em {item} {quando}"
         elif h.evento == EventoHistorico.COMENTARIO:
             texto = f"Comentário em {item} {quando}"
         elif h.evento == EventoHistorico.CRIACAO:

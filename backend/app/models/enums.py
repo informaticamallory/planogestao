@@ -53,12 +53,26 @@ class EventoHistorico(str, enum.Enum):
     COMENTARIO = "comentario"
     SOLICITACAO = "solicitacao"  # pedido de alteração de prazo
     RESPOSTA_SOLICITACAO = "resposta_solicitacao"
+    CONTRAPROPOSTA = "contraproposta"  # o gestor sugeriu outras datas
+    RESPOSTA_CONTRAPROPOSTA = "resposta_contraproposta"
 
 
 class StatusSolicitacao(str, enum.Enum):
+    """Desfecho do pedido. Enquanto negocia (com ou sem contraproposta) fica PENDENTE; ACORDO = o responsável
+    aceitou a contraproposta do gestor. A negociação é separada do status de execução da ação."""
+
     PENDENTE = "pendente"
     ACEITA = "aceita"
     RECUSADA = "recusada"
+    ACORDO = "acordo"
+
+
+class StatusContraproposta(str, enum.Enum):
+    PENDENTE = "pendente"  # aguardando resposta do responsável
+    ACEITA = "aceita"
+    NAO_ACEITA = "nao_aceita"
+    SUBSTITUIDA = "substituida"  # o gestor enviou outra no lugar
+    ENCERRADA = "encerrada"  # o gestor decidiu o pedido original enquanto esta aguardava
 
 
 class ReferenciaNotificacao(str, enum.Enum):

@@ -31,6 +31,8 @@ class TipoEvento:
     ACAO_CONCLUIDA = "acao_concluida"
     SOLICITACAO_PRAZO = "solicitacao_prazo"
     RESPOSTA_SOLICITACAO_PRAZO = "resposta_solicitacao_prazo"
+    CONTRAPROPOSTA_PRAZO = "contraproposta_prazo"  # gestor → solicitante
+    RESPOSTA_CONTRAPROPOSTA_PRAZO = "resposta_contraproposta_prazo"  # solicitante → gestor
     PLANO_VENCENDO = "plano_vencendo"
     PLANO_CONCLUIDO = "plano_concluido"
     # Avisos operacionais (services/avisos.py e avisos_agendados.py). ACAO_VENCENDO = "Prazo próximo".
@@ -41,7 +43,8 @@ class TipoEvento:
 
     TODOS = (
         ACAO_ATRIBUIDA, ACAO_VENCENDO, ACAO_ATRASADA, ACAO_CONCLUIDA,
-        SOLICITACAO_PRAZO, RESPOSTA_SOLICITACAO_PRAZO, PLANO_VENCENDO, PLANO_CONCLUIDO,
+        SOLICITACAO_PRAZO, RESPOSTA_SOLICITACAO_PRAZO, CONTRAPROPOSTA_PRAZO, RESPOSTA_CONTRAPROPOSTA_PRAZO,
+        PLANO_VENCENDO, PLANO_CONCLUIDO,
         RESUMO_SEMANAL, PRAZO_ALTERADO, DEPENDENCIA_LIBERADA, PLANO_SEM_ATUALIZACAO,
     )
 

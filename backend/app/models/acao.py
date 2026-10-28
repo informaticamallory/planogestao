@@ -17,7 +17,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, BigIntPK, TimestampMixin
-from app.models.enums import EventoHistorico, Prioridade, StatusAcao, StatusSolicitacao, pg_enum
+from app.models.enums import EventoHistorico, Prioridade, StatusAcao, StatusContraproposta, StatusSolicitacao, pg_enum
 from app.models.estrutura import Area, Setor
 from app.models.plano import PlanoDeAcao
 from app.models.usuario import Usuario
@@ -173,7 +173,10 @@ class AcaoHistorico(Base):
 
 
 class AcaoSolicitacaoAlteracao(Base):
-    """Contraproposta de prazo feita pelo responsável e respondida pelo gestor do plano."""
+    """Contraproposta de datas (início e/ou conclusão) feita pelo responsável e respondida pelo gestor do plano.
+
+    As datas vigentes só mudam na aprovação. `novo_prazo_sugerido` guarda a conclusão resultante (igual à atual
+    quando só o início foi pedido); `novo_prazo_inicio_sugerido` só existe quando o início foi pedido."""
 
     __tablename__ = "acao_solicitacao_alteracao"
     __table_args__ = (Index("ix_acao_solicitacao_acao_status", "acao_id", "status"),)
@@ -182,6 +185,8 @@ class AcaoSolicitacaoAlteracao(Base):
     acao_id: Mapped[int] = mapped_column(BigIntPK, ForeignKey("acoes.id", ondelete="CASCADE"), nullable=False)
     prazo_anterior: Mapped[date] = mapped_column(Date, nullable=False)
     novo_prazo_sugerido: Mapped[date] = mapped_column(Date, nullable=False)
+    prazo_inicio_anterior: Mapped[date | None] = mapped_column(Date)
+    novo_prazo_inicio_sugerido: Mapped[date | None] = mapped_column(Date)
     motivo: Mapped[str] = mapped_column(Text, nullable=False)
     status: Mapped[StatusSolicitacao] = mapped_column(
         pg_enum(StatusSolicitacao, "status_solicitacao"), nullable=False, default=StatusSolicitacao.PENDENTE
@@ -197,3 +202,56 @@ class AcaoSolicitacaoAlteracao(Base):
     acao: Mapped[Acao] = relationship(back_populates="solicitacoes")
     solicitado_por: Mapped[Usuario] = relationship(foreign_keys=[solicitado_por_id])
     respondido_por: Mapped[Usuario | None] = relationship(foreign_keys=[respondido_por_id])
+    contrapropostas: Mapped[list["AcaoContraproposta"]] = relationship(
+        back_populates="solicitacao", cascade="all, delete-orphan", order_by="AcaoContraproposta.id"
+    )
+
+    @property
+    def altera_inicio(self) -> bool:
+        return self.novo_prazo_inicio_sugerido is not None and self.novo_prazo_inicio_sugerido != self.prazo_inicio_anterior
+
+    @property
+    def altera_conclusao(self) -> bool:
+        return self.novo_prazo_sugerido != self.prazo_anterior
+
+    @property
+    def contraproposta_pendente(self) -> "AcaoContraproposta | None":
+        return next((c for c in self.contrapropostas if c.status == StatusContraproposta.PENDENTE), None)
+
+
+class AcaoContraproposta(Base):
+    """Outras datas sugeridas pelo gestor para uma solicitação pendente, respondidas pelo solicitante. Uma pendente por
+    vez; as anteriores ficam (substituídas, não aceitas ou encerradas) como histórico da negociação. As datas
+    vigentes só mudam quando o solicitante aceita. `novo_prazo` é a conclusão resultante; `novo_prazo_inicio`, o
+    início resultante (None = mantém o vigente)."""
+
+    __tablename__ = "acao_contraproposta"
+    __table_args__ = (Index("ix_acao_contraproposta_solicitacao", "solicitacao_id", "status"),)
+
+    id: Mapped[int] = mapped_column(BigIntPK, primary_key=True, autoincrement=True)
+    solicitacao_id: Mapped[int] = mapped_column(
+        BigIntPK, ForeignKey("acao_solicitacao_alteracao.id", ondelete="CASCADE"), nullable=False
+    )
+    prazo_inicio_vigente: Mapped[date | None] = mapped_column(Date)
+    prazo_vigente: Mapped[date] = mapped_column(Date, nullable=False)
+    novo_prazo_inicio: Mapped[date | None] = mapped_column(Date)
+    novo_prazo: Mapped[date] = mapped_column(Date, nullable=False)
+    justificativa: Mapped[str] = mapped_column(Text, nullable=False)
+    status: Mapped[StatusContraproposta] = mapped_column(
+        pg_enum(StatusContraproposta, "status_contraproposta"), nullable=False, default=StatusContraproposta.PENDENTE
+    )
+    proposto_por_id: Mapped[int] = mapped_column(BigIntPK, ForeignKey("usuarios.id"), nullable=False)
+    resposta_justificativa: Mapped[str | None] = mapped_column(Text)
+    respondido_em: Mapped[datetime | None] = mapped_column(DateTime)
+    criado_em: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), nullable=False)
+
+    solicitacao: Mapped[AcaoSolicitacaoAlteracao] = relationship(back_populates="contrapropostas")
+    proposto_por: Mapped[Usuario] = relationship()
+
+    @property
+    def altera_inicio(self) -> bool:
+        return self.novo_prazo_inicio is not None and self.novo_prazo_inicio != self.prazo_inicio_vigente
+
+    @property
+    def altera_conclusao(self) -> bool:
+        return self.novo_prazo != self.prazo_vigente

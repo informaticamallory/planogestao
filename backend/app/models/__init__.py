@@ -1,6 +1,6 @@
 """Importa todos os models para registrá-los no metadata (usado pelo Alembic)."""
 
-from app.models.acao import Acao, AcaoHistorico, AcaoSolicitacaoAlteracao, acao_dependencia
+from app.models.acao import Acao, AcaoContraproposta, AcaoHistorico, AcaoSolicitacaoAlteracao, acao_dependencia
 from app.models.notificacao import Notificacao, ResumoSemanalPlano
 from app.models.base import Base
 from app.models.configuracao import Configuracao
@@ -31,6 +31,7 @@ __all__ = [
     "Acao",
     "AcaoHistorico",
     "AcaoSolicitacaoAlteracao",
+    "AcaoContraproposta",
     "Notificacao",
     "Area",
     "Base",

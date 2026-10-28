@@ -3,9 +3,9 @@ import { ActivityIndicator, Text, View } from "react-native";
 
 import { useHistoricoAcao } from "../../hooks/useAcao";
 import { cores, escalarTexto, espaco, estilosDinamicos, fonte } from "../../theme";
-import { formatarData, formatarDataHora } from "../../utils/formatos";
+import { formatarDataHora } from "../../utils/formatos";
 import { descreverEventoAcao } from "../../utils/historico";
-import { ROTULO_SOLICITACAO } from "../../utils/rotulos";
+import { ROTULO_CONTRAPROPOSTA, ROTULO_SITUACAO, comoPedido, resumoMudancas } from "../../utils/solicitacaoDatas";
 import { AvisoErro } from "../AvisoErro";
 import { estilos as e } from "./FluxoPrazo";
 
@@ -15,6 +15,8 @@ const COR_EVENTO: Record<string, string> = {
   comentario: cores.info,
   solicitacao: cores.violeta,
   resposta_solicitacao: cores.sucesso,
+  contraproposta: cores.violeta,
+  resposta_contraproposta: cores.sucesso,
 };
 
 /** Timeline (GET /acoes/{id}/historico), mais recente primeiro. Ex.: "23/09 14:05 — João alterou o progresso de 30% para 70%". */
@@ -52,13 +54,19 @@ export function ListaSolicitacoes({ acao }: { acao: AcaoDetalhe }) {
   return (
     <View style={e.bloco}>
       <Text style={e.titulo} accessibilityRole="header">
-        Solicitações de prazo
+        Solicitações de datas
       </Text>
       {acao.solicitacoes.map((s, i) => (
         <View key={s.id} style={[estilos.solicitacao, i > 0 && estilos.divisor]}>
           <Text style={estilos.frase}>
-            <Text style={estilos.autor}>{ROTULO_SOLICITACAO[s.status]}</Text> · {formatarData(s.prazo_anterior)} → {formatarData(s.novo_prazo_sugerido)}
+            <Text style={estilos.autor}>{ROTULO_SITUACAO[s.situacao]}</Text> · {resumoMudancas(s)}
           </Text>
+          {s.contrapropostas.map((c) => (
+            <Text key={c.id} style={e.apoio}>
+              Contraproposta de {c.proposto_por.nome} ({ROTULO_CONTRAPROPOSTA[c.status].toLowerCase()}): {resumoMudancas(comoPedido(c))} — “
+              {c.justificativa}”{c.resposta_justificativa ? ` · Resposta: “${c.resposta_justificativa}”` : ""}
+            </Text>
+          ))}
           <Text style={e.apoio}>
             {s.solicitado_por.nome}, {formatarDataHora(s.criado_em)} — “{s.motivo}”
           </Text>
