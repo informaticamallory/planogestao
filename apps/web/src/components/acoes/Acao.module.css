@@ -385,11 +385,12 @@
   gap: var(--espaco-3);
 }
 
+/* Alinhados pelo topo: rótulos e campos na mesma linha mesmo quando um deles tem ajuda ou aviso embaixo. */
 .linhaCampos {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(min(13.75rem, 100%), 1fr));
   gap: var(--espaco-3);
-  align-items: end;
+  align-items: start;
 }
 
 .infoPrazo {
