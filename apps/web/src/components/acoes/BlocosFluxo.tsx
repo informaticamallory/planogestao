@@ -1,6 +1,6 @@
 /** Blocos do fluxo de aceite e solicitação de alteração de datas (início e/ou conclusão). */
 import type { AcaoDetalhe, ContrapropostaResumo, SolicitacaoResumo } from "@planogestao/shared-types";
-import { Fragment, useState } from "react";
+import { useState } from "react";
 
 import {
   useAceitarAcao,
@@ -15,12 +15,13 @@ import {
   ROTULO_SITUACAO,
   alertaContraproposta,
   alertaSolicitacao,
-  camposSolicitacao,
+  alvoSolicitacao,
   comoPedido,
   comparacaoContraproposta,
   formatarMomento,
-  linhasSolicitacao,
+  mudancasSolicitacao,
   resumoMudancas,
+  tituloSolicitacao,
 } from "../../utils/solicitacaoDatas";
 import { Button } from "../ui/Button";
 import { Icon } from "../ui/Icon";
@@ -113,20 +114,26 @@ export function FormSolicitacao({ acao, onFechar }: { acao: AcaoDetalhe; onFecha
   );
 }
 
-/** Datas atuais e solicitadas (só as pedidas), com o horário do pedido. */
-function DatasSolicitacao({ s }: { s: SolicitacaoResumo }) {
+/** A mudança em destaque: "De: 30/10/2026 → Para: 05/11/2026", uma linha por data (com o nome dela só se forem duas). */
+function MudancasSolicitacao({ s }: { s: SolicitacaoResumo }) {
+  const linhas = mudancasSolicitacao(s);
   return (
-    <dl className={styles.datasSolicitacao}>
-      <dt>Solicitado em</dt>
-      <dd>{formatarMomento(s.criado_em)}</dd>
-      {linhasSolicitacao(s).map((l) => (
-        <Fragment key={l.rotulo}>
-          <dt>{l.rotulo}</dt>
-          <dd>{l.valor}</dd>
-        </Fragment>
+    <ul className={styles.mudancas}>
+      {linhas.map((l) => (
+        <li key={l.rotulo}>
+          {linhas.length > 1 && <span className={styles.rotuloMudanca}>{l.rotulo}</span>}
+          <span>
+            De: {l.de} → Para: <strong>{l.para}</strong>
+          </span>
+        </li>
       ))}
-    </dl>
+    </ul>
   );
+}
+
+/** A data do pedido é informação secundária: vai no rodapé, para não se confundir com as datas da ação. */
+function PedidoEnviado({ s }: { s: SolicitacaoResumo }) {
+  return <p className={styles.notaPedido}>Pedido enviado em {formatarMomento(s.criado_em)}.</p>;
 }
 
 /** Para o responsável, enquanto a ação aguarda aceite. */
@@ -145,9 +152,14 @@ export function BlocoAceite({ acao }: { acao: AcaoDetalhe }) {
           <p className={styles.textoApoio} role="status">
             {pendente.contraproposta_pendente
               ? "O gestor sugeriu outra data para o seu pedido: responda à contraproposta abaixo. Ao aceitá-la, a ação é aceita automaticamente."
-              : `Você solicitou a alteração ${camposSolicitacao(pendente)}. Aguardando resposta do gestor — se aprovada, a ação é aceita automaticamente.`}
+              : `Você solicitou mudar ${alvoSolicitacao(pendente)} da ação. Aguardando resposta do gestor — se aprovada, a ação é aceita automaticamente.`}
           </p>
-          {!pendente.contraproposta_pendente && <DatasSolicitacao s={pendente} />}
+          {!pendente.contraproposta_pendente && (
+            <>
+              <MudancasSolicitacao s={pendente} />
+              <PedidoEnviado s={pendente} />
+            </>
+          )}
         </>
       ) : solicitando ? (
         <FormSolicitacao acao={acao} onFechar={() => setSolicitando(false)} />
@@ -347,18 +359,19 @@ export function BlocoRespostaSolicitacao({ acao }: { acao: AcaoDetalhe }) {
     <section className={`${styles.bloco} ${styles.blocoDestaque}`} aria-labelledby="titulo-solicitacao">
       <div className={styles.cabecalhoSolicitacao}>
         <h2 id="titulo-solicitacao" className={styles.tituloBloco}>
-          Solicitação de alteração de datas
+          {tituloSolicitacao(s)}
         </h2>
         <span className={`${styles.seloSituacao} ${styles[`seloSituacao_${s.situacao}`] ?? ""}`} role="status">
           {ROTULO_SITUACAO[s.situacao]}
         </span>
       </div>
-      <p className={styles.textoApoio}>
-        <strong>{s.solicitado_por.nome}</strong> solicitou a alteração {camposSolicitacao(s)}.
+      <p>
+        <strong>{s.solicitado_por.nome}</strong> solicitou mudar {alvoSolicitacao(s)} {acao.nivel > 0 ? "do sub-item" : "da ação"}:
       </p>
-      <DatasSolicitacao s={s} />
-      <h3 className={styles.subtituloBloco}>Justificativa</h3>
-      <blockquote className={styles.motivo}>{s.motivo}</blockquote>
+      <MudancasSolicitacao s={s} />
+      <p>
+        <strong>Justificativa:</strong> {s.motivo}
+      </p>
       {alerta && (
         <p className={styles.alertaSolicitacao} role="note">
           {alerta}
@@ -367,6 +380,7 @@ export function BlocoRespostaSolicitacao({ acao }: { acao: AcaoDetalhe }) {
       {s.feita_antes_do_aceite && (
         <p className={styles.textoApoio}>Pedido feito antes do aceite: ao aprovar, a ação é aceita automaticamente.</p>
       )}
+      <PedidoEnviado s={s} />
 
       {aguardando && (
         <div className={styles.caixaNegociacao}>

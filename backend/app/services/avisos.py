@@ -370,15 +370,20 @@ def campos_solicitacao(s: AcaoSolicitacaoAlteracao) -> str:
     return "da data de início" if s.altera_inicio else "da data de conclusão"
 
 
+def alvo_solicitacao(s: AcaoSolicitacaoAlteracao) -> str:
+    """O que o pedido muda, para a frase "Fulano solicitou mudar …"."""
+    if s.altera_inicio and s.altera_conclusao:
+        return "as datas de início e conclusão"
+    return "o início" if s.altera_inicio else "a conclusão"
+
+
 def linhas_datas_solicitacao(s: AcaoSolicitacaoAlteracao) -> list[str]:
-    """Atual e solicitada, só dos campos pedidos (datas planejadas; as reais não entram em solicitação)."""
+    """Uma linha "De → Para" por data pedida (datas planejadas; as reais não entram em solicitação)."""
     linhas = []
     if s.altera_inicio:
-        linhas += [f"Data de início atual: {_fmt(s.prazo_inicio_anterior)}",
-                   f"Data de início solicitada: {_fmt(s.novo_prazo_inicio_sugerido)}"]
+        linhas.append(f"Início — De: {_fmt(s.prazo_inicio_anterior)} → Para: {_fmt(s.novo_prazo_inicio_sugerido)}")
     if s.altera_conclusao:
-        linhas += [f"Data de conclusão atual: {_fmt(s.prazo_anterior)}",
-                   f"Data de conclusão solicitada: {_fmt(s.novo_prazo_sugerido)}"]
+        linhas.append(f"Conclusão — De: {_fmt(s.prazo_anterior)} → Para: {_fmt(s.novo_prazo_sugerido)}")
     return linhas
 
 
@@ -420,7 +425,7 @@ def _valores_solicitacao(acao: Acao, s: AcaoSolicitacaoAlteracao) -> dict[str, s
         **_valores_item(acao),
         "solicitado_por": s.solicitado_por.nome,
         "solicitado_em": _momento(s.criado_em),
-        "resumo_solicitacao": f"{s.solicitado_por.nome} solicitou a alteração {campos_solicitacao(s)}.",
+        "resumo_solicitacao": f"{s.solicitado_por.nome} solicitou mudar {alvo_solicitacao(s)} {_do_item(acao)}.",
         "datas_solicitadas": "\n".join(linhas_datas_solicitacao(s) + ([f"Atenção: {alerta}"] if alerta else [])),
         "justificativa": s.motivo,
     }
@@ -435,8 +440,9 @@ def solicitacao_prazo(db: Session, acao: Acao, s: AcaoSolicitacaoAlteracao) -> i
         chave=f"{TipoEvento.SOLICITACAO_PRAZO}:{s.id}",
         titulo=f"Solicitação de alteração de datas: {rotulo_item(acao)} — {acao.plano.codigo}",
         mensagem=(
-            f"{nome} solicitou a alteração {campos_solicitacao(s)} {_do_item(acao)} “{acao.descricao}”. "
+            f"{nome} solicitou mudar {alvo_solicitacao(s)} {_do_item(acao)} “{acao.descricao}”. "
             + " · ".join(linhas_datas_solicitacao(s)) + "." + (f" {alerta}" if alerta else "") + f" Justificativa: {s.motivo}"
+            + f" Pedido enviado em {_momento(s.criado_em)}."
         ),
         plano=acao.plano, acao=acao, autor_id=s.solicitado_por_id,
         destinatarios=aprovadores_solicitacao(db, acao, s.solicitado_por_id),

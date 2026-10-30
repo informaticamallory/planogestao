@@ -16,7 +16,7 @@ import { useAcaoDetalhe } from "../../hooks/useAcao";
 import { cores, escalarTexto, espaco, estilosDinamicos, fonte, raio } from "../../theme";
 import { formatarData, formatarDataHora } from "../../utils/formatos";
 import { ROTULO_PRIORIDADE, acaoEmAberto, rotuloNumeroAcao, selosDaAcao, textoStatusAcao } from "../../utils/rotulos";
-import { camposSolicitacao, resumoMudancas } from "../../utils/solicitacaoDatas";
+import { resumoMudancas } from "../../utils/solicitacaoDatas";
 
 /** "Ação 2 — descrição" (ou "Sub-item 2.1 — …"). */
 const nomeRef = (r: RefAcao) => `${rotuloNumeroAcao(r.numero)} — ${r.descricao}`;
@@ -195,7 +195,7 @@ export default function DetalheAcaoScreen() {
         <View style={estilos.faixa} accessibilityRole="text">
           <Icone nome="clock" tamanho={18} cor={cores.info} />
           <Text style={estilos.textoFaixa}>
-            Sua solicitação de alteração {camposSolicitacao(acao.solicitacao_pendente)} ({resumoMudancas(acao.solicitacao_pendente)})
+            Sua solicitação ({resumoMudancas(acao.solicitacao_pendente)})
             aguarda resposta do gestor. Até lá, as datas atuais continuam valendo.
           </Text>
         </View>

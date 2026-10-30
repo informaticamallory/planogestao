@@ -224,7 +224,35 @@
   font-style: italic;
 }
 
-/* Solicitação de alteração de datas: "Rótulo: valor", uma linha por informação. */
+/* Pedido de datas: a mudança em destaque ("De: … → Para: …") e a data do pedido como nota no rodapé. */
+.mudancas {
+  display: grid;
+  gap: var(--espaco-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--fonte-base);
+  font-variant-numeric: tabular-nums;
+}
+
+.mudancas li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--espaco-2);
+}
+
+.rotuloMudanca {
+  min-width: 5.5rem;
+  font-weight: 600;
+}
+
+.notaPedido {
+  margin: 0;
+  font-size: var(--fonte-sm);
+  color: var(--cor-texto-suave);
+}
+
+/* Formulário da contraproposta: "Rótulo: valor", uma linha por informação. */
 .datasSolicitacao {
   display: grid;
   grid-template-columns: max-content minmax(0, 1fr);

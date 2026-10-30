@@ -17,11 +17,12 @@ import {
   ROTULO_SITUACAO,
   alertaContraproposta,
   alertaSolicitacao,
-  camposSolicitacao,
+  alvoSolicitacao,
   comparacaoContraproposta,
   formatarMomento,
-  linhasSolicitacao,
+  mudancasSolicitacao,
   resumoMudancas,
+  tituloSolicitacao,
 } from "../../utils/solicitacaoDatas";
 import { Botao } from "../Botao";
 import { CampoData, CampoTexto } from "../Campos";
@@ -39,17 +40,24 @@ function ErroTexto({ texto }: { texto: string }) {
   );
 }
 
-/** Datas atuais e solicitadas (só as pedidas), com o horário do pedido. */
-function DatasSolicitacao({ s }: { s: SolicitacaoResumo }) {
+/** A mudança em destaque: "De: 30/10/2026 → Para: 05/11/2026", uma linha por data (com o nome dela só se forem duas). */
+function MudancasSolicitacao({ s }: { s: SolicitacaoResumo }) {
+  const linhas = mudancasSolicitacao(s);
   return (
     <View style={estilos.datas}>
-      {[{ rotulo: "Solicitado em", valor: formatarMomento(s.criado_em) }, ...linhasSolicitacao(s)].map((l) => (
-        <Text key={l.rotulo} style={estilos.apoio}>
-          {l.rotulo}: <Text style={estilos.forte}>{l.valor}</Text>
+      {linhas.map((l) => (
+        <Text key={l.rotulo} style={estilos.mudanca}>
+          {linhas.length > 1 && <Text style={estilos.forte}>{l.rotulo}: </Text>}
+          De: {l.de} → Para: <Text style={estilos.forte}>{l.para}</Text>
         </Text>
       ))}
     </View>
   );
+}
+
+/** A data do pedido é informação secundária: vai no rodapé, para não se confundir com as datas da ação. */
+function PedidoEnviado({ s }: { s: SolicitacaoResumo }) {
+  return <Text style={estilos.nota}>Pedido enviado em {formatarMomento(s.criado_em)}.</Text>;
 }
 
 /** Bottom sheet: nova data de início e/ou de conclusão (seletor nativo) + justificativa. */
@@ -157,9 +165,14 @@ export function BlocoAceite({ acao }: { acao: AcaoDetalhe }) {
           <Text style={estilos.apoio} accessibilityRole="text">
             {pendente.contraproposta_pendente
               ? "O gestor sugeriu outra data para o seu pedido: responda à contraproposta abaixo. Ao aceitá-la, a ação é aceita automaticamente."
-              : `Você solicitou a alteração ${camposSolicitacao(pendente)}. Aguardando resposta do gestor — se aprovada, a ação é aceita automaticamente.`}
+              : `Você solicitou mudar ${alvoSolicitacao(pendente)} da ação. Aguardando resposta do gestor — se aprovada, a ação é aceita automaticamente.`}
           </Text>
-          {!pendente.contraproposta_pendente && <DatasSolicitacao s={pendente} />}
+          {!pendente.contraproposta_pendente && (
+            <>
+              <MudancasSolicitacao s={pendente} />
+              <PedidoEnviado s={pendente} />
+            </>
+          )}
         </>
       ) : (
         <>
@@ -381,17 +394,20 @@ export function BlocoRespostaSolicitacao({ acao }: { acao: AcaoDetalhe }) {
   const resumo = (
     <>
       <Text style={estilos.apoio}>
-        <Text style={estilos.forte}>{s.solicitado_por.nome}</Text> solicitou a alteração {camposSolicitacao(s)}.
+        <Text style={estilos.forte}>{s.solicitado_por.nome}</Text> solicitou mudar {alvoSolicitacao(s)}{" "}
+        {acao.nivel > 0 ? "do sub-item" : "da ação"}:
       </Text>
-      <DatasSolicitacao s={s} />
-      <Text style={estilos.subtitulo}>Justificativa</Text>
-      <Text style={estilos.motivo}>{s.motivo}</Text>
+      <MudancasSolicitacao s={s} />
+      <Text style={estilos.mudanca}>
+        <Text style={estilos.forte}>Justificativa:</Text> {s.motivo}
+      </Text>
       {alerta && (
         <Text style={estilos.alerta} accessibilityRole="text">
           {alerta}
         </Text>
       )}
       {s.feita_antes_do_aceite && <Text style={estilos.apoio}>Pedido feito antes do aceite: ao aprovar, a ação é aceita automaticamente.</Text>}
+      <PedidoEnviado s={s} />
       {aguardando && (
         <>
           <Text style={estilos.apoio}>
@@ -415,7 +431,7 @@ export function BlocoRespostaSolicitacao({ acao }: { acao: AcaoDetalhe }) {
   return (
     <View style={[estilos.bloco, estilos.destaque]}>
       <Text style={estilos.titulo} accessibilityRole="header">
-        Solicitação de alteração de datas
+        {tituloSolicitacao(s)}
       </Text>
       <Text style={[estilos.apoio, estilos.forte]}>{ROTULO_SITUACAO[s.situacao]}</Text>
       {resumo}
@@ -472,6 +488,8 @@ export const estilos = estilosDinamicos(() => ({
   },
   erro: { fontSize: fonte.sm, color: cores.perigo, fontWeight: "600" },
   datas: { gap: espaco[1] },
+  mudanca: { fontSize: fonte.base, color: cores.texto, lineHeight: escalarTexto(22) },
+  nota: { fontSize: fonte.sm, color: cores.textoSuave },
   caixa: { gap: espaco[3], padding: espaco[3], borderWidth: 1, borderColor: cores.borda, borderRadius: raio.md, backgroundColor: cores.superficie },
   subtitulo: { fontSize: fonte.base, fontWeight: "700", color: cores.texto },
   alerta: {

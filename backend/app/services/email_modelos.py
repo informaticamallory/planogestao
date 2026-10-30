@@ -75,8 +75,8 @@ _VARIAVEIS_SOLICITACAO = {
     **_VARIAVEIS_ITEM,
     "solicitado_por": "Quem pediu a alteração (o responsável pelo item).",
     "solicitado_em": "Quando o pedido foi feito (dd/mm/aaaa às hh:mm).",
-    "resumo_solicitacao": "Frase do pedido (ex.: Maria solicitou a alteração da data de conclusão.).",
-    "datas_solicitadas": "Data atual e solicitada, só das datas pedidas (início e/ou conclusão), e o alerta do plano.",
+    "resumo_solicitacao": "Frase do pedido (ex.: Maria solicitou mudar a conclusão da ação 2.).",
+    "datas_solicitadas": "Uma linha “De → Para” por data pedida (início e/ou conclusão), e o alerta do plano.",
     "justificativa": "Justificativa informada por quem pediu.",
 }
 
@@ -188,10 +188,10 @@ CATALOGO: dict[str, DefModelo] = {
             "Solicitação de alteração de datas",
             _VARIAVEIS_SOLICITACAO,
             "[Planos de Ação] Solicitação de alteração de datas: {{item}} — {{numero_pa}}",
-            "Olá, {{destinatario}}.\n\n{{resumo_solicitacao}}\n\nPlano de Ação: {{numero_pa}} — {{titulo_pa}}\n"
-            "Item: {{item}} — {{descricao}}\nSolicitado por: {{solicitado_por}}\nSolicitado em: {{solicitado_em}}\n\n"
-            "{{datas_solicitadas}}\n\nJustificativa: {{justificativa}}\n\n"
-            "Acesse o item para aprovar ou recusar. Até a resposta, as datas atuais continuam valendo.",
+            "Olá, {{destinatario}}.\n\n{{resumo_solicitacao}}\n\n{{datas_solicitadas}}\n\nJustificativa: {{justificativa}}\n\n"
+            "Plano de Ação: {{numero_pa}} — {{titulo_pa}}\nItem: {{item}} — {{descricao}}\n\n"
+            "Acesse o item para aprovar ou recusar. Até a resposta, as datas atuais continuam valendo.\n\n"
+            "Pedido enviado em {{solicitado_em}}.",
             botao="Avaliar solicitação",
         ),
         DefModelo(
@@ -204,8 +204,9 @@ CATALOGO: dict[str, DefModelo] = {
              "justificativa_resposta": f"Justificativa de quem respondeu ({VAZIO} quando não houver)."},
             "[Planos de Ação] Solicitação de alteração de datas {{resultado}}: {{item}} — {{numero_pa}}",
             "Olá, {{destinatario}}.\n\n{{respondido_por}} respondeu à sua solicitação de alteração de datas: {{resultado}}.\n\n"
-            "Plano de Ação: {{numero_pa}} — {{titulo_pa}}\nItem: {{item}} — {{descricao}}\nSolicitado em: {{solicitado_em}}\n\n"
-            "{{datas_solicitadas}}\n\nDatas vigentes:\n{{datas_vigentes}}\n\nJustificativa da resposta: {{justificativa_resposta}}",
+            "Plano de Ação: {{numero_pa}} — {{titulo_pa}}\nItem: {{item}} — {{descricao}}\n\nO que você pediu:\n"
+            "{{datas_solicitadas}}\n\nDatas vigentes:\n{{datas_vigentes}}\n\nJustificativa da resposta: {{justificativa_resposta}}\n\n"
+            "Pedido enviado em {{solicitado_em}}.",
             botao="Ver item",
         ),
         DefModelo(
@@ -333,8 +334,8 @@ DADOS_FICTICIOS = {
     "quantidade_planos": "1 plano",
     "solicitado_por": "Maria Exemplo",
     "solicitado_em": "28/10/2026 às 09:03",
-    "resumo_solicitacao": "Maria Exemplo solicitou a alteração da data de conclusão.",
-    "datas_solicitadas": "Data de conclusão atual: 31/10/2026\nData de conclusão solicitada: 14/11/2026\n"
+    "resumo_solicitacao": "Maria Exemplo solicitou mudar a conclusão da ação 2.",
+    "datas_solicitadas": "Conclusão — De: 31/10/2026 → Para: 14/11/2026\n"
                          "Atenção: A data de conclusão solicitada ultrapassa o término estimado do plano, em 10/11/2026.",
     "justificativa": "Fornecedor adiou a entrega do termopar.",
     "resultado": "aprovada",

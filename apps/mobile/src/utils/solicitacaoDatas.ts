@@ -10,32 +10,31 @@ type Pedido = Pick<
 
 const fmt = (iso: string | null | undefined) => (iso ? formatarData(iso) : "—");
 
-/** "da data de início", "da data de conclusão" ou "das datas de início e conclusão". */
-export function camposSolicitacao(s: Pedido): string {
-  if (s.altera_inicio && s.altera_conclusao) return "das datas de início e conclusão";
-  return s.altera_inicio ? "da data de início" : "da data de conclusão";
+/** "o início", "a conclusão" ou "as datas de início e conclusão" (frase "Fulano solicitou mudar …"). */
+export function alvoSolicitacao(s: Pedido): string {
+  if (s.altera_inicio && s.altera_conclusao) return "as datas de início e conclusão";
+  return s.altera_inicio ? "o início" : "a conclusão";
 }
 
-/** Atual e solicitada, só das datas pedidas. */
-export function linhasSolicitacao(s: Pedido): { rotulo: string; valor: string }[] {
+/** "Solicitação de alteração do início" / "da conclusão" / "das datas". */
+export function tituloSolicitacao(s: Pedido): string {
+  if (s.altera_inicio && s.altera_conclusao) return "Solicitação de alteração das datas";
+  return s.altera_inicio ? "Solicitação de alteração do início" : "Solicitação de alteração da conclusão";
+}
+
+/** De → Para, uma linha por data pedida. */
+export function mudancasSolicitacao(s: Pedido): { rotulo: string; de: string; para: string }[] {
   const linhas = [];
-  if (s.altera_inicio) {
-    linhas.push({ rotulo: "Data de início atual", valor: fmt(s.prazo_inicio_anterior) });
-    linhas.push({ rotulo: "Data de início solicitada", valor: fmt(s.novo_prazo_inicio_sugerido) });
-  }
-  if (s.altera_conclusao) {
-    linhas.push({ rotulo: "Data de conclusão atual", valor: fmt(s.prazo_anterior) });
-    linhas.push({ rotulo: "Data de conclusão solicitada", valor: fmt(s.novo_prazo_sugerido) });
-  }
+  if (s.altera_inicio) linhas.push({ rotulo: "Início", de: fmt(s.prazo_inicio_anterior), para: fmt(s.novo_prazo_inicio_sugerido) });
+  if (s.altera_conclusao) linhas.push({ rotulo: "Conclusão", de: fmt(s.prazo_anterior), para: fmt(s.novo_prazo_sugerido) });
   return linhas;
 }
 
-/** Versão curta para listas: "Início 10/11/2026 → 12/11/2026 · Conclusão 20/11/2026 → 25/11/2026". */
+/** Versão em uma linha, para listas: "Início — De: 30/10/2026 → Para: 05/11/2026 · Conclusão — De: … → Para: …". */
 export function resumoMudancas(s: Pedido): string {
-  const partes = [];
-  if (s.altera_inicio) partes.push(`Início ${fmt(s.prazo_inicio_anterior)} → ${fmt(s.novo_prazo_inicio_sugerido)}`);
-  if (s.altera_conclusao) partes.push(`Conclusão ${fmt(s.prazo_anterior)} → ${fmt(s.novo_prazo_sugerido)}`);
-  return partes.join(" · ");
+  return mudancasSolicitacao(s)
+    .map((l) => `${l.rotulo} — De: ${l.de} → Para: ${l.para}`)
+    .join(" · ");
 }
 
 export function alertaSolicitacao(s: Pedido, fimEstimadoPlano: string): string | null {

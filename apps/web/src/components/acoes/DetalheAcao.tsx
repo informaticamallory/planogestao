@@ -5,7 +5,7 @@ import { Link } from "react-router-dom";
 import { useAcaoDetalhe } from "../../hooks/useAcao";
 import { formatarData, formatarDataHora } from "../../utils/datas";
 import { ROTULO_LISTA_PLANOS, caminhoListaPlanos } from "../../utils/hierarquiaPlanos";
-import { ROTULO_SITUACAO, camposSolicitacao, comoPedido, resumoMudancas } from "../../utils/solicitacaoDatas";
+import { ROTULO_SITUACAO, comoPedido, resumoMudancas } from "../../utils/solicitacaoDatas";
 import { NavegacaoHierarquia, type NivelHierarquia } from "../planos/NavegacaoHierarquia";
 import { Icon } from "../ui/Icon";
 import { ProgressBar } from "../ui/ProgressBar";
@@ -176,7 +176,7 @@ export function DetalheAcao({ acaoId, compacto = false }: DetalheAcaoProps) {
       {p.responder_contraproposta && <BlocoContraproposta acao={acao} />}
       {!mostrarAceite && !p.responder_contraproposta && p.eh_responsavel && acao.solicitacao_pendente && (
         <p className={styles.faixaInfo} role="status">
-          Sua solicitação de alteração {camposSolicitacao(acao.solicitacao_pendente)} ({resumoMudancas(acao.solicitacao_pendente)}) aguarda
+          Sua solicitação ({resumoMudancas(acao.solicitacao_pendente)}) aguarda
           resposta do gestor. Até lá, as datas atuais continuam valendo.
         </p>
       )}
